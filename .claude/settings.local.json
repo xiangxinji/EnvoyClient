@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo --version)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(npx tauri *)",
+      "Bash(rustup show *)",
+      "Bash(rustup target *)",
+      "Bash(rustup update *)",
+      "Bash(rustc *)",
+      "Bash(rustup toolchain *)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill *)"
+    ]
+  }
+}
