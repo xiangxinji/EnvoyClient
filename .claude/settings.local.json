@@ -11,7 +11,9 @@
       "Bash(rustc *)",
       "Bash(rustup toolchain *)",
       "Bash(netstat -ano)",
-      "Bash(taskkill *)"
+      "Bash(taskkill *)",
+      "Bash(tasklist)",
+      "Bash(git submodule *)"
     ]
   }
 }
