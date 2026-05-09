@@ -30,7 +30,8 @@
       "Bash(kill %1)",
       "Bash(cargo check *)",
       "Bash(curl -s http://localhost:8080/api/teams)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(awk '{print $5}')"
     ]
   }
 }

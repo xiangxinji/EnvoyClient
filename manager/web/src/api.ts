@@ -43,6 +43,7 @@ export interface TaskInfo {
 
 export interface UserInfo {
   username: string;
+  role: "leader" | "member";
   createdAt: number;
 }
 
@@ -70,16 +71,16 @@ export const api = {
   getMembers: (name: string) => request<MemberInfo[]>(`/teams/${name}/members`),
   getTasks: (name: string) => request<TaskInfo[]>(`/teams/${name}/tasks`),
   getUsers: () => request<UserInfo[]>("/users"),
-  createUser: (username: string, password: string) =>
+  createUser: (username: string, password: string, role: "leader" | "member") =>
     request<UserInfo>("/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, role }),
     }),
   deleteUser: (username: string) =>
     request<{ ok: boolean }>(`/users/${username}`, { method: "DELETE" }),
   auth: (username: string, password: string) =>
-    request<{ ok: boolean; username: string }>("/auth", {
+    request<{ ok: boolean; username: string; role: "leader" | "member" }>("/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),

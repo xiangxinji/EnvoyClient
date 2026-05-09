@@ -1,75 +1,115 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useTeamClient } from "../composables/useTeamClient";
 import { setTeamClientInstance } from "../composables/teamClientContext";
 import logo from "../assets/logo.png";
 
+const isTauri = "__TAURI_INTERNALS__" in window;
+
 const router = useRouter();
 
-const role = ref<"leader" | "member">("member");
-const clientId = ref("");
-const password = ref("");
-const serverUrl = ref("ws://localhost:3000");
 const managerUrl = ref("http://localhost:8080");
+const username = ref("");
+const password = ref("");
 const loading = ref(false);
 const error = ref("");
-const idError = ref("");
-const urlError = ref("");
+const role = ref<"leader" | "member">("member");
+const teams = ref<{ name: string; port: number }[]>([]);
+const selectedTeam = ref("");
+const authenticated = ref(false);
 
-function validate(): boolean {
-  idError.value = "";
-  urlError.value = "";
-  let valid = true;
-
-  if (!clientId.value.trim()) {
-    idError.value = "请输入 Client ID";
-    valid = false;
+async function loadSettings() {
+  if (!isTauri) {
+    // Browser mode: just use default
+    return;
   }
-
-  const url = serverUrl.value.trim();
-  if (!url.startsWith("ws://") && !url.startsWith("wss://")) {
-    urlError.value = "URL 需要以 ws:// 或 wss:// 开头";
-    valid = false;
-  }
-
-  return valid;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const settings = (await invoke("get_settings")) as any;
+    if (settings.managerUrl) managerUrl.value = settings.managerUrl;
+  } catch {}
 }
 
-async function handleConnect() {
-  if (!validate()) return;
+async function handleLogin() {
+  const user = username.value.trim();
+  const pass = password.value;
+  if (!user || !pass) {
+    error.value = "请输入用户名和密码";
+    return;
+  }
 
   loading.value = true;
   error.value = "";
 
   try {
-    // Auth via Manager HTTP API
-    const res = await fetch(`${managerUrl.value.trim()}/api/auth`, {
+    const base = managerUrl.value.trim();
+    const res = await fetch(`${base}/api/auth`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: clientId.value.trim(),
-        password: password.value,
-      }),
+      body: JSON.stringify({ username: user, password: pass }),
     });
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: "认证失败" }));
       throw new Error(err.error || "认证失败");
     }
 
+    const data = await res.json();
+    role.value = data.role;
+
+    const teamsRes = await fetch(`${base}/api/teams`);
+    const teamsData = await teamsRes.json();
+    teams.value = teamsData.map((t: any) => ({ name: t.name, port: t.port }));
+
+    if (teams.value.length === 0) {
+      error.value = "暂无可用的团队，请先在 Manager 中创建";
+      loading.value = false;
+      return;
+    }
+
+    selectedTeam.value = teams.value[0].name;
+    authenticated.value = true;
+  } catch (e: any) {
+    error.value = e.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function handleConnect() {
+  const team = teams.value.find((t) => t.name === selectedTeam.value);
+  if (!team) return;
+
+  loading.value = true;
+  error.value = "";
+
+  try {
+    const url = new URL(managerUrl.value.trim());
+    const wsUrl = `ws://${url.hostname}:${team.port}`;
+
     const teamClient = useTeamClient(role.value, {
-      id: clientId.value.trim(),
-      servers: [serverUrl.value.trim()],
+      id: username.value.trim(),
+      servers: [wsUrl],
     });
 
     await teamClient.connect();
     setTeamClientInstance(teamClient);
     router.push("/chat");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "Connection failed";
+    error.value = e instanceof Error ? e.message : "连接失败";
     loading.value = false;
   }
 }
+
+function handleLogout() {
+  authenticated.value = false;
+  teams.value = [];
+  selectedTeam.value = "";
+  error.value = "";
+}
+
+onMounted(loadSettings);
 </script>
 
 <template>
@@ -79,62 +119,49 @@ async function handleConnect() {
       <h1>Envoy</h1>
       <p class="subtitle">团队协作客户端</p>
 
-      <div class="role-cards">
-        <div
-          class="role-card"
-          :class="{ active: role === 'leader' }"
-          @click="role = 'leader'"
-        >
-          <div class="role-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-            </svg>
+      <!-- Step 1: Login -->
+      <template v-if="!authenticated">
+        <div class="fields">
+          <div class="field">
+            <label for="username">用户名</label>
+            <input id="username" v-model="username" placeholder="输入用户名" :disabled="loading" @keydown.enter="handleLogin" />
           </div>
-          <span class="role-label">Leader</span>
-        </div>
-        <div
-          class="role-card"
-          :class="{ active: role === 'member' }"
-          @click="role = 'member'"
-        >
-          <div class="role-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+          <div class="field">
+            <label for="password">密码</label>
+            <input id="password" v-model="password" type="password" placeholder="输入密码" :disabled="loading" @keydown.enter="handleLogin" />
           </div>
-          <span class="role-label">Member</span>
-        </div>
-      </div>
-
-      <div class="fields">
-        <div class="field">
-          <label for="client-id">用户名</label>
-          <input id="client-id" v-model="clientId" placeholder="例如 alice" :disabled="loading" />
-          <span v-if="idError" class="error">{{ idError }}</span>
         </div>
 
-        <div class="field">
-          <label for="password">密码</label>
-          <input id="password" v-model="password" type="password" placeholder="输入密码" :disabled="loading" />
+        <button class="connect-btn" @click="handleLogin" :disabled="loading">
+          <span v-if="loading" class="spinner"></span>
+          <span>{{ loading ? "登录中..." : "登录" }}</span>
+        </button>
+      </template>
+
+      <!-- Step 2: Select team -->
+      <template v-else>
+        <div class="auth-info">
+          <span class="auth-user">{{ username }}</span>
+          <span class="role-badge" :class="role">{{ role }}</span>
+          <button class="btn-logout" @click="handleLogout">退出</button>
         </div>
 
-        <div class="field">
-          <label for="server-url">Server URL</label>
-          <input id="server-url" v-model="serverUrl" placeholder="ws://localhost:3001" :disabled="loading" />
-          <span v-if="urlError" class="error">{{ urlError }}</span>
+        <div class="fields">
+          <div class="field">
+            <label>选择团队</label>
+            <select v-model="selectedTeam" :disabled="loading">
+              <option v-for="t in teams" :key="t.name" :value="t.name">
+                {{ t.name }}
+              </option>
+            </select>
+          </div>
         </div>
 
-        <div class="field">
-          <label for="manager-url">Manager URL</label>
-          <input id="manager-url" v-model="managerUrl" placeholder="http://localhost:8080" :disabled="loading" />
-        </div>
-      </div>
-
-      <button class="connect-btn" @click="handleConnect" :disabled="loading">
-        <span v-if="loading" class="spinner"></span>
-        <span>{{ loading ? "连接中..." : "连接" }}</span>
-      </button>
+        <button class="connect-btn" @click="handleConnect" :disabled="loading">
+          <span v-if="loading" class="spinner"></span>
+          <span>{{ loading ? "连接中..." : "连接" }}</span>
+        </button>
+      </template>
 
       <p v-if="error" class="error">{{ error }}</p>
     </div>
@@ -185,49 +212,6 @@ h1 {
   color: var(--text-muted);
 }
 
-.role-cards {
-  display: flex;
-  gap: var(--space-md);
-  width: 100%;
-}
-
-.role-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-lg);
-  border-radius: var(--radius-md);
-  border: 2px solid var(--border);
-  background: var(--bg-primary);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.role-card:hover {
-  border-color: var(--text-muted);
-}
-
-.role-card.active {
-  border-color: var(--accent);
-  background: var(--accent-light);
-}
-
-.role-icon {
-  color: var(--text-muted);
-}
-
-.role-card.active .role-icon {
-  color: var(--accent);
-}
-
-.role-label {
-  font-size: 0.9em;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
 .fields {
   display: flex;
   flex-direction: column;
@@ -247,7 +231,8 @@ h1 {
   color: var(--text-secondary);
 }
 
-input {
+input,
+select {
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--input-border);
@@ -255,14 +240,67 @@ input {
   color: var(--text-primary);
   outline: none;
   transition: border-color 0.15s;
+  font-size: 0.9em;
 }
 
-input:focus {
+input:focus,
+select:focus {
   border-color: var(--accent);
 }
 
 input::placeholder {
   color: var(--text-muted);
+}
+
+select {
+  cursor: pointer;
+}
+
+.auth-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-md);
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.auth-user {
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.role-badge {
+  font-size: 0.75em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.role-badge.leader {
+  background: rgba(255, 159, 10, 0.12);
+  color: #ff9f0a;
+}
+
+.role-badge.member {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.btn-logout {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8em;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.btn-logout:hover {
+  color: var(--error);
 }
 
 .connect-btn {
@@ -294,14 +332,16 @@ input::placeholder {
 .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error {

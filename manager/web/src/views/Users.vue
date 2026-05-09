@@ -8,6 +8,7 @@ const error = ref("");
 const showCreate = ref(false);
 const newName = ref("");
 const newPass = ref("");
+const newRole = ref<"leader" | "member">("member");
 const creating = ref(false);
 
 async function refresh() {
@@ -27,9 +28,10 @@ async function handleCreate() {
   if (!username || !password) return;
   creating.value = true;
   try {
-    await api.createUser(username, password);
+    await api.createUser(username, password, newRole.value);
     newName.value = "";
     newPass.value = "";
+    newRole.value = "member";
     showCreate.value = false;
     await refresh();
   } catch (e: any) {
@@ -68,6 +70,7 @@ onMounted(refresh);
           <thead>
             <tr>
               <th>用户名</th>
+              <th>角色</th>
               <th>创建时间</th>
               <th>操作</th>
             </tr>
@@ -75,6 +78,9 @@ onMounted(refresh);
           <tbody>
             <tr v-for="u in users" :key="u.username">
               <td class="name-cell">{{ u.username }}</td>
+              <td>
+                <span class="role-badge" :class="u.role">{{ u.role }}</span>
+              </td>
               <td>{{ new Date(u.createdAt).toLocaleString() }}</td>
               <td>
                 <button class="btn-delete" @click="handleDelete(u.username)">删除</button>
@@ -96,6 +102,13 @@ onMounted(refresh);
         <div class="field">
           <label>密码</label>
           <input v-model="newPass" type="password" placeholder="输入密码" @keydown.enter="handleCreate" />
+        </div>
+        <div class="field">
+          <label>角色</label>
+          <div class="role-select">
+            <button class="role-btn" :class="{ active: newRole === 'leader' }" @click="newRole = 'leader'">Leader</button>
+            <button class="role-btn" :class="{ active: newRole === 'member' }" @click="newRole = 'member'">Member</button>
+          </div>
         </div>
         <div v-if="error" class="error">{{ error }}</div>
         <div class="modal-actions">
@@ -293,5 +306,45 @@ tr:last-child td {
 .btn-confirm:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.role-select {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.role-btn {
+  flex: 1;
+  padding: 8px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.85em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.role-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.role-badge {
+  font-size: 0.8em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.role-badge.leader {
+  background: rgba(255, 159, 10, 0.12);
+  color: #ff9f0a;
+}
+
+.role-badge.member {
+  background: var(--accent-light);
+  color: var(--accent);
 }
 </style>

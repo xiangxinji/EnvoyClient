@@ -1,4 +1,5 @@
 mod history;
+mod settings;
 
 use std::collections::HashMap;
 
@@ -29,6 +30,16 @@ fn import_history(my_id: &str, peer_id: &str, source_path: &str) -> Result<(), S
     history::import_history(my_id, peer_id, source_path)
 }
 
+#[tauri::command]
+fn get_settings() -> Result<serde_json::Value, String> {
+    settings::get_settings()
+}
+
+#[tauri::command]
+fn save_settings(settings: serde_json::Value) -> Result<(), String> {
+    settings::save_settings(settings)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -39,6 +50,8 @@ pub fn run() {
             load_all_history,
             export_history,
             import_history,
+            get_settings,
+            save_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

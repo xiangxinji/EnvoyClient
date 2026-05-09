@@ -5,6 +5,7 @@ import { join } from "node:path";
 export interface UserRecord {
   username: string;
   password: string;
+  role: "leader" | "member";
   createdAt: number;
 }
 
