@@ -13,7 +13,10 @@
       "Bash(netstat -ano)",
       "Bash(taskkill *)",
       "Bash(tasklist)",
-      "Bash(git submodule *)"
+      "Bash(git submodule *)",
+      "Bash(git config *)",
+      "Bash(git rm *)",
+      "Bash(git add *)"
     ]
   }
 }
