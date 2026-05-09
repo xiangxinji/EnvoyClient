@@ -1,12 +1,19 @@
-import { ref, watch } from "vue";
+import { ref } from "vue";
 
 type Theme = "light" | "dark";
 
 const STORAGE_KEY = "envoy-theme";
 
-const current = ref<Theme>(
-  (localStorage.getItem(STORAGE_KEY) as Theme) ?? "dark"
-);
+function getSystemTheme(): Theme {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function getInitialTheme(): Theme {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return (stored === "light" || stored === "dark") ? stored : getSystemTheme();
+}
+
+const current = ref<Theme>(getInitialTheme());
 
 function apply(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
@@ -16,6 +23,12 @@ function apply(theme: Theme) {
 
 export function useTheme() {
   apply(current.value);
+
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      apply(e.matches ? "dark" : "light");
+    }
+  });
 
   function toggle() {
     apply(current.value === "dark" ? "light" : "dark");
