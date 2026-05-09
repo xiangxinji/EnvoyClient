@@ -16,7 +16,11 @@
       "Bash(git submodule *)",
       "Bash(git config *)",
       "Bash(git rm *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(cargo clean *)",
+      "Bash(npx openspec *)",
+      "Bash(npx vite *)",
+      "Bash(npx tsc *)"
     ]
   }
 }

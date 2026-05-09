@@ -18,8 +18,17 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* Envoy submodule path mapping */
+    "paths": {
+      "@envoy/core": ["./Envoy/packages/core/index.ts"],
+      "@envoy/client": ["./Envoy/packages/client/index.ts"],
+      "@envoy/teams": ["./Envoy/packages/teams/index.ts"]
+    },
+    "baseUrl": "."
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "exclude": ["Envoy/packages/server"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
