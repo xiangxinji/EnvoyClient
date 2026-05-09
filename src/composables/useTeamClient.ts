@@ -1,4 +1,5 @@
 import { ref, onUnmounted } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import { Leader } from "../../Envoy/packages/teams/leader.js";
 import { Member } from "../../Envoy/packages/teams/member.js";
 import type { ClientOptions } from "@envoy/client";
@@ -28,6 +29,13 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
     const conv = messages.value.get(peerId) ?? [];
     conv.push(item);
     messages.value.set(peerId, conv);
+    invoke("save_message", { myId, peerId, message: item }).catch(() => {});
+  }
+
+  function updateInConversation(peerId: string, item: TimelineItem) {
+    const existing = messages.value.get(peerId) ?? [];
+    messages.value.set(peerId, [...existing]);
+    invoke("save_message", { myId, peerId, message: item }).catch(() => {});
   }
 
   function syncUnread(peerId: string, isCurrentPeer: boolean) {
@@ -36,8 +44,20 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
     }
   }
 
+  async function loadHistory() {
+    try {
+      const all = await invoke<Record<string, TimelineItem[]>>("load_all_history", { myId });
+      for (const [peerId, items] of Object.entries(all)) {
+        messages.value.set(peerId, items);
+      }
+    } catch {
+      // no history files yet, that's fine
+    }
+  }
+
   client.on("connected", () => {
     status.value = "connected";
+    loadHistory();
   });
 
   client.on("disconnected", () => {
@@ -92,7 +112,7 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
       const idx = existing.findIndex((t) => t.type === "task" && "taskId" in t && t.taskId === task.id);
       if (idx >= 0) {
         existing[idx] = taskMsg;
-        messages.value.set(peerId, [...existing]);
+        updateInConversation(peerId, taskMsg);
       } else {
         addToConversation(peerId, taskMsg);
       }
@@ -131,6 +151,16 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
     });
   }
 
+  async function exportHistory(peerId: string, targetPath: string) {
+    await invoke("export_history", { myId, peerId, targetPath });
+  }
+
+  async function importHistory(peerId: string, sourcePath: string) {
+    await invoke("import_history", { myId, peerId, sourcePath });
+    const items = await invoke<TimelineItem[]>("load_history", { myId, peerId });
+    messages.value.set(peerId, items);
+  }
+
   onUnmounted(() => {
     client.disconnect();
   });
@@ -148,5 +178,7 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
     dispatchTask,
     getConversation,
     syncUnread,
+    exportHistory,
+    importHistory,
   };
 }
