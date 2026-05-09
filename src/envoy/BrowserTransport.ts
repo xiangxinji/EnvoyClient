@@ -1,9 +1,9 @@
-import { EventEmitter } from "../../Envoy/packages/core/event-emitter";
+import { EventEmitter } from "../../envoy/packages/core/event-emitter";
 import {
   type Message,
   serializeMessage,
   deserializeMessage,
-} from "../../Envoy/packages/core/message";
+} from "../../envoy/packages/core/message";
 
 export interface ClientTransportOptions {
   url: string;

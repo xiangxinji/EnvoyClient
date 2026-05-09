@@ -20,7 +20,7 @@ export default defineConfig(async () => ({
       resolveId(source: string, importer: string) {
         if (
           importer &&
-          importer.replace(/\\/g, "/").includes("Envoy/packages/client/") &&
+          importer.replace(/\\/g, "/").includes("envoy/packages/client/") &&
           (source.endsWith("transport.js") || source.endsWith("transport.ts"))
         ) {
           return path.resolve(__dirname, "src/envoy/BrowserTransport.ts");
@@ -31,9 +31,9 @@ export default defineConfig(async () => ({
 
   resolve: {
     alias: {
-      "@envoy/core": path.resolve(__dirname, "Envoy/packages/core/index.ts"),
-      "@envoy/client": path.resolve(__dirname, "Envoy/packages/client/index.ts"),
-      "@envoy/teams": path.resolve(__dirname, "Envoy/packages/teams/index.ts"),
+      "@envoy/core": path.resolve(__dirname, "envoy/packages/core/index.ts"),
+      "@envoy/client": path.resolve(__dirname, "envoy/packages/client/index.ts"),
+      "@envoy/teams": path.resolve(__dirname, "envoy/packages/teams/index.ts"),
     },
   },
 

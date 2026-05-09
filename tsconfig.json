@@ -22,13 +22,13 @@
 
     /* Envoy submodule path mapping */
     "paths": {
-      "@envoy/core": ["./Envoy/packages/core/index.ts"],
-      "@envoy/client": ["./Envoy/packages/client/index.ts"],
-      "@envoy/teams": ["./Envoy/packages/teams/index.ts"]
+      "@envoy/core": ["./envoy/packages/core/index.ts"],
+      "@envoy/client": ["./envoy/packages/client/index.ts"],
+      "@envoy/teams": ["./envoy/packages/teams/index.ts"]
     },
     "baseUrl": "."
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "exclude": ["Envoy/packages/server"],
+  "exclude": ["envoy/packages/server"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

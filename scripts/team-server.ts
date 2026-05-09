@@ -1,7 +1,7 @@
 // Team 服务器启动脚本
 // 用法: npx tsx scripts/team-server.ts
 
-import { Team } from "../Envoy/packages/teams/team.js";
+import { Team } from "../envoy/packages/teams/team.js";
 
 const port = Number(process.env.PORT) || 3000;
 const host = process.env.HOST || "localhost";

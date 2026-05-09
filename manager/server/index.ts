@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
-import { Team } from "../../Envoy/packages/teams/team.js";
+import { Team } from "../../envoy/packages/teams/team.js";
 import { loadRegistry, ensureRegistryDir } from "./team-registry.js";
 import teamRoutes from "./routes/teams.js";
 import userRoutes from "./routes/users.js";

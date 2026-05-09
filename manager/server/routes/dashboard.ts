@@ -1,5 +1,5 @@
 import type { Hono } from "hono";
-import { Team } from "../../../Envoy/packages/teams/team.js";
+import { Team } from "../../../envoy/packages/teams/team.js";
 import { loadRegistry } from "../team-registry.js";
 import { teamStats } from "./teams.js";
 

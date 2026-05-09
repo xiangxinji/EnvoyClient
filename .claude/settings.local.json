@@ -31,7 +31,12 @@
       "Bash(cargo check *)",
       "Bash(curl -s http://localhost:8080/api/teams)",
       "Bash(curl *)",
-      "Bash(awk '{print $5}')"
+      "Bash(awk '{print $5}')",
+      "Bash(git mv *)",
+      "Bash(mv Envoy envoy_tmp)",
+      "Bash(mv envoy_tmp envoy)",
+      "Bash(cmd.exe //C \"rename Envoy envoy_tmp\")",
+      "Bash(powershell *)"
     ]
   }
 }

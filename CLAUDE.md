@@ -8,7 +8,7 @@ EnvoyClient 是一个基于 Tauri 2 + Vue 3 的桌面协作客户端，使用 En
 
 - **Client Frontend**: Vue 3 + TypeScript + Vite + Vue Router
 - **Desktop**: Tauri 2 (Rust backend)
-- **Communication**: Envoy framework (WebSocket, 子模块 `Envoy/`)
+- **Communication**: Envoy framework (WebSocket, 子模块 `envoy/`)
 - **Storage**: Rust 文件 IO，存储在 `~/.envoy/history/`
 - **Manager Backend**: Hono (Node.js HTTP API)
 - **Manager Frontend**: Vue 3 + TypeScript + Vite + Vue Router
@@ -55,7 +55,7 @@ src-tauri/
 │   └── main.rs
 ├── Cargo.toml           # Rust deps: tauri, serde, serde_json, dirs
 └── tauri.conf.json      # Window config (decorations: false)
-Envoy/                   # Git submodule - WebSocket framework
+envoy/                    # Git submodule - WebSocket framework
 scripts/
 └── team-server.ts       # Team server launcher (tsx)
 manager/

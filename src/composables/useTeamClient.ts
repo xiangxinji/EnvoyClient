@@ -1,7 +1,7 @@
 import { ref, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import { Leader } from "../../Envoy/packages/teams/leader.js";
-import { Member } from "../../Envoy/packages/teams/member.js";
+import { Leader } from "../../envoy/packages/teams/leader.js";
+import { Member } from "../../envoy/packages/teams/member.js";
 import type { ClientOptions } from "@envoy/client";
 import type { Message } from "@envoy/core";
 import type { MemberInfo, TimelineItem, ChatMessage, TaskMessage } from "../types";
