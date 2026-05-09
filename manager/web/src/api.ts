@@ -41,6 +41,11 @@ export interface TaskInfo {
   createdAt: number;
 }
 
+export interface UserInfo {
+  username: string;
+  createdAt: number;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, init);
   if (!res.ok) {
@@ -64,4 +69,19 @@ export const api = {
     request<{ ok: boolean }>(`/teams/${name}`, { method: "DELETE" }),
   getMembers: (name: string) => request<MemberInfo[]>(`/teams/${name}/members`),
   getTasks: (name: string) => request<TaskInfo[]>(`/teams/${name}/tasks`),
+  getUsers: () => request<UserInfo[]>("/users"),
+  createUser: (username: string, password: string) =>
+    request<UserInfo>("/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    }),
+  deleteUser: (username: string) =>
+    request<{ ok: boolean }>(`/users/${username}`, { method: "DELETE" }),
+  auth: (username: string, password: string) =>
+    request<{ ok: boolean; username: string }>("/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    }),
 };

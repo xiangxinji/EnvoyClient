@@ -8,6 +8,7 @@ const { theme, toggle } = useTheme();
 const navItems = [
   { path: "/", label: "概览" },
   { path: "/teams", label: "团队" },
+  { path: "/users", label: "用户" },
 ];
 </script>
 

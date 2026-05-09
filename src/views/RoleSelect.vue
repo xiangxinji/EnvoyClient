@@ -9,7 +9,9 @@ const router = useRouter();
 
 const role = ref<"leader" | "member">("member");
 const clientId = ref("");
+const password = ref("");
 const serverUrl = ref("ws://localhost:3000");
+const managerUrl = ref("http://localhost:8080");
 const loading = ref(false);
 const error = ref("");
 const idError = ref("");
@@ -41,6 +43,20 @@ async function handleConnect() {
   error.value = "";
 
   try {
+    // Auth via Manager HTTP API
+    const res = await fetch(`${managerUrl.value.trim()}/api/auth`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: clientId.value.trim(),
+        password: password.value,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "认证失败" }));
+      throw new Error(err.error || "认证失败");
+    }
+
     const teamClient = useTeamClient(role.value, {
       id: clientId.value.trim(),
       servers: [serverUrl.value.trim()],
@@ -93,15 +109,25 @@ async function handleConnect() {
 
       <div class="fields">
         <div class="field">
-          <label for="client-id">Client ID</label>
+          <label for="client-id">用户名</label>
           <input id="client-id" v-model="clientId" placeholder="例如 alice" :disabled="loading" />
           <span v-if="idError" class="error">{{ idError }}</span>
         </div>
 
         <div class="field">
+          <label for="password">密码</label>
+          <input id="password" v-model="password" type="password" placeholder="输入密码" :disabled="loading" />
+        </div>
+
+        <div class="field">
           <label for="server-url">Server URL</label>
-          <input id="server-url" v-model="serverUrl" placeholder="ws://localhost:3000" :disabled="loading" />
+          <input id="server-url" v-model="serverUrl" placeholder="ws://localhost:3001" :disabled="loading" />
           <span v-if="urlError" class="error">{{ urlError }}</span>
+        </div>
+
+        <div class="field">
+          <label for="manager-url">Manager URL</label>
+          <input id="manager-url" v-model="managerUrl" placeholder="http://localhost:8080" :disabled="loading" />
         </div>
       </div>
 

@@ -62,16 +62,18 @@ manager/
 ├── server/
 │   ├── index.ts          # Hono HTTP API + Team 实例池管理 (port 8080)
 │   ├── team-registry.ts  # teams.json 读写 + 端口分配
+│   ├── user-registry.ts  # users.json 读写 + 认证
 │   └── package.json      # hono, tsx
 └── web/
     ├── src/
     │   ├── App.vue       # 管理后台布局 + 主题变量
     │   ├── api.ts        # REST API 封装
-    │   ├── router.ts     # / → Dashboard, /teams, /teams/:name
+    │   ├── router.ts     # / → Dashboard, /teams, /teams/:name, /users
     │   ├── views/
     │   │   ├── Dashboard.vue   # 全局概览（团队数/成员数/任务统计）
     │   │   ├── Teams.vue       # 团队列表 + 创建/删除
-    │   │   └── TeamDetail.vue  # 单团队详情（成员表 + 任务表）
+    │   │   ├── TeamDetail.vue  # 单团队详情（成员表 + 任务表）
+    │   │   └── Users.vue       # 用户管理（增删查账号）
     │   └── components/
     │       ├── TeamCard.vue
     │       ├── MemberTable.vue
@@ -116,3 +118,4 @@ manager/
 - **Message persistence**: 新消息通过 `invoke("save_message")` 写入 `~/.envoy/history/${myId}/${peerId}.json`
 - **Manager architecture**: Manager 后端同时运行 HTTP API 和多个 Team 实例，每个团队独立端口。团队注册表持久化在 `~/.envoy/teams.json`
 - **Manager API**: REST 风格，通过 `team.innerServer.getClients()` / `getAllTasks()` 查询实时数据
+- **User auth**: 全局账号存储在 `~/.envoy/users.json`（明文密码），EnvoyClient 连接前通过 `POST /api/auth` 校验，不修改 Envoy 框架

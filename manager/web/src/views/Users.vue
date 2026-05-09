@@ -1,0 +1,297 @@
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
+import { api, type UserInfo } from "../api";
+
+const users = ref<UserInfo[]>([]);
+const loading = ref(true);
+const error = ref("");
+const showCreate = ref(false);
+const newName = ref("");
+const newPass = ref("");
+const creating = ref(false);
+
+async function refresh() {
+  try {
+    users.value = await api.getUsers();
+    error.value = "";
+  } catch (e: any) {
+    error.value = e.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function handleCreate() {
+  const username = newName.value.trim();
+  const password = newPass.value;
+  if (!username || !password) return;
+  creating.value = true;
+  try {
+    await api.createUser(username, password);
+    newName.value = "";
+    newPass.value = "";
+    showCreate.value = false;
+    await refresh();
+  } catch (e: any) {
+    error.value = e.message;
+  } finally {
+    creating.value = false;
+  }
+}
+
+async function handleDelete(username: string) {
+  if (!confirm(`确定要删除用户 "${username}" 吗？`)) return;
+  try {
+    await api.deleteUser(username);
+    await refresh();
+  } catch (e: any) {
+    error.value = e.message;
+  }
+}
+
+onMounted(refresh);
+</script>
+
+<template>
+  <div class="users-page">
+    <div class="page-header">
+      <h1 class="page-title">用户管理</h1>
+      <button class="btn-create" @click="showCreate = true">新增用户</button>
+    </div>
+
+    <div v-if="loading" class="loading">加载中...</div>
+    <div v-else-if="error" class="error">{{ error }}</div>
+
+    <template v-else>
+      <div class="table-wrap">
+        <table v-if="users.length > 0">
+          <thead>
+            <tr>
+              <th>用户名</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="u in users" :key="u.username">
+              <td class="name-cell">{{ u.username }}</td>
+              <td>{{ new Date(u.createdAt).toLocaleString() }}</td>
+              <td>
+                <button class="btn-delete" @click="handleDelete(u.username)">删除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="empty">暂无用户，点击上方按钮新增</div>
+      </div>
+    </template>
+
+    <div v-if="showCreate" class="modal-overlay" @click.self="showCreate = false">
+      <div class="modal">
+        <h3>新增用户</h3>
+        <div class="field">
+          <label>用户名</label>
+          <input v-model="newName" placeholder="输入用户名" @keydown.enter="handleCreate" />
+        </div>
+        <div class="field">
+          <label>密码</label>
+          <input v-model="newPass" type="password" placeholder="输入密码" @keydown.enter="handleCreate" />
+        </div>
+        <div v-if="error" class="error">{{ error }}</div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showCreate = false; error = ''">取消</button>
+          <button class="btn-confirm" :disabled="creating || !newName.trim() || !newPass" @click="handleCreate">
+            {{ creating ? "创建中..." : "创建" }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.users-page {
+  width: 100%;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xl);
+}
+
+.page-title {
+  font-size: 1.4em;
+  font-weight: 700;
+}
+
+.btn-create {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88em;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-create:hover {
+  background: var(--accent-hover);
+}
+
+.loading {
+  color: var(--text-muted);
+  padding: var(--space-xl);
+}
+
+.error {
+  color: var(--error);
+  font-size: 0.82em;
+}
+
+.table-wrap {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88em;
+}
+
+th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.name-cell {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.82em;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-delete:hover {
+  color: var(--error);
+  background: rgba(255, 69, 58, 0.1);
+}
+
+.empty {
+  padding: var(--space-2xl);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88em;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  width: 380px;
+  box-shadow: var(--shadow-md);
+}
+
+.modal h3 {
+  margin-bottom: var(--space-lg);
+  font-size: 1.1em;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.field label {
+  font-size: 0.82em;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.field input {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9em;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: var(--accent);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.btn-cancel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.88em;
+}
+
+.btn-confirm {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.88em;
+}
+
+.btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>
