@@ -17,15 +17,14 @@ EnvoyClient 是一个基于 Tauri 2 + Vue 3 的桌面协作客户端，使用 En
 
 ```bash
 # EnvoyClient (Tauri 桌面客户端)
-npm run dev              # Vite dev server (port 1420)
-npm run tauri dev        # Tauri desktop app
-npm run build            # Frontend build
-npm run tauri build      # Full desktop build
-npx tsx scripts/team-server.ts  # 单独 Team server (Node.js, port 3000)
+npm run tauri:dev              # 启动 Tauri 桌面应用
+npm run build                  # 前端构建
+npm run tauri build            # 完整桌面构建
 
 # Manager (管理后台)
-cd manager/server && npx tsx index.ts    # Manager API + Team 实例池 (port 8080)
-cd manager/web && npm run dev            # Manager 前端 (port 5180)
+npm run manager                # 同时启动后端 (port 8080) + 前端 (port 5180)
+npm run manager:server         # 仅启动后端
+npm run manager:web            # 仅启动前端
 ```
 
 ## Project Structure

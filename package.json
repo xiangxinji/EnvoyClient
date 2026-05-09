@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "manager:server": "tsx manager/server/index.ts",
+    "manager:web": "cd manager/web && npx vite",
+    "manager": "concurrently -n server,web -c blue,green \"npm run manager:server\" \"npm run manager:web\""
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
@@ -20,6 +24,7 @@
     "@tauri-apps/cli": "^2",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-vue": "^5.2.1",
+    "concurrently": "^9.2.1",
     "tsx": "^4.21.0",
     "typescript": "~5.6.2",
     "vite": "^6.0.3",
