@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useTheme } from "../composables/useTheme";
+import logo from "../assets/logo.png";
 
 const appWindow = getCurrentWindow();
 const { theme, toggle } = useTheme();
@@ -21,25 +22,28 @@ function close() {
 <template>
   <div class="titlebar" data-tauri-drag-region>
     <div class="traffic-lights">
-      <button class="light close" @click="close" title="Close">
+      <button class="light close" @click="close" title="关闭">
         <svg width="8" height="8" viewBox="0 0 8 8">
           <line x1="1" y1="1" x2="7" y2="7" stroke="#4d0000" stroke-width="1.2" />
           <line x1="7" y1="1" x2="1" y2="7" stroke="#4d0000" stroke-width="1.2" />
         </svg>
       </button>
-      <button class="light minimize" @click="minimize" title="Minimize">
+      <button class="light minimize" @click="minimize" title="最小化">
         <svg width="8" height="8" viewBox="0 0 8 8">
           <line x1="1" y1="4" x2="7" y2="4" stroke="#995700" stroke-width="1.2" />
         </svg>
       </button>
-      <button class="light maximize" @click="toggleMaximize" title="Maximize">
+      <button class="light maximize" @click="toggleMaximize" title="最大化">
         <svg width="8" height="8" viewBox="0 0 8 8">
           <path d="M1 3 L4 6 L7 3" fill="none" stroke="#006500" stroke-width="1.2" />
         </svg>
       </button>
     </div>
-    <div class="title" data-tauri-drag-region>Envoy</div>
-    <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? 'Light mode' : 'Dark mode'">
+    <div class="title" data-tauri-drag-region>
+      <img :src="logo" class="logo" alt="Envoy" />
+      <span>Envoy</span>
+    </div>
+    <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? '浅色模式' : '深色模式'">
       <svg v-if="theme === 'dark'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="5" />
         <line x1="12" y1="1" x2="12" y2="3" />
@@ -63,7 +67,7 @@ function close() {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 38px;
+  height: 42px;
   background: var(--titlebar-bg);
   border-bottom: 1px solid var(--titlebar-border);
   user-select: none;
@@ -75,7 +79,7 @@ function close() {
   display: flex;
   gap: 8px;
   position: absolute;
-  left: 14px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
 }
@@ -101,52 +105,43 @@ function close() {
   opacity: 1;
 }
 
-.close {
-  background: #ff5f57;
-}
+.close { background: #ff5f57; }
+.minimize { background: #febc2e; }
+.maximize { background: #28c840; }
 
-.minimize {
-  background: #febc2e;
-}
-
-.maximize {
-  background: #28c840;
-}
-
-.light:hover {
-  filter: brightness(0.85);
-}
-
-.close:hover {
-  background: #ff3b30;
-}
-
-.minimize:hover {
-  background: #f5a623;
-}
-
-.maximize:hover {
-  background: #1db954;
-}
+.light:hover { filter: brightness(0.85); }
+.close:hover { background: #ff3b30; }
+.minimize:hover { background: #f5a623; }
+.maximize:hover { background: #1db954; }
 
 .title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   font-size: 0.82em;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--titlebar-text);
   letter-spacing: 0.3px;
 }
 
+.logo {
+  height: 22px;
+  width: 22px;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
 .theme-toggle {
   position: absolute;
-  right: 14px;
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;

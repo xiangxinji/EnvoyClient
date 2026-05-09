@@ -14,87 +14,112 @@ useTheme();
 
 <style>
 :root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
   --bg-primary: #ffffff;
-  --bg-secondary: #f7f7f7;
-  --bg-tertiary: #fafafa;
-  --bg-input: #ffffff;
-  --border: #ddd;
-  --border-light: #eee;
-  --text-primary: #1a1a1a;
-  --text-secondary: #555;
-  --text-muted: #999;
-  --accent: #396cd8;
-  --accent-hover: #2b5ab8;
-  --task-pending-bg: #edf2f7;
-  --task-pending-text: #718096;
-  --task-running-border: #3182ce;
-  --task-running-bg: #ebf8ff;
-  --task-running-text: #3182ce;
-  --task-completed-border: #38a169;
-  --task-completed-bg: #f0fff4;
-  --task-completed-text: #38a169;
-  --task-failed-border: #e53e3e;
-  --task-failed-bg: #fff5f5;
-  --task-failed-text: #e53e3e;
-  --task-card-bg: #fff;
-  --bubble-other: #e8e8e8;
-  --bubble-other-text: #1a1a1a;
-  --badge-bg: #e53e3e;
-  --task-btn-bg: #e8a817;
-  --task-btn-text: #333;
-  --role-leader-bg: #ffd700;
-  --role-leader-text: #333;
-  --role-member-bg: #ddd;
-  --role-member-text: #555;
-  --error: #e53e3e;
-  --input-border: #ccc;
-  --sidebar-active: #d0e0f0;
-  --sidebar-hover: #e8e8e8;
-  --titlebar-bg: #e8e8e8;
-  --titlebar-border: #d0d0d0;
-  --titlebar-text: #333;
+  --bg-secondary: #f5f5f7;
+  --bg-tertiary: #eeeef0;
+  --bg-elevated: #ffffff;
+  --bg-input: #f5f5f7;
+  --border: #e5e5e7;
+  --border-light: #eeeef0;
+  --text-primary: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-muted: #aeaeb2;
+  --accent: #0071e3;
+  --accent-hover: #0062cc;
+  --accent-light: #e8f2ff;
+  --task-pending-bg: #f0f0f2;
+  --task-pending-text: #86868b;
+  --task-running-border: #0071e3;
+  --task-running-bg: #e8f2ff;
+  --task-running-text: #0071e3;
+  --task-completed-border: #34c759;
+  --task-completed-bg: #eefbf2;
+  --task-completed-text: #248a3d;
+  --task-failed-border: #ff3b30;
+  --task-failed-bg: #fff1f0;
+  --task-failed-text: #d70015;
+  --task-card-bg: #ffffff;
+  --bubble-mine: #0071e3;
+  --bubble-mine-text: #ffffff;
+  --bubble-other: #f0f0f2;
+  --bubble-other-text: #1d1d1f;
+  --badge-bg: #ff3b30;
+  --task-btn-bg: #ff9500;
+  --task-btn-text: #ffffff;
+  --role-leader-bg: #ff9500;
+  --role-leader-text: #ffffff;
+  --role-member-bg: #e5e5e7;
+  --role-member-text: #6e6e73;
+  --error: #ff3b30;
+  --input-border: #d2d2d7;
+  --sidebar-active: #e8f2ff;
+  --sidebar-hover: #f0f0f2;
+  --titlebar-bg: #f5f5f7;
+  --titlebar-border: #e5e5e7;
+  --titlebar-text: #6e6e73;
+  --online-dot: #34c759;
+  --empty-icon: #d2d2d7;
 }
 
 html.dark {
-  --bg-primary: #1e1e1e;
-  --bg-secondary: #252525;
-  --bg-tertiary: #2b2b2b;
-  --bg-input: #333;
-  --border: #3a3a3a;
-  --border-light: #333;
-  --text-primary: #e0e0e0;
-  --text-secondary: #aaa;
-  --text-muted: #777;
-  --accent: #5b8def;
-  --accent-hover: #4a7cdd;
-  --task-pending-bg: #2d333b;
-  --task-pending-text: #8b949e;
-  --task-running-border: #3182ce;
-  --task-running-bg: #1a2633;
-  --task-running-text: #6cb4ee;
-  --task-completed-border: #2ea043;
-  --task-completed-bg: #1a2e1f;
-  --task-completed-text: #56d364;
-  --task-failed-border: #e5534b;
-  --task-failed-bg: #2e1a1a;
-  --task-failed-text: #f47067;
-  --task-card-bg: #2b2b2b;
-  --bubble-other: #333;
-  --bubble-other-text: #e0e0e0;
-  --badge-bg: #e53e3e;
-  --task-btn-bg: #b8860b;
-  --task-btn-text: #e0e0e0;
-  --role-leader-bg: #b8860b;
-  --role-leader-text: #e0e0e0;
-  --role-member-bg: #444;
-  --role-member-text: #aaa;
-  --error: #f47067;
-  --input-border: #444;
-  --sidebar-active: #2a3a4a;
-  --sidebar-hover: #333;
-  --titlebar-bg: #2b2b2b;
-  --titlebar-border: #1a1a1a;
-  --titlebar-text: #999;
+  --bg-primary: #0d0d0f;
+  --bg-secondary: #161618;
+  --bg-tertiary: #1c1c1e;
+  --bg-elevated: #1c1c1e;
+  --bg-input: #1c1c1e;
+  --border: #2c2c2e;
+  --border-light: #232325;
+  --text-primary: #f5f5f7;
+  --text-secondary: #98989d;
+  --text-muted: #636366;
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --accent-light: #1a2a3d;
+  --task-pending-bg: #1c1c1e;
+  --task-pending-text: #98989d;
+  --task-running-border: #0a84ff;
+  --task-running-bg: #0d1a2a;
+  --task-running-text: #64d2ff;
+  --task-completed-border: #30d158;
+  --task-completed-bg: #0d1f12;
+  --task-completed-text: #30d158;
+  --task-failed-border: #ff453a;
+  --task-failed-bg: #1f0d0d;
+  --task-failed-text: #ff453a;
+  --task-card-bg: #1c1c1e;
+  --bubble-mine: #0a84ff;
+  --bubble-mine-text: #ffffff;
+  --bubble-other: #1c1c1e;
+  --bubble-other-text: #f5f5f7;
+  --badge-bg: #ff453a;
+  --task-btn-bg: #ff9f0a;
+  --task-btn-text: #1d1d1f;
+  --role-leader-bg: #ff9f0a;
+  --role-leader-text: #1d1d1f;
+  --role-member-bg: #2c2c2e;
+  --role-member-text: #98989d;
+  --error: #ff453a;
+  --input-border: #3a3a3c;
+  --sidebar-active: #1a2a3d;
+  --sidebar-hover: #1c1c1e;
+  --titlebar-bg: #161618;
+  --titlebar-border: #2c2c2e;
+  --titlebar-text: #98989d;
+  --online-dot: #30d158;
+  --empty-icon: #3a3a3c;
 }
 
 html, body {
@@ -104,6 +129,11 @@ html, body {
   overflow: hidden;
   background: var(--bg-primary);
   color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #app {
@@ -117,7 +147,30 @@ html, body {
   overflow: hidden;
 }
 
-* {
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+input, button, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 </style>

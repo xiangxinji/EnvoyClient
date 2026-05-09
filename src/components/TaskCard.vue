@@ -6,67 +6,78 @@ defineProps<{
 }>();
 
 const statusLabels: Record<TaskMessage["status"], string> = {
-  pending: "Pending",
-  running: "Running",
-  completed: "Completed",
-  failed: "Failed",
+  pending: "等待中",
+  running: "执行中",
+  completed: "已完成",
+  failed: "失败",
 };
 </script>
 
 <template>
   <div class="task-card" :class="task.status">
     <div class="task-header">
-      <span class="task-icon">Task</span>
+      <div class="task-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4" />
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+        </svg>
+        <span>任务</span>
+      </div>
       <span class="status-badge" :class="task.status">{{ statusLabels[task.status] }}</span>
     </div>
     <div class="task-content">{{ task.content }}</div>
     <div class="task-meta">
-      <span>from: {{ task.from }}</span>
+      <span>来自 {{ task.from }}</span>
     </div>
   </div>
 </template>
 
 <style scoped>
 .task-card {
-  max-width: 85%;
-  padding: 10px 14px;
-  border-radius: 8px;
+  max-width: 80%;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
   background: var(--task-card-bg);
   color: var(--text-primary);
   align-self: flex-start;
+  box-shadow: var(--shadow-sm);
 }
 
 .task-card.running {
-  border-color: var(--task-running-border);
+  border-left-color: var(--task-running-border);
 }
 
 .task-card.completed {
-  border-color: var(--task-completed-border);
+  border-left-color: var(--task-completed-border);
 }
 
 .task-card.failed {
-  border-color: var(--task-failed-border);
+  border-left-color: var(--task-failed-border);
 }
 
 .task-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-sm);
 }
 
-.task-icon {
+.task-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
   font-weight: 600;
-  font-size: 0.85em;
+  font-size: 0.8em;
   color: var(--text-secondary);
 }
 
 .status-badge {
   font-size: 0.7em;
   padding: 2px 8px;
-  border-radius: 3px;
-  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
 }
 
 .status-badge.pending {
@@ -90,13 +101,13 @@ const statusLabels: Record<TaskMessage["status"], string> = {
 }
 
 .task-content {
-  font-size: 0.95em;
+  font-size: 0.9em;
   line-height: 1.4;
 }
 
 .task-meta {
-  margin-top: 6px;
-  font-size: 0.75em;
+  margin-top: var(--space-sm);
+  font-size: 0.72em;
   color: var(--text-muted);
 }
 </style>
