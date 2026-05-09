@@ -1,0 +1,17 @@
+{
+  "name": "envoy-manager-server",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch index.ts",
+    "start": "tsx index.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.2",
+    "hono": "^4"
+  },
+  "devDependencies": {
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}
