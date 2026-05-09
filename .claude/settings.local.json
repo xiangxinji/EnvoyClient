@@ -20,7 +20,14 @@
       "Bash(cargo clean *)",
       "Bash(npx openspec *)",
       "Bash(npx vite *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(openspec new *)",
+      "Bash(openspec status *)",
+      "Bash(openspec instructions *)",
+      "Bash(npx vue-tsc *)",
+      "Bash(node *)",
+      "Bash(npx tsx *)",
+      "Bash(kill %1)"
     ]
   }
 }

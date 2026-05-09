@@ -1,11 +1,11 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
+import { fileURLToPath } from "url";
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
@@ -16,11 +16,12 @@ export default defineConfig(async () => ({
     // to use our browser-compatible BrowserTransport instead
     {
       name: "envoy-transport-rewrite",
-      resolveId(source, importer) {
+      enforce: "pre" as const,
+      resolveId(source: string, importer: string) {
         if (
           importer &&
-          importer.includes(path.normalize("Envoy/packages/client/")) &&
-          source.endsWith("transport.js")
+          importer.replace(/\\/g, "/").includes("Envoy/packages/client/") &&
+          (source.endsWith("transport.js") || source.endsWith("transport.ts"))
         ) {
           return path.resolve(__dirname, "src/envoy/BrowserTransport.ts");
         }
