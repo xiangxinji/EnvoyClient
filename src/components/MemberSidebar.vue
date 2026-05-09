@@ -46,17 +46,18 @@ function handleClick(peerId: string) {
 .sidebar {
   width: 250px;
   min-width: 250px;
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  background: #f7f7f7;
+  background: var(--bg-secondary);
 }
 
 h3 {
   margin: 0;
   padding: 12px 16px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border);
   font-size: 0.95em;
+  color: var(--text-primary);
 }
 
 ul {
@@ -73,15 +74,15 @@ li {
   gap: 8px;
   padding: 10px 16px;
   cursor: pointer;
-  transition: background 0.15s;
+  color: var(--text-primary);
 }
 
 li:hover {
-  background: #e8e8e8;
+  background: var(--sidebar-hover);
 }
 
 li.active {
-  background: #d0e0f0;
+  background: var(--sidebar-active);
 }
 
 .member-name {
@@ -99,17 +100,17 @@ li.active {
 }
 
 .member-role.leader {
-  background: #ffd700;
-  color: #333;
+  background: var(--role-leader-bg);
+  color: var(--role-leader-text);
 }
 
 .member-role.member {
-  background: #ddd;
-  color: #555;
+  background: var(--role-member-bg);
+  color: var(--role-member-text);
 }
 
 .badge {
-  background: #e53e3e;
+  background: var(--badge-bg);
   color: white;
   font-size: 0.7em;
   padding: 1px 6px;
@@ -119,7 +120,7 @@ li.active {
 }
 
 .empty {
-  color: #999;
+  color: var(--text-muted);
   cursor: default;
   font-size: 0.9em;
 }

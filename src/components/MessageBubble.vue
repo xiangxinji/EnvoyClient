@@ -26,12 +26,13 @@ function formatTime(ts: number): string {
   max-width: 70%;
   padding: 8px 12px;
   border-radius: 8px;
-  background: #e8e8e8;
+  background: var(--bubble-other);
+  color: var(--bubble-other-text);
   align-self: flex-start;
 }
 
 .bubble.mine {
-  background: #396cd8;
+  background: var(--accent);
   color: white;
   align-self: flex-end;
 }

@@ -6,6 +6,13 @@ import type { ClientOptions } from "@envoy/client";
 import type { Message } from "@envoy/core";
 import type { MemberInfo, TimelineItem, ChatMessage, TaskMessage } from "../types";
 
+const isTauri = "__TAURI_INTERNALS__" in window;
+
+function safeInvoke(cmd: string, args: Record<string, unknown>) {
+  if (!isTauri) return Promise.resolve();
+  return invoke(cmd, args);
+}
+
 export type ConnectionStatus =
   | "disconnected"
   | "connecting"
@@ -29,13 +36,13 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
     const conv = messages.value.get(peerId) ?? [];
     conv.push(item);
     messages.value.set(peerId, conv);
-    invoke("save_message", { myId, peerId, message: item }).catch(() => {});
+    safeInvoke("save_message", { myId, peerId, message: item });
   }
 
   function updateInConversation(peerId: string, item: TimelineItem) {
     const existing = messages.value.get(peerId) ?? [];
     messages.value.set(peerId, [...existing]);
-    invoke("save_message", { myId, peerId, message: item }).catch(() => {});
+    safeInvoke("save_message", { myId, peerId, message: item });
   }
 
   function syncUnread(peerId: string, isCurrentPeer: boolean) {
@@ -46,9 +53,11 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
 
   async function loadHistory() {
     try {
-      const all = await invoke<Record<string, TimelineItem[]>>("load_all_history", { myId });
-      for (const [peerId, items] of Object.entries(all)) {
-        messages.value.set(peerId, items);
+      const all = await safeInvoke("load_all_history", { myId }) as Record<string, TimelineItem[]> | undefined;
+      if (all) {
+        for (const [peerId, items] of Object.entries(all)) {
+          messages.value.set(peerId, items);
+        }
       }
     } catch {
       // no history files yet, that's fine
@@ -151,14 +160,23 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
     });
   }
 
+  // Member 端自动注册任务处理器
+  client.doing(async (clientTask) => {
+    alert(clientTask.serverTask.id)
+    // 立即完成，实际场景可替换为真正的工作逻辑
+    return { done: true, taskId: clientTask.serverTask.id };
+  });
+
   async function exportHistory(peerId: string, targetPath: string) {
-    await invoke("export_history", { myId, peerId, targetPath });
+    await safeInvoke("export_history", { myId, peerId, targetPath });
   }
 
   async function importHistory(peerId: string, sourcePath: string) {
-    await invoke("import_history", { myId, peerId, sourcePath });
-    const items = await invoke<TimelineItem[]>("load_history", { myId, peerId });
-    messages.value.set(peerId, items);
+    await safeInvoke("import_history", { myId, peerId, sourcePath });
+    const items = await safeInvoke("load_history", { myId, peerId }) as TimelineItem[] | undefined;
+    if (items) {
+      messages.value.set(peerId, items);
+    }
   }
 
   onUnmounted(() => {

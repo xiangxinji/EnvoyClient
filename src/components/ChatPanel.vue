@@ -86,8 +86,8 @@ function handleDispatchTask() {
             placeholder="Task description..."
             @keydown.enter="handleDispatchTask"
           />
-          <button @click="handleDispatchTask">Confirm</button>
-          <button @click="taskInputVisible = false">Cancel</button>
+          <button class="btn-confirm" @click="handleDispatchTask">Confirm</button>
+          <button class="btn-cancel" @click="taskInputVisible = false">Cancel</button>
         </div>
         <div class="chat-input">
           <input
@@ -95,8 +95,8 @@ function handleDispatchTask() {
             placeholder="Type a message..."
             @keydown="handleKeydown"
           />
-          <button @click="handleSend">Send</button>
-          <button v-if="role === 'leader'" class="task-btn" @click="taskInputVisible = !taskInputVisible">
+          <button class="btn-send" @click="handleSend">Send</button>
+          <button v-if="role === 'leader'" class="btn-task" @click="taskInputVisible = !taskInputVisible">
             Task
           </button>
         </div>
@@ -111,6 +111,7 @@ function handleDispatchTask() {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--bg-primary);
 }
 
 .empty-state {
@@ -118,14 +119,15 @@ function handleDispatchTask() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .header {
   padding: 10px 16px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border);
   font-weight: 600;
-  background: #fafafa;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
 }
 
 .messages {
@@ -138,22 +140,24 @@ function handleDispatchTask() {
 }
 
 .input-area {
-  border-top: 1px solid #ddd;
-  background: #fafafa;
+  border-top: 1px solid var(--border);
+  background: var(--bg-tertiary);
 }
 
 .task-input {
   display: flex;
   gap: 6px;
   padding: 8px 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .task-input input {
   flex: 1;
   padding: 0.4em 0.6em;
-  border: 1px solid #ccc;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .chat-input {
@@ -165,9 +169,11 @@ function handleDispatchTask() {
 .chat-input input {
   flex: 1;
   padding: 0.5em 0.8em;
-  border: 1px solid #ccc;
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   font-size: 0.95em;
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 button {
@@ -178,22 +184,27 @@ button {
   font-size: 0.9em;
 }
 
-.chat-input button:first-of-type {
-  background: #396cd8;
+.btn-send {
+  background: var(--accent);
   color: white;
 }
 
-.task-btn {
-  background: #e8a817;
-  color: #333;
+.btn-send:hover {
+  background: var(--accent-hover);
 }
 
-.task-input button:first-of-type {
-  background: #396cd8;
+.btn-task {
+  background: var(--task-btn-bg);
+  color: var(--task-btn-text);
+}
+
+.btn-confirm {
+  background: var(--accent);
   color: white;
 }
 
-.task-input button:last-of-type {
-  background: #ddd;
+.btn-cancel {
+  background: var(--border);
+  color: var(--text-secondary);
 }
 </style>

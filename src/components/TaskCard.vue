@@ -31,21 +31,22 @@ const statusLabels: Record<TaskMessage["status"], string> = {
   max-width: 85%;
   padding: 10px 14px;
   border-radius: 8px;
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--task-card-bg);
+  color: var(--text-primary);
   align-self: flex-start;
 }
 
 .task-card.running {
-  border-color: #3182ce;
+  border-color: var(--task-running-border);
 }
 
 .task-card.completed {
-  border-color: #38a169;
+  border-color: var(--task-completed-border);
 }
 
 .task-card.failed {
-  border-color: #e53e3e;
+  border-color: var(--task-failed-border);
 }
 
 .task-header {
@@ -58,7 +59,7 @@ const statusLabels: Record<TaskMessage["status"], string> = {
 .task-icon {
   font-weight: 600;
   font-size: 0.85em;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .status-badge {
@@ -69,23 +70,23 @@ const statusLabels: Record<TaskMessage["status"], string> = {
 }
 
 .status-badge.pending {
-  background: #edf2f7;
-  color: #718096;
+  background: var(--task-pending-bg);
+  color: var(--task-pending-text);
 }
 
 .status-badge.running {
-  background: #ebf8ff;
-  color: #3182ce;
+  background: var(--task-running-bg);
+  color: var(--task-running-text);
 }
 
 .status-badge.completed {
-  background: #f0fff4;
-  color: #38a169;
+  background: var(--task-completed-bg);
+  color: var(--task-completed-text);
 }
 
 .status-badge.failed {
-  background: #fff5f5;
-  color: #e53e3e;
+  background: var(--task-failed-bg);
+  color: var(--task-failed-text);
 }
 
 .task-content {
@@ -96,6 +97,6 @@ const statusLabels: Record<TaskMessage["status"], string> = {
 .task-meta {
   margin-top: 6px;
   font-size: 0.75em;
-  color: #999;
+  color: var(--text-muted);
 }
 </style>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useTheme } from "../composables/useTheme";
 
 const appWindow = getCurrentWindow();
+const { theme, toggle } = useTheme();
 
 function minimize() {
   appWindow.minimize();
@@ -37,6 +39,22 @@ function close() {
       </button>
     </div>
     <div class="title" data-tauri-drag-region>Envoy</div>
+    <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? 'Light mode' : 'Dark mode'">
+      <svg v-if="theme === 'dark'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="5" />
+        <line x1="12" y1="1" x2="12" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="23" />
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+        <line x1="1" y1="12" x2="3" y2="12" />
+        <line x1="21" y1="12" x2="23" y2="12" />
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+      </svg>
+      <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -46,8 +64,8 @@ function close() {
   align-items: center;
   justify-content: center;
   height: 38px;
-  background: #2b2b2b;
-  border-bottom: 1px solid #1a1a1a;
+  background: var(--titlebar-bg);
+  border-bottom: 1px solid var(--titlebar-border);
   user-select: none;
   -webkit-user-select: none;
   position: relative;
@@ -72,7 +90,6 @@ function close() {
   align-items: center;
   justify-content: center;
   padding: 0;
-  transition: filter 0.15s;
 }
 
 .light svg {
@@ -115,7 +132,28 @@ function close() {
 .title {
   font-size: 0.82em;
   font-weight: 500;
-  color: #999;
+  color: var(--titlebar-text);
   letter-spacing: 0.3px;
+}
+
+.theme-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle:hover {
+  color: var(--text-primary);
+  background: var(--border);
 }
 </style>

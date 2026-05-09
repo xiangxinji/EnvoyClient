@@ -57,7 +57,7 @@ async function handleConnect() {
 
 <template>
   <div class="role-select">
-    <h1>Envoy Client</h1>
+    <h1>Envoy</h1>
 
     <div class="form">
       <div class="role-group">
@@ -98,8 +98,13 @@ async function handleConnect() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  flex: 1;
   gap: 1.5rem;
+  background: var(--bg-primary);
+}
+
+h1 {
+  color: var(--text-primary);
 }
 
 .form {
@@ -113,6 +118,7 @@ async function handleConnect() {
   display: flex;
   gap: 1.5rem;
   justify-content: center;
+  color: var(--text-primary);
 }
 
 .role-group label {
@@ -128,11 +134,17 @@ async function handleConnect() {
   gap: 0.3rem;
 }
 
-input[type="text"],
-input:not([type]) {
+.field label {
+  color: var(--text-secondary);
+  font-size: 0.85em;
+}
+
+input:not([type="radio"]) {
   padding: 0.5em 0.8em;
   border-radius: 6px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--input-border);
+  background: var(--bg-input);
+  color: var(--text-primary);
   font-size: 1em;
 }
 
@@ -140,10 +152,14 @@ button {
   padding: 0.6em;
   border-radius: 6px;
   border: none;
-  background: #396cd8;
+  background: var(--accent);
   color: white;
   font-size: 1em;
   cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent-hover);
 }
 
 button:disabled {
@@ -152,7 +168,7 @@ button:disabled {
 }
 
 .error {
-  color: #e53e3e;
+  color: var(--error);
   font-size: 0.85em;
 }
 </style>

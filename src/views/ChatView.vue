@@ -36,7 +36,7 @@ if (ctx) {
 <style scoped>
 .chat-view {
   display: flex;
-  height: 100vh;
+  flex: 1;
   overflow: hidden;
 }
 </style>
