@@ -10,7 +10,7 @@ pub fn get_settings() -> Result<serde_json::Value, String> {
     if !path.exists() {
         let dir = path.parent().ok_or("Invalid path")?;
         fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-        let default = serde_json::json!({ "managerUrl": "http://localhost:8080" });
+        let default = serde_json::json!({ "env": { "MANAGER_URL": "http://localhost:8080" } });
         fs::write(&path, default.to_string()).map_err(|e| e.to_string())?;
         return Ok(default);
     }

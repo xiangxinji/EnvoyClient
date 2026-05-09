@@ -27,7 +27,7 @@ async function loadSettings() {
   try {
     const { invoke } = await import("@tauri-apps/api/core");
     const settings = (await invoke("get_settings")) as any;
-    if (settings.managerUrl) managerUrl.value = settings.managerUrl;
+    if (settings?.env?.MANAGER_URL) managerUrl.value = settings.env.MANAGER_URL;
   } catch {}
 }
 
