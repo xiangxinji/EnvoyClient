@@ -14,6 +14,12 @@ export interface ChatMessage {
   mine: boolean;
 }
 
+export interface TaskResource {
+  type: string;
+  by: string;
+  data: unknown;
+}
+
 export interface TaskMessage {
   type: "task";
   id: string;
@@ -21,7 +27,7 @@ export interface TaskMessage {
   from: string;
   content: string;
   status: "pending" | "running" | "completed" | "failed";
-  result?: unknown;
+  resources: TaskResource[];
   timestamp: number;
 }
 

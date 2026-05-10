@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TaskMessage } from "../types";
+import type { TaskMessage, TaskResource } from "../types";
 
 defineProps<{
   task: TaskMessage;
@@ -11,6 +11,21 @@ const statusLabels: Record<TaskMessage["status"], string> = {
   completed: "已完成",
   failed: "失败",
 };
+
+function formatResource(res: TaskResource): string {
+  if (res.data && typeof res.data === "object" && res.data !== null) {
+    const d = res.data as Record<string, unknown>;
+    if ("stdout" in d || "stderr" in d) {
+      const parts: string[] = [];
+      if (d.stdout) parts.push(String(d.stdout));
+      if (d.stderr) parts.push(`[stderr] ${d.stderr}`);
+      if ("exit_code" in d) parts.push(`exit code: ${d.exit_code}`);
+      return parts.join("\n");
+    }
+    return JSON.stringify(res.data, null, 2);
+  }
+  return String(res.data);
+}
 </script>
 
 <template>
@@ -26,6 +41,14 @@ const statusLabels: Record<TaskMessage["status"], string> = {
       <span class="status-badge" :class="task.status">{{ statusLabels[task.status] }}</span>
     </div>
     <div class="task-content">{{ task.content }}</div>
+
+    <div v-if="task.resources?.length" class="task-resources">
+      <div v-for="(res, i) in task.resources" :key="i" class="resource-item">
+        <span class="resource-by">{{ res.by }}</span>
+        <pre class="resource-data">{{ formatResource(res) }}</pre>
+      </div>
+    </div>
+
     <div class="task-meta">
       <span>来自 {{ task.from }}</span>
     </div>
@@ -103,6 +126,38 @@ const statusLabels: Record<TaskMessage["status"], string> = {
 .task-content {
   font-size: 0.9em;
   line-height: 1.4;
+}
+
+.task-resources {
+  margin-top: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.resource-item {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+}
+
+.resource-by {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--accent);
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.resource-data {
+  font-size: 0.78em;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
 }
 
 .task-meta {

@@ -4,7 +4,7 @@ import { Leader } from "../../envoy/packages/teams/leader.js";
 import { Member } from "../../envoy/packages/teams/member.js";
 import type { ClientOptions } from "@envoy/client";
 import type { Message } from "@envoy/core";
-import type { MemberInfo, TimelineItem, ChatMessage, TaskMessage } from "../types";
+import type { MemberInfo, TimelineItem, ChatMessage, TaskMessage, TaskResource } from "../types";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
@@ -36,12 +36,6 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
     const conv = messages.value.get(peerId) ?? [];
     conv.push(item);
     messages.value.set(peerId, conv);
-    safeInvoke("save_message", { myId, peerId, message: item });
-  }
-
-  function updateInConversation(peerId: string, item: TimelineItem) {
-    const existing = messages.value.get(peerId) ?? [];
-    messages.value.set(peerId, [...existing]);
     safeInvoke("save_message", { myId, peerId, message: item });
   }
 
@@ -98,36 +92,54 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
       addToConversation(peerId, chatMsg);
       return;
     }
+  });
 
-    if (msg.type === "task") {
-      const task = msg.payload as {
-        id: string;
-        createBy: string;
-        content: string;
-        status: string;
-        resources: unknown[];
-      };
-      const taskMsg: TaskMessage = {
-        type: "task",
-        id: msg.id,
-        taskId: task.id,
-        from: task.createBy,
-        content: task.content,
-        status: task.status as TaskMessage["status"],
-        timestamp: msg.timestamp,
-      };
-      const peerId = task.createBy === myId ? (msg.to !== "server" ? msg.to : task.createBy) : task.createBy;
-      const existing = getConversation(peerId);
-      const idx = existing.findIndex((t) => t.type === "task" && "taskId" in t && t.taskId === task.id);
+  function handleTaskUpdate(task: {
+    id: string;
+    createBy: string;
+    content: string;
+    status: string;
+    resources: TaskResource[];
+    subscribe?: string[];
+  }) {
+    const taskMsg: TaskMessage = {
+      type: "task",
+      id: `task-${task.id}`,
+      taskId: task.id,
+      from: task.createBy,
+      content: task.content,
+      status: task.status as TaskMessage["status"],
+      resources: task.resources,
+      timestamp: Date.now(),
+    };
+
+    // 尝试更新已有的任务卡片（在所有对话中查找）
+    let updated = false;
+    for (const [peerId, items] of messages.value) {
+      const idx = items.findIndex((t) => t.type === "task" && "taskId" in t && t.taskId === task.id);
       if (idx >= 0) {
-        existing[idx] = taskMsg;
-        updateInConversation(peerId, taskMsg);
-      } else {
+        items[idx] = taskMsg;
+        messages.value.set(peerId, [...items]);
+        safeInvoke("save_message", { myId, peerId, message: taskMsg });
+        updated = true;
+      }
+    }
+
+    // 没有找到已有卡片，新增
+    if (!updated) {
+      // Leader 派的任务：插入到所有 subscribe 成员的对话中
+      // Member 收到的任务：插入到 Leader 的对话中
+      const targetPeers = task.createBy === myId
+        ? (task.subscribe ?? [])
+        : [task.createBy];
+      for (const peerId of targetPeers) {
         addToConversation(peerId, taskMsg);
       }
-      return;
     }
-  });
+  }
+
+  // 服务端的 task 状态更新通过 "task" 事件触发（不是 "message"）
+  client.on("task", handleTaskUpdate);
 
   function connect() {
     status.value = "connecting";
@@ -152,19 +164,36 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
     client.sendTo(targetId, "chat", { text });
   }
 
-  function dispatchTask(targetId: string, content: string) {
+  function dispatchTask(targetIds: string[], content: string) {
     client.submit({
       content,
-      subscribe: [targetId],
+      subscribe: targetIds,
       mode: "serial",
     });
   }
 
   // Member 端自动注册任务处理器
   client.doing(async (clientTask) => {
-    alert(clientTask.serverTask.id)
-    // 立即完成，实际场景可替换为真正的工作逻辑
-    return { done: true, taskId: clientTask.serverTask.id };
+    const taskContent = clientTask.serverTask.content;
+
+    if (!isTauri) {
+      return { taskId: clientTask.serverTask.id, note: "browser mode, no shell" };
+    }
+
+    try {
+      const result = await invoke("shell_exec", { command: taskContent }) as {
+        stdout: string;
+        stderr: string;
+        exit_code: number;
+      };
+      return {
+        exit_code: result.exit_code,
+        stdout: result.stdout,
+        stderr: result.stderr,
+      };
+    } catch (e) {
+      return { error: String(e) };
+    }
   });
 
   async function exportHistory(peerId: string, targetPath: string) {

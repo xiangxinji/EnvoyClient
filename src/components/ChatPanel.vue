@@ -55,7 +55,7 @@ function handleKeydown(e: KeyboardEvent) {
 function handleDispatchTask() {
   const content = taskContent.value.trim();
   if (!content || !props.peerId) return;
-  dispatchTask(props.peerId, content);
+  dispatchTask([props.peerId], content);
   taskContent.value = "";
   taskInputVisible.value = false;
 }
