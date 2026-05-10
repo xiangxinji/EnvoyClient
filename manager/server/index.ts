@@ -7,6 +7,7 @@ import teamRoutes from "./routes/teams.js";
 import userRoutes from "./routes/users.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import adminRoutes from "./routes/admin.js";
+import aiRoutes from "./routes/ai.js";
 import { initCrypto } from "./crypto.js";
 import { initSettings } from "./settings.js";
 
@@ -30,6 +31,7 @@ async function restoreTeams(): Promise<void> {
 
 // Register route groups
 adminRoutes(app);
+aiRoutes(app);
 teamRoutes(app, teamInstances);
 userRoutes(app);
 dashboardRoutes(app, teamInstances);

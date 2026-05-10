@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useTeamClient } from "../composables/useTeamClient";
 import { setTeamClientInstance } from "../composables/teamClientContext";
+import { setAIManagerUrl } from "../composables/useAI";
 import logo from "../assets/logo.png";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
@@ -118,6 +119,7 @@ async function handleConnect() {
 
     await teamClient.connect();
     setTeamClientInstance(teamClient);
+    setAIManagerUrl(managerUrl.value.trim());
     router.push("/chat");
   } catch (e) {
     error.value = e instanceof Error ? e.message : "连接失败";

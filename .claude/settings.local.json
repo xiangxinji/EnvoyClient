@@ -36,7 +36,10 @@
       "Bash(mv Envoy envoy_tmp)",
       "Bash(mv envoy_tmp envoy)",
       "Bash(cmd.exe //C \"rename Envoy envoy_tmp\")",
-      "Bash(powershell *)"
+      "Bash(powershell *)",
+      "Bash(npm ls *)",
+      "Bash(git status *)",
+      "Bash(/c/Users/Administrator/Desktop/EnvoyClient/src-tauri/target/debug/envoy-client.exe *)"
     ]
   }
 }

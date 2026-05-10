@@ -1,0 +1,33 @@
+{
+  "name": "ai-layer",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    },
+    "./server": {
+      "import": "./src/server/index.ts"
+    },
+    "./client": {
+      "import": "./src/client/index.ts"
+    },
+    "./shared": {
+      "import": "./src/shared/index.ts"
+    }
+  },
+  "dependencies": {
+    "ai": "^4",
+    "@ai-sdk/openai": "^1",
+    "@ai-sdk/anthropic": "^1",
+    "@ai-sdk/google": "^1",
+    "@ai-sdk/deepseek": "^1",
+    "hono": "^4",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vite": "^6",
+    "@types/node": "^22"
+  }
+}

@@ -144,4 +144,45 @@ export const api = {
       body: JSON.stringify({ username, password: encrypted }),
     });
   },
+
+  // AI Configuration
+  getAIConfig: () =>
+    request<{
+      provider: string;
+      model: string;
+      temperature?: number;
+      maxTokens?: number;
+      configured: boolean;
+    }>("/ai/config", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}` },
+    }),
+  updateAIConfig: (config: {
+    provider?: string;
+    apiKey?: string;
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+  }) =>
+    request<{
+      provider: string;
+      model: string;
+      configured: boolean;
+    }>("/ai/config", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}`,
+      },
+      body: JSON.stringify(config),
+    }),
+  getAIModels: (provider?: string) => {
+    const query = provider ? `?provider=${provider}` : "";
+    return request<
+      { id: string; label: string; models: string[] }[]
+    >(`/ai/models${query}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}` },
+    });
+  },
+  checkAIHealth: () =>
+    request<{ configured: boolean; provider: string; model: string }>("/ai/health"),
 };

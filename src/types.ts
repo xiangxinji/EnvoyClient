@@ -32,3 +32,13 @@ export interface TaskMessage {
 }
 
 export type TimelineItem = ChatMessage | TaskMessage;
+
+// AI task plan (from ai-layer)
+export interface TaskPlan {
+  summary: string;
+  assignments: {
+    memberId: string;
+    description: string;
+    commands: string[];
+  }[];
+}

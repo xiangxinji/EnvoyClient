@@ -1,21 +1,30 @@
 <script setup lang="ts">
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { ref } from "vue";
 import { useTheme } from "../composables/useTheme";
 import logo from "../assets/logo.png";
 
-const appWindow = getCurrentWindow();
+const isTauri = "__TAURI_INTERNALS__" in window;
+
+const appWindow = ref<any>(null);
+
+if (isTauri) {
+  import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
+    appWindow.value = getCurrentWindow();
+  });
+}
+
 const { theme, toggle } = useTheme();
 
 function minimize() {
-  appWindow.minimize();
+  appWindow.value?.minimize();
 }
 
 function toggleMaximize() {
-  appWindow.toggleMaximize();
+  appWindow.value?.toggleMaximize();
 }
 
 function close() {
-  appWindow.close();
+  appWindow.value?.close();
 }
 </script>
 

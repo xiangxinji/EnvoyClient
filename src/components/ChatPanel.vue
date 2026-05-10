@@ -1,19 +1,37 @@
 <script setup lang="ts">
 import { inject, ref, nextTick, watch, computed } from "vue";
 import { TeamClientKey } from "../composables/teamClientContext";
+import { useAI } from "../composables/useAI";
 import MessageBubble from "./MessageBubble.vue";
 import TaskCard from "./TaskCard.vue";
-import type { TimelineItem } from "../types";
+import type { TimelineItem, ChatMessage, TaskPlan } from "../types";
 
 const props = defineProps<{ peerId: string }>();
 
 const ctx = inject(TeamClientKey)!;
-const { getConversation, sendChat, dispatchTask, role, myId, syncUnread } = ctx;
+const { getConversation, sendChat, dispatchTask, role, myId, syncUnread, members } = ctx;
 
 const inputText = ref("");
 const taskInputVisible = ref(false);
 const taskContent = ref("");
 const messageList = ref<HTMLDivElement | null>(null);
+
+// AI
+const {
+  suggestion,
+  isStreaming,
+  aiError,
+  aiAvailable,
+  suggestReply,
+  acceptSuggestion,
+  clearSuggestion,
+  planTask,
+} = useAI();
+
+// AI task plan
+const aiPlanVisible = ref(false);
+const aiPlan = ref<TaskPlan | null>(null);
+const aiPlanLoading = ref(false);
 
 const conversation = computed<TimelineItem[]>(() => {
   if (!props.peerId) return [];
@@ -35,6 +53,9 @@ watch(
   (newPeer) => {
     if (newPeer) syncUnread(newPeer, true);
     taskInputVisible.value = false;
+    clearSuggestion();
+    aiPlanVisible.value = false;
+    aiPlan.value = null;
   }
 );
 
@@ -59,6 +80,52 @@ function handleDispatchTask() {
   taskContent.value = "";
   taskInputVisible.value = false;
 }
+
+// AI suggest reply
+function handleAISuggest() {
+  const chatMsgs = conversation.value.filter(
+    (m): m is ChatMessage => m.type === "chat"
+  );
+  suggestReply(chatMsgs);
+}
+
+function handleAcceptSuggestion() {
+  const text = acceptSuggestion();
+  if (text) {
+    inputText.value = text;
+  }
+}
+
+// AI task generation (Leader only)
+async function handleAITaskGenerate() {
+  if (!taskContent.value.trim()) return;
+  aiPlanLoading.value = true;
+  aiPlanVisible.value = true;
+  aiPlan.value = null;
+
+  const plan = await planTask(taskContent.value.trim(), members);
+  aiPlan.value = plan;
+  aiPlanLoading.value = false;
+}
+
+function handleConfirmAIPlan() {
+  if (!aiPlan.value) return;
+
+  for (const assignment of aiPlan.value.assignments) {
+    const commands = assignment.commands.join(" && ");
+    dispatchTask([assignment.memberId], commands);
+  }
+
+  aiPlanVisible.value = false;
+  aiPlan.value = null;
+  taskContent.value = "";
+  taskInputVisible.value = false;
+}
+
+function handleCancelAIPlan() {
+  aiPlanVisible.value = false;
+  aiPlan.value = null;
+}
 </script>
 
 <template>
@@ -80,10 +147,48 @@ function handleDispatchTask() {
           <MessageBubble v-if="item.type === 'chat'" :message="item" :my-id="myId" />
           <TaskCard v-else :task="item" />
         </template>
+
+        <!-- AI suggestion overlay -->
+        <div v-if="suggestion || isStreaming || aiError" class="ai-suggestion">
+          <div class="ai-suggestion-label">AI 建议</div>
+          <div class="ai-suggestion-text">
+            {{ suggestion }}<span v-if="isStreaming" class="ai-cursor"></span>
+          </div>
+          <div v-if="aiError" class="ai-error-inline">{{ aiError }}</div>
+          <div v-if="!isStreaming && (suggestion || aiError)" class="ai-suggestion-actions">
+            <button v-if="suggestion" class="btn-ai-accept" @click="handleAcceptSuggestion">采纳</button>
+            <button class="btn-ai-retry" @click="handleAISuggest">重新生成</button>
+            <button class="btn-ai-dismiss" @click="clearSuggestion">忽略</button>
+          </div>
+        </div>
       </div>
 
       <div class="input-area">
-        <div v-if="taskInputVisible" class="task-input">
+        <!-- AI task plan panel (Leader only) -->
+        <div v-if="aiPlanVisible && role === 'leader'" class="ai-plan">
+          <div class="ai-plan-header">
+            <span class="ai-plan-label">AI 任务规划</span>
+          </div>
+          <div v-if="aiPlanLoading" class="ai-plan-loading">
+            <span class="spinner-small"></span> AI 正在分析...
+          </div>
+          <template v-else-if="aiPlan">
+            <div class="ai-plan-summary">{{ aiPlan.summary }}</div>
+            <div v-for="(a, i) in aiPlan.assignments" :key="i" class="ai-plan-assignment">
+              <div class="ai-plan-assignee">{{ a.memberId }}</div>
+              <div class="ai-plan-desc">{{ a.description }}</div>
+              <code v-for="cmd in a.commands" :key="cmd" class="ai-plan-cmd">{{ cmd }}</code>
+            </div>
+            <div class="ai-plan-actions">
+              <button class="btn-ai-accept" @click="handleConfirmAIPlan">确认分派</button>
+              <button class="btn-ai-dismiss" @click="handleCancelAIPlan">取消</button>
+            </div>
+          </template>
+          <div v-if="aiError" class="ai-error">{{ aiError }}</div>
+        </div>
+
+        <!-- Task input (Leader only) -->
+        <div v-if="taskInputVisible && role === 'leader' && !aiPlanVisible" class="task-input">
           <input
             v-model="taskContent"
             placeholder="输入任务描述..."
@@ -94,6 +199,11 @@ function handleDispatchTask() {
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </button>
+          <button class="btn-icon btn-ai" @click="handleAITaskGenerate" title="AI 生成命令" :disabled="!aiAvailable">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+          </button>
           <button class="btn-icon btn-cancel" @click="taskInputVisible = false" title="取消">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -101,6 +211,8 @@ function handleDispatchTask() {
             </svg>
           </button>
         </div>
+
+        <!-- Chat input -->
         <div class="chat-input">
           <button v-if="role === 'leader'" class="btn-icon btn-task" @click="taskInputVisible = !taskInputVisible" title="分派任务">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -113,6 +225,11 @@ function handleDispatchTask() {
             placeholder="输入消息..."
             @keydown="handleKeydown"
           />
+          <button class="btn-icon btn-ai" @click="handleAISuggest" title="AI 建议回复" :disabled="!aiAvailable || isStreaming">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+          </button>
           <button class="btn-icon btn-send" @click="handleSend" title="发送">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="22" y1="2" x2="11" y2="13" />
@@ -173,6 +290,189 @@ function handleDispatchTask() {
   gap: var(--space-sm);
 }
 
+/* AI suggestion */
+.ai-suggestion {
+  margin-top: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+
+.ai-suggestion-label {
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: var(--space-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ai-suggestion-text {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.ai-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--accent);
+  margin-left: 1px;
+  animation: blink 0.8s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.ai-suggestion-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.btn-ai-accept,
+.btn-ai-retry,
+.btn-ai-dismiss {
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 0.8em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-ai-accept {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-ai-accept:hover {
+  background: var(--accent-hover);
+}
+
+.btn-ai-retry {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-ai-retry:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-ai-dismiss {
+  background: none;
+  color: var(--text-muted);
+}
+
+.btn-ai-dismiss:hover {
+  color: var(--error);
+}
+
+.ai-error-inline {
+  color: var(--error);
+  font-size: 0.8em;
+  margin-top: var(--space-xs);
+}
+
+/* AI task plan */
+.ai-plan {
+  margin-bottom: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.ai-plan-header {
+  margin-bottom: var(--space-sm);
+}
+
+.ai-plan-label {
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ai-plan-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-muted);
+  font-size: 0.85em;
+  padding: var(--space-md);
+}
+
+.spinner-small {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.ai-plan-summary {
+  font-size: 0.85em;
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+}
+
+.ai-plan-assignment {
+  padding: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+}
+
+.ai-plan-assignee {
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: var(--space-xs);
+}
+
+.ai-plan-desc {
+  font-size: 0.85em;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.ai-plan-cmd {
+  display: block;
+  font-family: monospace;
+  font-size: 0.8em;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin: 2px 0;
+}
+
+.ai-plan-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.ai-error {
+  color: var(--error);
+  font-size: 0.8em;
+  margin-top: var(--space-sm);
+}
+
+/* Input area */
 .input-area {
   padding: var(--space-md) var(--space-lg);
   background: var(--bg-primary);
@@ -275,5 +575,25 @@ function handleDispatchTask() {
 
 .btn-cancel:hover {
   color: var(--error);
+}
+
+.btn-ai {
+  background: var(--bg-secondary);
+  color: var(--accent);
+  border: 1px solid var(--border);
+}
+
+.btn-ai:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-ai:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
