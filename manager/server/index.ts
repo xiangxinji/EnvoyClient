@@ -6,11 +6,17 @@ import { loadRegistry, ensureRegistryDir } from "./team-registry.js";
 import teamRoutes from "./routes/teams.js";
 import userRoutes from "./routes/users.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import adminRoutes from "./routes/admin.js";
+import { initCrypto } from "./crypto.js";
+import { initSettings } from "./settings.js";
 
 const app = new Hono();
 app.use("*", cors());
 
 const teamInstances = new Map<string, Team>();
+
+// Initialize RSA key pair before anything else
+initCrypto();
 
 async function restoreTeams(): Promise<void> {
   const records = await loadRegistry();
@@ -23,6 +29,7 @@ async function restoreTeams(): Promise<void> {
 }
 
 // Register route groups
+adminRoutes(app);
 teamRoutes(app, teamInstances);
 userRoutes(app);
 dashboardRoutes(app, teamInstances);
@@ -31,6 +38,7 @@ dashboardRoutes(app, teamInstances);
 const PORT = Number(process.env.MANAGER_PORT) || 8080;
 
 await ensureRegistryDir();
+await initSettings();
 await restoreTeams();
 
 serve({ fetch: app.fetch, port: PORT }, (info) => {

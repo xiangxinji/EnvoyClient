@@ -3,10 +3,16 @@ import {
   loadUsers,
   saveUsers,
   authenticate,
+  hashPassword,
   type UserRecord,
 } from "../user-registry.js";
+import { getPublicKey, decryptWithPrivateKey } from "../crypto.js";
 
 export default function userRoutes(app: Hono) {
+  app.get("/api/public-key", (c) => {
+    return c.json({ key: getPublicKey() });
+  });
+
   app.get("/api/users", async (c) => {
     const users = await loadUsers();
     return c.json(users.map((u) => ({ username: u.username, role: u.role, createdAt: u.createdAt })));
@@ -15,14 +21,17 @@ export default function userRoutes(app: Hono) {
   app.post("/api/users", async (c) => {
     const body = await c.req.json<{ username?: string; password?: string; role?: string }>();
     const username = body.username?.trim();
-    const password = body.password;
+    const encryptedPassword = body.password;
     const role = body.role === "leader" ? "leader" : "member";
-    if (!username || !password) return c.json({ error: "username and password are required" }, 400);
+    if (!username || !encryptedPassword) return c.json({ error: "username and password are required" }, 400);
+
+    const password = decryptWithPrivateKey(encryptedPassword);
 
     const users = await loadUsers();
     if (users.some((u) => u.username === username)) return c.json({ error: "user already exists" }, 409);
 
-    const user: UserRecord = { username, password, role, createdAt: Date.now() };
+    const hashed = await hashPassword(password);
+    const user: UserRecord = { username, password: hashed, role, createdAt: Date.now() };
     users.push(user);
     await saveUsers(users);
 
@@ -44,8 +53,10 @@ export default function userRoutes(app: Hono) {
   app.post("/api/auth", async (c) => {
     const body = await c.req.json<{ username?: string; password?: string }>();
     const username = body.username?.trim();
-    const password = body.password;
-    if (!username || !password) return c.json({ error: "username and password are required" }, 400);
+    const encryptedPassword = body.password;
+    if (!username || !encryptedPassword) return c.json({ error: "username and password are required" }, 400);
+
+    const password = decryptWithPrivateKey(encryptedPassword);
 
     const user = await authenticate(username, password);
     if (!user) return c.json({ error: "invalid credentials" }, 401);

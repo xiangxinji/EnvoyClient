@@ -1,10 +1,11 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import bcrypt from "bcryptjs";
 
 export interface UserRecord {
   username: string;
-  password: string;
+  password: string; // bcrypt hash
   role: "leader" | "member";
   createdAt: number;
 }
@@ -26,9 +27,14 @@ export async function saveUsers(users: UserRecord[]): Promise<void> {
   await writeFile(USERS_PATH, JSON.stringify(users, null, 2), "utf-8");
 }
 
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
 export async function authenticate(username: string, password: string): Promise<UserRecord | null> {
   const users = await loadUsers();
   const user = users.find((u) => u.username === username);
-  if (!user || user.password !== password) return null;
-  return user;
+  if (!user) return null;
+  const match = await bcrypt.compare(password, user.password);
+  return match ? user : null;
 }

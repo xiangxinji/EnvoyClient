@@ -9,11 +9,12 @@ const navItems = [
   { path: "/", label: "概览" },
   { path: "/teams", label: "团队" },
   { path: "/users", label: "用户" },
+  { path: "/settings", label: "设置" },
 ];
 </script>
 
 <template>
-  <div class="layout">
+  <div class="layout" v-if="$route.path !== '/login'">
     <nav class="sidebar">
       <div class="nav-header">
         <span class="logo">E</span>
@@ -52,6 +53,7 @@ const navItems = [
       <router-view />
     </main>
   </div>
+  <router-view v-else />
 </template>
 
 <style scoped>
