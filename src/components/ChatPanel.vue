@@ -9,7 +9,7 @@ import type { TimelineItem, ChatMessage, TaskPlan } from "../types";
 const props = defineProps<{ peerId: string }>();
 
 const ctx = inject(TeamClientKey)!;
-const { getConversation, sendChat, dispatchTask, role, myId, syncUnread, members } = ctx;
+const { getConversation, sendChat, dispatchTask, role, myId, markRead, members } = ctx;
 
 const inputText = ref("");
 const taskInputVisible = ref(false);
@@ -51,7 +51,7 @@ watch(
 watch(
   () => props.peerId,
   (newPeer) => {
-    if (newPeer) syncUnread(newPeer, true);
+    if (newPeer) markRead(newPeer);
     taskInputVisible.value = false;
     clearSuggestion();
     aiPlanVisible.value = false;

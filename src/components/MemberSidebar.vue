@@ -11,11 +11,16 @@ const emit = defineEmits<{
 }>();
 
 const ctx = inject(TeamClientKey)!;
-const { members, unreadCounts, syncUnread } = ctx;
+const { members, unreadCounts, markRead } = ctx;
 
 function handleClick(peerId: string) {
-  syncUnread(peerId, true);
+  markRead(peerId);
   emit("select", peerId);
+}
+
+function formatBadge(count: number): string {
+  if (count > 99) return "99+";
+  return String(count);
 }
 
 function getInitial(name: string): string {
@@ -44,7 +49,7 @@ function getInitial(name: string): string {
           <span class="member-role" :class="m.role">{{ m.role }}</span>
         </div>
         <span v-if="(unreadCounts.get(m.id) ?? 0) > 0" class="badge">
-          {{ unreadCounts.get(m.id) }}
+          {{ formatBadge(unreadCounts.get(m.id) ?? 0) }}
         </span>
       </li>
       <li v-if="members.length === 0" class="empty">

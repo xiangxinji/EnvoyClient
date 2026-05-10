@@ -72,6 +72,13 @@ useTheme();
   --titlebar-text: #6e6e73;
   --online-dot: #34c759;
   --empty-icon: #d2d2d7;
+  --md-code-bg: #f0f0f2;
+  --md-code-text: #d63384;
+  --md-pre-bg: #f5f5f7;
+  --md-pre-text: #1d1d1f;
+  --md-link-color: #0071e3;
+  --md-blockquote-border: #d2d2d7;
+  --md-blockquote-text: #6e6e73;
 }
 
 html.dark {
@@ -120,6 +127,13 @@ html.dark {
   --titlebar-text: #98989d;
   --online-dot: #30d158;
   --empty-icon: #3a3a3c;
+  --md-code-bg: #2c2c2e;
+  --md-code-text: #ff6b9d;
+  --md-pre-bg: #1c1c1e;
+  --md-pre-text: #f5f5f7;
+  --md-link-color: #0a84ff;
+  --md-blockquote-border: #3a3a3c;
+  --md-blockquote-text: #98989d;
 }
 
 html, body {

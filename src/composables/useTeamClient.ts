@@ -39,10 +39,12 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
     safeInvoke("save_message", { myId, peerId, message: item });
   }
 
-  function syncUnread(peerId: string, isCurrentPeer: boolean) {
-    if (!isCurrentPeer) {
-      unreadCounts.value.set(peerId, (unreadCounts.value.get(peerId) ?? 0) + 1);
-    }
+  function incrementUnread(peerId: string) {
+    unreadCounts.value.set(peerId, (unreadCounts.value.get(peerId) ?? 0) + 1);
+  }
+
+  function markRead(peerId: string) {
+    unreadCounts.value.set(peerId, 0);
   }
 
   async function loadHistory() {
@@ -90,6 +92,9 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
       };
       const peerId = msg.from === myId ? msg.to : msg.from;
       addToConversation(peerId, chatMsg);
+      if (msg.from !== myId) {
+        incrementUnread(peerId);
+      }
       return;
     }
   });
@@ -134,6 +139,7 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
         : [task.createBy];
       for (const peerId of targetPeers) {
         addToConversation(peerId, taskMsg);
+        incrementUnread(peerId);
       }
     }
   }
@@ -224,7 +230,8 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
     sendChat,
     dispatchTask,
     getConversation,
-    syncUnread,
+    incrementUnread,
+    markRead,
     exportHistory,
     importHistory,
   };
