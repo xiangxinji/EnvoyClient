@@ -1,9 +1,9 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { Context } from "hono";
-import type { AnalyzeRequest, AnalysisResult, AIConfig } from "../shared/types";
-import { ANALYZE_SYSTEM_PROMPT, buildAnalyzePrompt } from "../shared/prompts/analyze";
-import { resolveModel, getModelOptions } from "./provider";
+import type { AnalyzeRequest, AnalysisResult, AIConfig } from "../../../../shared/types/ai.js";
+import { ANALYZE_SYSTEM_PROMPT, buildAnalyzePrompt } from "./prompts/analyze.js";
+import { resolveModel, getModelOptions } from "./provider.js";
 
 const analysisSchema = z.object({
   summary: z.string().describe("执行结果总述"),

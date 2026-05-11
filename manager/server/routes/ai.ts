@@ -1,7 +1,7 @@
 import type { Hono, Context, Next } from "hono";
 import { validateSession } from "./admin.js";
 import { getAIConfig, updateAIConfig } from "../settings.js";
-import { createAIRoutes } from "../../../ai-layer/src/server/index.js";
+import { createAIRoutes } from "../services/ai/index.js";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { writeFile } from "node:fs/promises";

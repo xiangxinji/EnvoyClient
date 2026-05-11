@@ -1,10 +1,9 @@
 import { streamText } from "ai";
 import type { Context } from "hono";
-import type { ChatRequest } from "../shared/types";
-import { buildChatMessages } from "../shared/prompts/chat";
-import { toStandardSSE } from "./stream";
-import type { AIConfig } from "../shared/types";
-import { resolveModel, getModelOptions } from "./provider";
+import type { ChatRequest, AIConfig } from "../../../../shared/types/ai.js";
+import { buildChatMessages } from "./prompts/chat.js";
+import { toStandardSSE } from "./stream.js";
+import { resolveModel, getModelOptions } from "./provider.js";
 
 export async function handleChatStream(c: Context, config: AIConfig) {
   const body = await c.req.json<ChatRequest>();

@@ -1,12 +1,12 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import type { AIConfig, AIConfigPublic } from "../shared/types";
+import type { AIConfig, AIConfigPublic } from "../../../../shared/types/ai.js";
 import {
   DEFAULT_PROVIDER,
   DEFAULT_MODEL,
   DEFAULT_TEMPERATURE,
   DEFAULT_MAX_TOKENS,
-} from "../shared/constants";
+} from "./constants.js";
 
 const DEFAULT_CONFIG: AIConfig = {
   provider: DEFAULT_PROVIDER,

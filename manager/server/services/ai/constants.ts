@@ -1,4 +1,4 @@
-import type { ProviderType } from "./types";
+import type { ProviderType } from "./ai.js";
 
 export interface ProviderOption {
   id: ProviderType;

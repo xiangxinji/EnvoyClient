@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::Path;
+use tauri::Manager;
 
 #[tauri::command]
 pub fn init_brains(app_handle: tauri::AppHandle, username: &str) -> Result<serde_json::Value, String> {

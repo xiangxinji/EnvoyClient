@@ -1,10 +1,10 @@
 import { Hono } from "hono";
-import type { AIConfig, AIConfigPublic, ProviderType } from "../shared/types";
-import { PROVIDERS } from "../shared/constants";
-import { loadConfig, saveConfig, toPublicConfig } from "./config";
-import { handleChatStream, handleChatGenerate } from "./chat";
-import { handleTaskGenerate } from "./task";
-import { handleAnalyze } from "./analyze";
+import type { AIConfig, AIConfigPublic, ProviderType } from "../../../../shared/types/ai.js";
+import { PROVIDERS } from "./constants.js";
+import { loadConfig, saveConfig, toPublicConfig } from "./config.js";
+import { handleChatStream, handleChatGenerate } from "./chat.js";
+import { handleTaskGenerate } from "./task.js";
+import { handleAnalyze } from "./analyze.js";
 
 export interface AIRouterOptions {
   configPath: string;

@@ -2,8 +2,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { LanguageModelV1 } from "ai";
-import type { AIConfig, ProviderType } from "../shared/types";
-import { DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS } from "../shared/constants";
+import type { AIConfig, ProviderType } from "../../../../shared/types/ai.js";
+import { DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS } from "./constants.js";
 
 export function resolveModel(config: AIConfig): LanguageModelV1 {
   switch (config.provider) {

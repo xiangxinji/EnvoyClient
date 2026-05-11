@@ -40,7 +40,9 @@
       "Bash(npm ls *)",
       "Bash(git status *)",
       "Bash(/c/Users/Administrator/Desktop/EnvoyClient/src-tauri/target/debug/envoy-client.exe *)",
-      "Bash(echo \"---EXIT:$?---\")"
+      "Bash(echo \"---EXIT:$?---\")",
+      "Bash(npx kill-port *)",
+      "Bash(taskkill //F //IM \"envoy-client.exe\")"
     ]
   }
 }

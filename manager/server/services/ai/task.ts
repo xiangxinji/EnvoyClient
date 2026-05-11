@@ -1,9 +1,9 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { Context } from "hono";
-import type { TaskGenerateRequest, TaskPlan, AIConfig } from "../shared/types";
-import { TASK_SYSTEM_PROMPT, buildTaskPrompt } from "../shared/prompts/task";
-import { resolveModel, getModelOptions } from "./provider";
+import type { TaskGenerateRequest, TaskPlan, AIConfig } from "../../../../shared/types/ai.js";
+import { TASK_SYSTEM_PROMPT, buildTaskPrompt } from "./prompts/task.js";
+import { resolveModel, getModelOptions } from "./provider.js";
 
 const taskPlanSchema = z.object({
   summary: z.string().describe("任务总述"),
