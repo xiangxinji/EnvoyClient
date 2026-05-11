@@ -82,6 +82,16 @@ async function handleLogin() {
     const data = await res.json();
     role.value = data.role;
 
+    // 初始化 brains 目录
+    if (isTauri) {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("init_brains", { username: user });
+      } catch (e) {
+        console.warn("init brains failed:", e);
+      }
+    }
+
     const teamsRes = await fetch(`${base}/api/teams`);
     const teamsData = await teamsRes.json();
     teams.value = teamsData.map((t: any) => ({ name: t.name, port: t.port }));

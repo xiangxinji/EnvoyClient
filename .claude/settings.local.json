@@ -39,7 +39,8 @@
       "Bash(powershell *)",
       "Bash(npm ls *)",
       "Bash(git status *)",
-      "Bash(/c/Users/Administrator/Desktop/EnvoyClient/src-tauri/target/debug/envoy-client.exe *)"
+      "Bash(/c/Users/Administrator/Desktop/EnvoyClient/src-tauri/target/debug/envoy-client.exe *)",
+      "Bash(echo \"---EXIT:$?---\")"
     ]
   }
 }

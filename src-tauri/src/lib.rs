@@ -1,3 +1,4 @@
+mod brains;
 mod history;
 mod settings;
 
@@ -88,6 +89,7 @@ pub fn run() {
             shell_exec,
             file_read,
             file_write,
+            brains::init_brains,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
