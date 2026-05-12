@@ -3,6 +3,8 @@ import { ref, provide } from "vue";
 import { useRouter } from "vue-router";
 import MemberSidebar from "../components/MemberSidebar.vue";
 import ChatPanel from "../components/ChatPanel.vue";
+import TaskCenterView from "./TaskCenterView.vue";
+import TaskDispatchPanel from "./TaskDispatchPanel.vue";
 import { TeamClientKey, getTeamClientInstance } from "../composables/teamClientContext";
 
 const router = useRouter();
@@ -29,7 +31,9 @@ if (ctx) {
       :selected-peer="selectedPeer"
       @select="handleSelectPeer"
     />
-    <ChatPanel :peer-id="selectedPeer" />
+    <TaskDispatchPanel v-if="selectedPeer === '__dispatch__'" />
+    <TaskCenterView v-else-if="selectedPeer === '__tasks__'" />
+    <ChatPanel v-else :peer-id="selectedPeer" />
   </div>
 </template>
 

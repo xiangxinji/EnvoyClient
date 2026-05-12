@@ -2,6 +2,7 @@ export interface MemberInfo {
   id: string;
   role: "leader" | "member";
   status: "online";
+  responsibilities?: string;
 }
 
 export interface ChatMessage {
@@ -28,6 +29,7 @@ export interface TaskMessage {
   content: string;
   status: "pending" | "running" | "completed" | "failed";
   resources: TaskResource[];
+  subscribe?: string[];
   timestamp: number;
 }
 

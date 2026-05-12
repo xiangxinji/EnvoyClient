@@ -115,13 +115,13 @@ export const api = {
   getTasks: (name: string) => request<TaskInfo[]>(`/teams/${name}/tasks`),
   getTaskDetail: (team: string, id: string) => request<TaskDetailData>(`/teams/${team}/tasks/${id}`),
   getUsers: () => request<UserInfo[]>("/users"),
-  createUser: async (username: string, password: string, role: "leader" | "member") => {
+  createUser: async (username: string, password: string, role: "leader" | "member", responsibilities?: string) => {
     const pubKey = await getPublicKey();
     const encrypted = await rsaEncrypt(pubKey, password);
     return request<UserInfo>("/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password: encrypted, role }),
+      body: JSON.stringify({ username, password: encrypted, role, responsibilities }),
     });
   },
   deleteUser: (username: string) =>

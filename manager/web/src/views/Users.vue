@@ -9,6 +9,7 @@ const showCreate = ref(false);
 const newName = ref("");
 const newPass = ref("");
 const newRole = ref<"leader" | "member">("member");
+const newResponsibilities = ref("");
 const creating = ref(false);
 
 async function refresh() {
@@ -28,10 +29,11 @@ async function handleCreate() {
   if (!username || !password) return;
   creating.value = true;
   try {
-    await api.createUser(username, password, newRole.value);
+    await api.createUser(username, password, newRole.value, newResponsibilities.value.trim() || undefined);
     newName.value = "";
     newPass.value = "";
     newRole.value = "member";
+    newResponsibilities.value = "";
     showCreate.value = false;
     await refresh();
   } catch (e: any) {
@@ -109,6 +111,10 @@ onMounted(refresh);
             <button class="role-btn" :class="{ active: newRole === 'leader' }" @click="newRole = 'leader'">Leader</button>
             <button class="role-btn" :class="{ active: newRole === 'member' }" @click="newRole = 'member'">Member</button>
           </div>
+        </div>
+        <div v-if="newRole === 'member'" class="field">
+          <label>职责描述</label>
+          <textarea v-model="newResponsibilities" placeholder="描述成员的能力和职责（选填）" rows="3" @keydown.enter.ctrl="handleCreate"></textarea>
         </div>
         <div v-if="error" class="error">{{ error }}</div>
         <div class="modal-actions">
@@ -273,6 +279,22 @@ tr:last-child td {
 }
 
 .field input:focus {
+  border-color: var(--accent);
+}
+
+.field textarea {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9em;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.field textarea:focus {
   border-color: var(--accent);
 }
 

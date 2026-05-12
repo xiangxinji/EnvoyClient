@@ -3,6 +3,7 @@ import { validateSession } from "./admin.js";
 import { getAIConfig, updateAIConfig } from "../settings.js";
 import { createAIRoutes } from "../services/ai/index.js";
 import { handleAgentReason } from "../services/ai/agent.js";
+import { handleTaskDispatch } from "../services/ai/dispatch.js";
 
 async function adminAuth(c: Context, next: Next) {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");
@@ -36,6 +37,15 @@ export default function aiRoutes(app: Hono) {
       return c.json({ error: "AI not configured" }, 503);
     }
     return handleAgentReason(c, config);
+  });
+
+  // Task dispatch — public, no auth
+  app.post("/api/ai/task/dispatch", async (c) => {
+    const config = getAIConfig();
+    if (!config.apiKey) {
+      return c.json({ error: "AI not configured" }, 503);
+    }
+    return handleTaskDispatch(c, config);
   });
 
   // ─── Admin-only routes (auth required) ───

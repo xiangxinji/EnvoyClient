@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { inject } from "vue";
+import { inject, computed } from "vue";
 import { TeamClientKey } from "../composables/teamClientContext";
 
 defineProps<{
@@ -11,7 +11,22 @@ const emit = defineEmits<{
 }>();
 
 const ctx = inject(TeamClientKey)!;
-const { members, unreadCounts, markRead } = ctx;
+const { members, unreadCounts, markRead, messages } = ctx;
+
+// Count all tasks across all conversations
+const taskCount = computed(() => {
+  let count = 0;
+  const seen = new Set<string>();
+  for (const items of messages.value.values()) {
+    for (const item of items) {
+      if (item.type === "task" && !seen.has(item.taskId)) {
+        seen.add(item.taskId);
+        count++;
+      }
+    }
+  }
+  return count;
+});
 
 function handleClick(peerId: string) {
   markRead(peerId);
@@ -34,6 +49,44 @@ function getInitial(name: string): string {
       <h3>成员</h3>
     </div>
     <ul>
+      <!-- Task center entry -->
+      <li
+        class="task-center-entry"
+        :class="{ active: selectedPeer === '__tasks__' }"
+        @click="emit('select', '__tasks__')"
+      >
+        <div class="avatar task-center-avatar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+            <rect x="9" y="3" width="6" height="4" rx="1" />
+            <path d="M9 14l2 2 4-4" />
+          </svg>
+        </div>
+        <div class="member-info">
+          <span class="member-name">任务中心</span>
+        </div>
+        <span v-if="taskCount > 0" class="badge badge-task">
+          {{ formatBadge(taskCount) }}
+        </span>
+      </li>
+
+      <!-- Dispatch task entry (leader only) -->
+      <li
+        v-if="ctx.role === 'leader'"
+        class="task-center-entry"
+        :class="{ active: selectedPeer === '__dispatch__' }"
+        @click="emit('select', '__dispatch__')"
+      >
+        <div class="avatar dispatch-avatar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+        </div>
+        <div class="member-info">
+          <span class="member-name">分派任务</span>
+        </div>
+      </li>
+
       <li
         v-for="m in members"
         :key="m.id"
@@ -200,5 +253,26 @@ li.active {
 
 .empty svg {
   color: var(--empty-icon);
+}
+
+/* Task center entry */
+.task-center-entry {
+  margin-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: var(--space-md);
+}
+
+.task-center-avatar {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.badge-task {
+  background: var(--accent);
+}
+
+.dispatch-avatar {
+  background: rgba(255, 149, 10, 0.12);
+  color: #ff9f0a;
 }
 </style>

@@ -6,6 +6,7 @@ import {
   allocatePort,
   type TeamRecord,
 } from "../team-registry.js";
+import { loadUsers } from "../user-registry.js";
 
 export function teamStats(team: Team) {
   const server = team.innerServer;
@@ -95,7 +96,15 @@ export default function teamRoutes(app: Hono, teams: Map<string, Team>) {
   app.get("/api/teams/:name/members", async (c) => {
     const instance = teams.get(c.req.param("name"));
     if (!instance) return c.json({ error: "team not found" }, 404);
-    return c.json(instance.innerServer.getClients());
+    const clients = instance.innerServer.getClients();
+    const users = await loadUsers();
+    const userMap = new Map(users.map((u) => [u.username, u]));
+    return c.json(
+      clients.map((cl) => ({
+        ...cl,
+        responsibilities: userMap.get(cl.id)?.responsibilities ?? "",
+      }))
+    );
   });
 
   app.get("/api/teams/:name/tasks", async (c) => {

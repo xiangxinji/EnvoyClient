@@ -15,14 +15,15 @@ export default function userRoutes(app: Hono) {
 
   app.get("/api/users", async (c) => {
     const users = await loadUsers();
-    return c.json(users.map((u) => ({ username: u.username, role: u.role, createdAt: u.createdAt })));
+    return c.json(users.map((u) => ({ username: u.username, role: u.role, responsibilities: u.responsibilities ?? "", createdAt: u.createdAt })));
   });
 
   app.post("/api/users", async (c) => {
-    const body = await c.req.json<{ username?: string; password?: string; role?: string }>();
+    const body = await c.req.json<{ username?: string; password?: string; role?: string; responsibilities?: string }>();
     const username = body.username?.trim();
     const encryptedPassword = body.password;
     const role = body.role === "leader" ? "leader" : "member";
+    const responsibilities = body.responsibilities?.trim() ?? "";
     if (!username || !encryptedPassword) return c.json({ error: "username and password are required" }, 400);
 
     const password = decryptWithPrivateKey(encryptedPassword);
@@ -31,12 +32,12 @@ export default function userRoutes(app: Hono) {
     if (users.some((u) => u.username === username)) return c.json({ error: "user already exists" }, 409);
 
     const hashed = await hashPassword(password);
-    const user: UserRecord = { username, password: hashed, role, createdAt: Date.now() };
+    const user: UserRecord = { username, password: hashed, role, responsibilities, createdAt: Date.now() };
     users.push(user);
     await saveUsers(users);
 
     console.log(`[user-created] ${username} (${role})`);
-    return c.json({ username, role, createdAt: user.createdAt }, 201);
+    return c.json({ username, role, responsibilities, createdAt: user.createdAt }, 201);
   });
 
   app.delete("/api/users/:username", async (c) => {

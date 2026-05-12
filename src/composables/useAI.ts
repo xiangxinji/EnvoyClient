@@ -186,6 +186,26 @@ export function useAI() {
     }
   }
 
+  async function dispatchTask(description: string, members: Array<{ id: string; responsibilities?: string }>) {
+    aiError.value = "";
+
+    try {
+      const res = await fetch(apiUrl("/api/ai/task/dispatch"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description, members }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Dispatch failed: ${res.status} ${text}`);
+      }
+      return await res.json() as { subscribe: string[]; content: string };
+    } catch (e: any) {
+      aiError.value = e.message;
+      return null;
+    }
+  }
+
   return {
     suggestion,
     isStreaming,
@@ -196,5 +216,6 @@ export function useAI() {
     clearSuggestion,
     planTask,
     analyzeTaskResult,
+    dispatchTask,
   };
 }

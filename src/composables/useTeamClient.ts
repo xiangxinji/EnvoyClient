@@ -116,6 +116,7 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
       content: task.content,
       status: task.status as TaskMessage["status"],
       resources: task.resources,
+      subscribe: task.subscribe,
       timestamp: Date.now(),
     };
 

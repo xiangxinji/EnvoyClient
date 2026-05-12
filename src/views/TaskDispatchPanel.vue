@@ -1,0 +1,359 @@
+<script setup lang="ts">
+import { inject, ref } from "vue";
+import { TeamClientKey } from "../composables/teamClientContext";
+import { useAI } from "../composables/useAI";
+
+const ctx = inject(TeamClientKey)!;
+const { members, dispatchTask } = ctx;
+
+const { dispatchTask: aiDispatchTask, aiAvailable } = useAI();
+
+const taskContent = ref("");
+const dispatchPreview = ref<{ subscribe: string[]; content: string } | null>(null);
+const dispatchLoading = ref(false);
+
+async function handleSubmit() {
+  const content = taskContent.value.trim();
+  if (!content) return;
+
+  dispatchLoading.value = true;
+  dispatchPreview.value = null;
+
+  const memberList = members.value.map((m: any) => ({ id: m.id, responsibilities: m.responsibilities }));
+  const result = await aiDispatchTask(content, memberList);
+
+  dispatchLoading.value = false;
+  if (result) {
+    dispatchPreview.value = result;
+  }
+}
+
+function handleConfirm() {
+  if (!dispatchPreview.value) return;
+  const { subscribe, content } = dispatchPreview.value;
+  dispatchTask(subscribe, content);
+  dispatchPreview.value = null;
+  taskContent.value = "";
+}
+
+function handleCancel() {
+  dispatchPreview.value = null;
+}
+
+function getMatchedMembers() {
+  if (!dispatchPreview.value) return [];
+  return members.value.filter((m: any) => dispatchPreview.value!.subscribe.includes(m.id));
+}
+</script>
+
+<template>
+  <div class="dispatch-panel">
+    <div class="dispatch-header">
+      <h2>分派任务</h2>
+      <p class="dispatch-desc">输入任务描述，AI 将根据成员职责自动匹配最合适的人选</p>
+    </div>
+
+    <!-- Online members preview -->
+    <div class="section" v-if="members.length > 0">
+      <h3 class="section-title">在线成员 ({{ members.length }})</h3>
+      <div class="member-chips">
+        <div v-for="m in members" :key="m.id" class="member-chip">
+          <span class="chip-name">{{ m.id }}</span>
+          <span class="chip-desc">{{ m.responsibilities || '无职责描述' }}</span>
+        </div>
+      </div>
+    </div>
+    <div v-else class="empty-members">
+      暂无成员在线，无法分派任务
+    </div>
+
+    <!-- Task input -->
+    <div class="section">
+      <h3 class="section-title">任务描述</h3>
+      <textarea
+        v-model="taskContent"
+        placeholder="描述你要分派的任务，AI 会自动匹配合适的成员..."
+        rows="4"
+        :disabled="dispatchLoading"
+        @keydown.ctrl.enter="handleSubmit"
+      />
+      <div class="input-hint">Ctrl + Enter 提交</div>
+      <button
+        class="btn-dispatch"
+        :disabled="!taskContent.trim() || dispatchLoading || !aiAvailable"
+        @click="handleSubmit"
+      >
+        <span v-if="dispatchLoading" class="spinner-small"></span>
+        <span>{{ dispatchLoading ? 'AI 分析中...' : 'AI 智能分派' }}</span>
+      </button>
+    </div>
+
+    <!-- Preview -->
+    <div v-if="dispatchPreview" class="section">
+      <h3 class="section-title">匹配结果</h3>
+      <div class="preview-card">
+        <div class="preview-content">{{ dispatchPreview.content }}</div>
+        <div class="preview-members">
+          <span class="preview-label">分派给：</span>
+          <div class="matched-list">
+            <div v-for="m in getMatchedMembers()" :key="m.id" class="matched-member">
+              <span class="matched-name">{{ m.id }}</span>
+              <span class="matched-desc">{{ m.responsibilities }}</span>
+            </div>
+            <div v-if="dispatchPreview.subscribe.length === 0" class="no-match">
+              无匹配成员，请调整任务描述或添加更多成员
+            </div>
+          </div>
+        </div>
+        <div class="preview-actions">
+          <button class="btn-confirm" @click="handleConfirm" :disabled="dispatchPreview.subscribe.length === 0">
+            确认分派
+          </button>
+          <button class="btn-cancel" @click="handleCancel">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.dispatch-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2xl);
+  background: var(--bg-primary);
+}
+
+.dispatch-header {
+  margin-bottom: var(--space-2xl);
+}
+
+.dispatch-header h2 {
+  margin: 0;
+  font-size: 1.3em;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dispatch-desc {
+  margin: var(--space-sm) 0 0;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.section {
+  margin-bottom: var(--space-2xl);
+}
+
+.section-title {
+  font-size: 0.9em;
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+  color: var(--text-secondary);
+}
+
+.member-chips {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.member-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.chip-name {
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 60px;
+}
+
+.chip-desc {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.empty-members {
+  padding: var(--space-xl);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85em;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-md);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+  font-size: 0.9em;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+textarea:focus {
+  border-color: var(--accent);
+}
+
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.input-hint {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+.btn-dispatch {
+  margin-top: var(--space-md);
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  font-size: 0.9em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  transition: background 0.15s;
+}
+
+.btn-dispatch:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-dispatch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner-small {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.preview-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.preview-content {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.preview-members {
+  margin-bottom: var(--space-md);
+}
+
+.preview-label {
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+
+.matched-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.matched-member {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--accent-light);
+  border-radius: var(--radius-sm);
+}
+
+.matched-name {
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 0.85em;
+}
+
+.matched-desc {
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.no-match {
+  color: var(--error);
+  font-size: 0.85em;
+  padding: var(--space-sm);
+}
+
+.preview-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.btn-confirm {
+  padding: 8px var(--space-xl);
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  padding: 8px var(--space-xl);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.btn-cancel:hover {
+  color: var(--error);
+}
+</style>
