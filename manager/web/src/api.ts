@@ -13,11 +13,24 @@ export interface TeamInfo {
   } | null;
 }
 
+export interface RecentTask {
+  id: string;
+  team: string;
+  content: string;
+  status: string;
+  createBy: string;
+  assignedTo: string | null;
+  result: unknown;
+  resources: { type: string; by: string; data: unknown }[];
+  createdAt: number;
+}
+
 export interface DashboardData {
   totalTeams: number;
   totalOnline: number;
   totalTasks: number;
   taskSummary: Record<string, number>;
+  recentTasks: RecentTask[];
 }
 
 export interface MemberInfo {
@@ -38,7 +51,14 @@ export interface TaskInfo {
   mode: "serial" | "parallel";
   status: "pending" | "running" | "completed" | "failed";
   resources: { type: string; by: string; data: unknown }[];
+  assignedTo: string | null;
+  result: unknown;
   createdAt: number;
+}
+
+export interface TaskDetailData extends Omit<TaskInfo, "assignedTo" | "result"> {
+  assignedTo: string[];
+  results: Array<{ by: string; data: unknown }>;
 }
 
 export interface UserInfo {
@@ -93,6 +113,7 @@ export const api = {
     request<{ ok: boolean }>(`/teams/${name}`, { method: "DELETE" }),
   getMembers: (name: string) => request<MemberInfo[]>(`/teams/${name}/members`),
   getTasks: (name: string) => request<TaskInfo[]>(`/teams/${name}/tasks`),
+  getTaskDetail: (team: string, id: string) => request<TaskDetailData>(`/teams/${team}/tasks/${id}`),
   getUsers: () => request<UserInfo[]>("/users"),
   createUser: async (username: string, password: string, role: "leader" | "member") => {
     const pubKey = await getPublicKey();

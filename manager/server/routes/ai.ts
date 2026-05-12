@@ -3,9 +3,6 @@ import { validateSession } from "./admin.js";
 import { getAIConfig, updateAIConfig } from "../settings.js";
 import { createAIRoutes } from "../services/ai/index.js";
 import { handleAgentReason } from "../services/ai/agent.js";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import { writeFile } from "node:fs/promises";
 
 async function adminAuth(c: Context, next: Next) {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");
@@ -28,19 +25,8 @@ export default function aiRoutes(app: Hono) {
     });
   });
 
-  // AI generation routes — public, API key stays on server
-  const TEMP_AI_CONFIG = join(homedir(), ".envoy", ".ai-runtime.json");
-
-  async function syncRuntimeConfig() {
-    const ai = getAIConfig();
-    await writeFile(TEMP_AI_CONFIG, JSON.stringify(ai), "utf-8");
-  }
-
-  const router = createAIRoutes({ configPath: TEMP_AI_CONFIG });
-
-  app.use("/api/ai/chat/*", async (_c, next) => { await syncRuntimeConfig(); await next(); });
-  app.use("/api/ai/task/*", async (_c, next) => { await syncRuntimeConfig(); await next(); });
-  app.use("/api/ai/agent/*", async (_c, next) => { await syncRuntimeConfig(); await next(); });
+  // AI generation routes — reads config from manager.json via getAIConfig()
+  const router = createAIRoutes({ getConfig: getAIConfig });
   app.route("/api/ai", router);
 
   // Agent reasoning — public, no auth

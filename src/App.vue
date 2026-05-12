@@ -1,13 +1,18 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import TitleBar from "./components/TitleBar.vue";
 import { useTheme } from "./composables/useTheme";
+import { useTeamClientInstance } from "./composables/teamClientContext";
 
 useTheme();
+
+const instance = useTeamClientInstance();
+const username = computed(() => instance.value?.myId ?? undefined);
 </script>
 
 <template>
   <div class="app-container">
-    <TitleBar />
+    <TitleBar :username="username" />
     <router-view />
   </div>
 </template>

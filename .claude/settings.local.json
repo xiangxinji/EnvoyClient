@@ -48,7 +48,8 @@
       "Bash(./src-tauri/target/debug/envoy-client.exe)",
       "Bash(VITE_PORT=1421 npx vite --port 1421)",
       "Bash(ENV_FILE= TAURI_DEV_SERVER_URL=http://localhost:1421 ./src-tauri/target/debug/envoy-client.exe)",
-      "Bash(NODE_OPTIONS=\"--import tsx\" node *)"
+      "Bash(NODE_OPTIONS=\"--import tsx\" node *)",
+      "Bash(python3 -c \"import sys,json; tasks=json.load\\(sys.stdin\\); print\\(tasks[0]['id'] if tasks else 'no tasks'\\)\")"
     ]
   }
 }

@@ -1,19 +1,19 @@
 import { Hono } from "hono";
 import type { AIConfig, AIConfigPublic, ProviderType } from "../../../../shared/types/ai.js";
 import { PROVIDERS } from "./constants.js";
-import { loadConfig, saveConfig, toPublicConfig } from "./config.js";
+import { toPublicConfig } from "./config.js";
 import { handleChatStream, handleChatGenerate } from "./chat.js";
 import { handleTaskGenerate } from "./task.js";
 import { handleAnalyze } from "./analyze.js";
 
 export interface AIRouterOptions {
-  configPath: string;
+  getConfig: () => AIConfig;
 }
 
 export function createAIRoutes(options: AIRouterOptions) {
   const router = new Hono();
 
-  const getConfig = () => loadConfig(options.configPath);
+  const getConfig = () => Promise.resolve(options.getConfig());
 
   // ─── Chat ───
 
@@ -59,19 +59,7 @@ export function createAIRoutes(options: AIRouterOptions) {
   });
 
   router.put("/config", async (c) => {
-    const body = await c.req.json<Partial<AIConfig>>();
-    const current = await getConfig();
-
-    const updated: AIConfig = {
-      provider: body.provider ?? current.provider,
-      apiKey: body.apiKey ?? current.apiKey,
-      model: body.model ?? current.model,
-      temperature: body.temperature ?? current.temperature,
-      maxTokens: body.maxTokens ?? current.maxTokens,
-    };
-
-    await saveConfig(options.configPath, updated);
-    return c.json(toPublicConfig(updated));
+    return c.json({ error: "Use PUT /api/ai/config instead" }, 400);
   });
 
   // ─── Models ───

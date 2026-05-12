@@ -101,6 +101,29 @@ export default function teamRoutes(app: Hono, teams: Map<string, Team>) {
   app.get("/api/teams/:name/tasks", async (c) => {
     const instance = teams.get(c.req.param("name"));
     if (!instance) return c.json({ error: "team not found" }, 404);
-    return c.json(instance.innerServer.getAllTasks());
+    const tasks = instance.innerServer.getAllTasks();
+    return c.json(
+      tasks.map((t) => {
+        const clientResult = t.resources.find((r) => r.type === "client-result");
+        return {
+          ...t,
+          assignedTo: clientResult?.by ?? null,
+          result: clientResult?.data ?? null,
+        };
+      })
+    );
+  });
+
+  app.get("/api/teams/:name/tasks/:id", async (c) => {
+    const instance = teams.get(c.req.param("name"));
+    if (!instance) return c.json({ error: "team not found" }, 404);
+    const task = instance.innerServer.getTask(c.req.param("id"));
+    if (!task) return c.json({ error: "task not found" }, 404);
+    const clientResults = task.resources.filter((r) => r.type === "client-result");
+    return c.json({
+      ...task,
+      assignedTo: clientResults.map((r) => r.by),
+      results: clientResults.map((r) => ({ by: r.by, data: r.data })),
+    });
   });
 }

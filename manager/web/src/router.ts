@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import Dashboard from "./views/Dashboard.vue";
 import Teams from "./views/Teams.vue";
 import TeamDetail from "./views/TeamDetail.vue";
+import TaskDetail from "./views/TaskDetail.vue";
 import Users from "./views/Users.vue";
 import Login from "./views/Login.vue";
 import Settings from "./views/Settings.vue";
@@ -13,6 +14,7 @@ const router = createRouter({
     { path: "/", component: Dashboard },
     { path: "/teams", component: Teams },
     { path: "/teams/:name", component: TeamDetail, props: true },
+    { path: "/teams/:name/tasks/:id", component: TaskDetail, props: true },
     { path: "/users", component: Users },
     { path: "/settings", component: Settings },
   ],

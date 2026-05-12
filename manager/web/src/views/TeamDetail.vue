@@ -55,7 +55,7 @@ onUnmounted(() => clearInterval(timer));
 
       <section class="section">
         <h2 class="section-title">任务 ({{ tasks.length }})</h2>
-        <TaskTable :tasks="tasks" />
+        <TaskTable :tasks="tasks" :team="name" />
       </section>
     </template>
   </div>

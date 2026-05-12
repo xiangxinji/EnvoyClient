@@ -169,6 +169,7 @@ const navItems = [
   --sidebar-active: rgba(91, 106, 191, 0.1);
   --card-bg: #ffffff;
   --card-border: #e8e8ef;
+  --card-hover: #f7f8fa;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --status-running: #34c759;
@@ -201,6 +202,7 @@ html.dark {
   --sidebar-active: rgba(123, 138, 255, 0.12);
   --card-bg: #1a1a2e;
   --card-border: #2a2a3e;
+  --card-hover: #22223a;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --error: #ff6b6b;

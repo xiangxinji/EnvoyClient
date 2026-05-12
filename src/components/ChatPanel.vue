@@ -16,6 +16,54 @@ const taskInputVisible = ref(false);
 const taskContent = ref("");
 const messageList = ref<HTMLDivElement | null>(null);
 
+const PAGE_SIZE = 50;
+const displayCount = ref(PAGE_SIZE);
+const loadingMore = ref(false);
+
+const conversation = computed<TimelineItem[]>(() => {
+  if (!props.peerId) return [];
+  return getConversation(props.peerId);
+});
+
+const visibleMessages = computed<TimelineItem[]>(() => {
+  return conversation.value.slice(-displayCount.value);
+});
+
+const hasMoreHistory = computed(() => {
+  return displayCount.value < conversation.value.length;
+});
+
+function isNearBottom(el: HTMLElement, threshold = 100): boolean {
+  return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+}
+
+watch(
+  () => conversation.value.length,
+  async () => {
+    await nextTick();
+    if (messageList.value && isNearBottom(messageList.value)) {
+      messageList.value.scrollTop = messageList.value.scrollHeight;
+    }
+  }
+);
+
+function handleScroll() {
+  const el = messageList.value;
+  if (!el) return;
+
+  if (el.scrollTop < 50 && hasMoreHistory.value && !loadingMore.value) {
+    const prevScrollHeight = el.scrollHeight;
+    loadingMore.value = true;
+    displayCount.value += PAGE_SIZE;
+    nextTick(() => {
+      if (messageList.value) {
+        messageList.value.scrollTop = messageList.value.scrollHeight - prevScrollHeight;
+      }
+      loadingMore.value = false;
+    });
+  }
+}
+
 // AI
 const {
   suggestion,
@@ -33,25 +81,11 @@ const aiPlanVisible = ref(false);
 const aiPlan = ref<TaskPlan | null>(null);
 const aiPlanLoading = ref(false);
 
-const conversation = computed<TimelineItem[]>(() => {
-  if (!props.peerId) return [];
-  return getConversation(props.peerId);
-});
-
-watch(
-  () => conversation.value.length,
-  async () => {
-    await nextTick();
-    if (messageList.value) {
-      messageList.value.scrollTop = messageList.value.scrollHeight;
-    }
-  }
-);
-
 watch(
   () => props.peerId,
   (newPeer) => {
     if (newPeer) markRead(newPeer);
+    displayCount.value = PAGE_SIZE;
     taskInputVisible.value = false;
     clearSuggestion();
     aiPlanVisible.value = false;
@@ -142,8 +176,12 @@ function handleCancelAIPlan() {
         <span class="header-name">{{ peerId }}</span>
       </div>
 
-      <div ref="messageList" class="messages">
-        <template v-for="item in conversation" :key="item.id">
+      <div ref="messageList" class="messages" @scroll="handleScroll">
+        <div v-if="loadingMore" class="loading-more">
+          <span class="spinner-small"></span> 加载中...
+        </div>
+        <div v-else-if="hasMoreHistory" class="load-hint">↑ 向上滚动加载更多</div>
+        <template v-for="item in visibleMessages" :key="item.id">
           <MessageBubble v-if="item.type === 'chat'" :message="item" :my-id="myId" />
           <TaskCard v-else :task="item" />
         </template>
@@ -288,6 +326,18 @@ function handleCancelAIPlan() {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+}
+
+.loading-more,
+.load-hint {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8em;
+  padding: var(--space-xs) 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
 }
 
 /* AI suggestion */

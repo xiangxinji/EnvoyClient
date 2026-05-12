@@ -3,6 +3,8 @@ import { ref } from "vue";
 import { useTheme } from "../composables/useTheme";
 import logo from "../assets/logo.png";
 
+defineProps<{ username?: string }>();
+
 const isTauri = "__TAURI_INTERNALS__" in window;
 
 const appWindow = ref<any>(null);
@@ -50,7 +52,7 @@ function close() {
     </div>
     <div class="title" data-tauri-drag-region>
       <img :src="logo" class="logo" alt="Envoy" />
-      <span>Envoy</span>
+      <span>{{ username ? `Envoy · ${username}` : 'Envoy' }}</span>
     </div>
     <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? '浅色模式' : '深色模式'">
       <svg v-if="theme === 'dark'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

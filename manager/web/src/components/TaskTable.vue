@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TaskInfo } from "../api";
 
-defineProps<{ tasks: TaskInfo[] }>();
+const props = defineProps<{ tasks: TaskInfo[]; team: string }>();
 
 const statusLabels: Record<string, string> = {
   pending: "等待中",
@@ -14,6 +14,17 @@ const modeLabels: Record<string, string> = {
   serial: "串行",
   parallel: "并行",
 };
+
+function formatResult(result: unknown): string {
+  if (result == null) return "—";
+  if (typeof result === "string") return result.length > 60 ? result.slice(0, 60) + "..." : result;
+  const str = JSON.stringify(result);
+  return str.length > 60 ? str.slice(0, 60) + "..." : str;
+}
+
+function taskUrl(id: string): string {
+  return `/teams/${props.team}/tasks/${id}`;
+}
 </script>
 
 <template>
@@ -21,29 +32,44 @@ const modeLabels: Record<string, string> = {
     <table v-if="tasks.length > 0">
       <thead>
         <tr>
-          <th>ID</th>
           <th>内容</th>
           <th>创建者</th>
           <th>模式</th>
           <th>状态</th>
-          <th>执行者</th>
+          <th>执行人</th>
+          <th>结果</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="t in tasks" :key="t.id">
-          <td class="id-cell">{{ t.id.slice(0, 16) }}...</td>
-          <td class="content-cell">{{ t.content }}</td>
-          <td>{{ t.createBy }}</td>
-          <td>
-            <span class="mode-badge" :class="t.mode">{{ modeLabels[t.mode] }}</span>
-          </td>
-          <td>
-            <span class="status-badge" :class="t.status">{{ statusLabels[t.status] }}</span>
-          </td>
-          <td>
-            <span class="subscribers">{{ t.subscribe.join(", ") }}</span>
-          </td>
-        </tr>
+        <router-link
+          v-for="t in tasks"
+          :key="t.id"
+          :to="taskUrl(t.id)"
+          custom
+          v-slot="{ navigate }"
+        >
+          <tr class="clickable-row" @click="navigate">
+            <td class="content-cell">{{ t.content }}</td>
+            <td>{{ t.createBy }}</td>
+            <td>
+              <span class="mode-badge" :class="t.mode">{{ modeLabels[t.mode] }}</span>
+            </td>
+            <td>
+              <span class="status-badge" :class="t.status">{{ statusLabels[t.status] }}</span>
+            </td>
+            <td>
+              <span v-if="t.assignedTo" class="executor">{{ t.assignedTo }}</span>
+              <span v-else class="subscribers">{{ t.subscribe.join(", ") }}</span>
+            </td>
+            <td class="result-cell">{{ formatResult(t.result) }}</td>
+            <td class="action-cell">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </td>
+          </tr>
+        </router-link>
       </tbody>
     </table>
     <div v-else class="empty">暂无任务</div>
@@ -85,10 +111,13 @@ tr:last-child td {
   border-bottom: none;
 }
 
-.id-cell {
-  font-family: monospace;
-  font-size: 0.82em;
-  color: var(--text-muted);
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.clickable-row:hover {
+  background: var(--card-hover);
 }
 
 .content-cell {
@@ -140,6 +169,26 @@ tr:last-child td {
 .subscribers {
   font-size: 0.85em;
   color: var(--text-muted);
+}
+
+.executor {
+  font-size: 0.85em;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.result-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82em;
+  color: var(--text-muted);
+}
+
+.action-cell {
+  color: var(--text-muted);
+  width: 30px;
 }
 
 .empty {
