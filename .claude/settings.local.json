@@ -42,7 +42,13 @@
       "Bash(/c/Users/Administrator/Desktop/EnvoyClient/src-tauri/target/debug/envoy-client.exe *)",
       "Bash(echo \"---EXIT:$?---\")",
       "Bash(npx kill-port *)",
-      "Bash(taskkill //F //IM \"envoy-client.exe\")"
+      "Bash(taskkill //F //IM \"envoy-client.exe\")",
+      "Bash(openspec list *)",
+      "Bash(start *)",
+      "Bash(./src-tauri/target/debug/envoy-client.exe)",
+      "Bash(VITE_PORT=1421 npx vite --port 1421)",
+      "Bash(ENV_FILE= TAURI_DEV_SERVER_URL=http://localhost:1421 ./src-tauri/target/debug/envoy-client.exe)",
+      "Bash(NODE_OPTIONS=\"--import tsx\" node *)"
     ]
   }
 }

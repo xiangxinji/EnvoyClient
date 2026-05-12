@@ -2,6 +2,7 @@ import type { Hono, Context, Next } from "hono";
 import { validateSession } from "./admin.js";
 import { getAIConfig, updateAIConfig } from "../settings.js";
 import { createAIRoutes } from "../services/ai/index.js";
+import { handleAgentReason } from "../services/ai/agent.js";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { writeFile } from "node:fs/promises";
@@ -39,7 +40,17 @@ export default function aiRoutes(app: Hono) {
 
   app.use("/api/ai/chat/*", async (_c, next) => { await syncRuntimeConfig(); await next(); });
   app.use("/api/ai/task/*", async (_c, next) => { await syncRuntimeConfig(); await next(); });
+  app.use("/api/ai/agent/*", async (_c, next) => { await syncRuntimeConfig(); await next(); });
   app.route("/api/ai", router);
+
+  // Agent reasoning — public, no auth
+  app.post("/api/ai/agent/reason", async (c) => {
+    const config = getAIConfig();
+    if (!config.apiKey) {
+      return c.json({ error: "AI not configured" }, 503);
+    }
+    return handleAgentReason(c, config);
+  });
 
   // ─── Admin-only routes (auth required) ───
 

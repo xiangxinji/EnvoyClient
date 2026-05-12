@@ -5,6 +5,7 @@ import { Member } from "../../envoy/packages/teams/member.js";
 import type { ClientOptions } from "@envoy/client";
 import type { Message } from "@envoy/core";
 import type { MemberInfo, TimelineItem, ChatMessage, TaskMessage, TaskResource } from "../types";
+import { useAgent, getDefaultTools } from "./useAgent";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
@@ -178,25 +179,23 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
     });
   }
 
-  // Member 端自动注册任务处理器
+  const agent = useAgent();
+
+  // Member 端 Agent ReAct 循环处理任务
   client.doing(async (clientTask) => {
     const taskContent = clientTask.serverTask.content;
 
     if (!isTauri) {
-      return { taskId: clientTask.serverTask.id, note: "browser mode, no shell" };
+      return { taskId: clientTask.serverTask.id, note: "browser mode, no agent tools" };
     }
 
     try {
-      const result = await invoke("shell_exec", { command: taskContent }) as {
-        stdout: string;
-        stderr: string;
-        exit_code: number;
-      };
-      return {
-        exit_code: result.exit_code,
-        stdout: result.stdout,
-        stderr: result.stderr,
-      };
+      const result = await agent.runAgent(taskContent, getDefaultTools());
+      try {
+        return JSON.parse(result);
+      } catch {
+        return { result };
+      }
     } catch (e) {
       return { error: String(e) };
     }

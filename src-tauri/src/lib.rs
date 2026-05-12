@@ -5,6 +5,112 @@ mod settings;
 use std::collections::HashMap;
 use std::process::Command;
 
+/// Resolve a path string to a safe absolute path within the user's home directory.
+/// Expands `~` to home dir, canonicalizes (resolving `..` and symlinks),
+/// and verifies the result is inside the home directory.
+fn resolve_safe_path(path: &str) -> Result<std::path::PathBuf, serde_json::Value> {
+    let home = dirs::home_dir().ok_or_else(|| {
+        serde_json::json!({ "error": "Cannot determine home directory" })
+    })?;
+
+    let expanded = if path.starts_with("~/") {
+        home.join(&path[2..])
+    } else if path == "~" {
+        home.clone()
+    } else {
+        std::path::PathBuf::from(path)
+    };
+
+    // For non-existent paths, canonicalize won't work, so resolve the parent
+    // and append the file name. For existent paths, canonicalize directly.
+    let canonical = if expanded.exists() {
+        expanded
+            .canonicalize()
+            .map_err(|e| serde_json::json!({ "error": format!("Failed to resolve path: {}", e) }))?
+    } else {
+        // Resolve parent if it exists, then append the final component
+        let file_name = expanded
+            .file_name()
+            .ok_or_else(|| serde_json::json!({ "error": "Invalid path" }))?;
+        let parent = expanded.parent().ok_or_else(|| {
+            serde_json::json!({ "error": "Invalid path" })
+        })?;
+
+        if parent.as_os_str().is_empty() {
+            // Relative path with no parent — treat as relative to cwd, reject
+            return Err(serde_json::json!({ "error": "Path outside allowed directory" }));
+        }
+
+        let canonical_parent = if parent.exists() {
+            parent.canonicalize().map_err(|e| {
+                serde_json::json!({ "error": format!("Failed to resolve path: {}", e) })
+            })?
+        } else {
+            return Err(serde_json::json!({ "error": "Parent directory does not exist" }));
+        };
+
+        canonical_parent.join(file_name)
+    };
+
+    let canonical_str = canonical.to_string_lossy();
+    let home_str = home.to_string_lossy();
+
+    // On Windows, canonicalize returns UNC prefix (\\?\), strip it for comparison
+    let canonical_clean = canonical_str
+        .strip_prefix(r"\\?\")
+        .unwrap_or(&canonical_str);
+    let home_clean = home_str.strip_prefix(r"\\?\").unwrap_or(&home_str);
+
+    if !canonical_clean.starts_with(home_clean) {
+        return Err(serde_json::json!({ "error": "Path outside allowed directory" }));
+    }
+
+    Ok(canonical)
+}
+
+#[tauri::command]
+fn file_read(path: String) -> Result<serde_json::Value, String> {
+    let safe_path = resolve_safe_path(&path).map_err(|v| {
+        serde_json::to_string(&v).unwrap_or_else(|_| r#"{"error":"Unknown error"}"#.to_string())
+    })?;
+
+    if !safe_path.exists() {
+        return Err(
+            serde_json::to_string(&serde_json::json!({ "error": "File not found" }))
+                .unwrap_or_else(|_| r#"{"error":"File not found"}"#.to_string()),
+        );
+    }
+
+    // Read first 8KB to check for binary content
+    let mut file = std::fs::File::open(&safe_path).map_err(|e| e.to_string())?;
+    let mut probe = [0u8; 8192];
+    let bytes_read = std::io::Read::read(&mut file, &mut probe).map_err(|e| e.to_string())?;
+
+    if probe[..bytes_read].contains(&0) {
+        return Err(
+            serde_json::to_string(&serde_json::json!({ "error": "Cannot read binary file" }))
+                .unwrap_or_else(|_| r#"{"error":"Cannot read binary file"}"#.to_string()),
+        );
+    }
+
+    let content = std::fs::read_to_string(&safe_path).map_err(|e| e.to_string())?;
+    Ok(serde_json::json!({ "content": content }))
+}
+
+#[tauri::command]
+fn file_write(path: String, content: String) -> Result<serde_json::Value, String> {
+    let safe_path = resolve_safe_path(&path).map_err(|v| {
+        serde_json::to_string(&v).unwrap_or_else(|_| r#"{"error":"Unknown error"}"#.to_string())
+    })?;
+
+    // Ensure parent directory exists
+    if let Some(parent) = safe_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&safe_path, &content).map_err(|e| e.to_string())?;
+    Ok(serde_json::json!({ "success": true }))
+}
+
 #[tauri::command]
 fn save_message(my_id: &str, peer_id: &str, message: serde_json::Value) -> Result<(), String> {
     history::save_message(my_id, peer_id, message)
@@ -58,21 +164,6 @@ fn shell_exec(command: String) -> Result<serde_json::Value, String> {
     }))
 }
 
-#[tauri::command]
-fn file_read(path: String) -> Result<serde_json::Value, String> {
-    let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    Ok(serde_json::json!({ "content": content, "path": path }))
-}
-
-#[tauri::command]
-fn file_write(path: String, content: String) -> Result<serde_json::Value, String> {
-    // Ensure parent directory exists
-    if let Some(parent) = std::path::Path::new(&path).parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-    std::fs::write(&path, &content).map_err(|e| e.to_string())?;
-    Ok(serde_json::json!({ "ok": true, "path": path }))
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
