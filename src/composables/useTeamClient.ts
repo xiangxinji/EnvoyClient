@@ -20,9 +20,26 @@ export type ConnectionStatus =
   | "connected"
   | "reconnecting";
 
-export function useTeamClient(role: "leader" | "member", options: ClientOptions) {
+export interface TeamClientOptions extends ClientOptions {
+  managerUrl: string;
+  teamName: string;
+}
+
+export function useTeamClient(role: "leader" | "member", options: TeamClientOptions) {
   const client = role === "leader" ? new Leader(options) : new Member(options);
   const myId = options.id;
+  const { managerUrl, teamName } = options;
+
+  function apiRequest(path: string, body: Record<string, unknown>) {
+    return fetch(`${managerUrl}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        team: teamName,
+      },
+      body: JSON.stringify(body),
+    });
+  }
 
   const status = ref<ConnectionStatus>("disconnected");
   const members = ref<MemberInfo[]>([]);
@@ -169,11 +186,12 @@ export function useTeamClient(role: "leader" | "member", options: ClientOptions)
       mine: true,
     };
     addToConversation(targetId, chatMsg);
-    client.sendTo(targetId, "chat", { text });
+    apiRequest("/api/messages", { from: myId, to: targetId, text });
   }
 
   function dispatchTask(targetIds: string[], content: string) {
-    client.submit({
+    apiRequest("/api/tasks", {
+      from: myId,
       content,
       subscribe: targetIds,
       mode: "serial",

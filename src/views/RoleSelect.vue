@@ -126,6 +126,8 @@ async function handleConnect() {
     const teamClient = useTeamClient(role.value, {
       id: username.value.trim(),
       servers: [wsUrl],
+      managerUrl: managerUrl.value.trim(),
+      teamName: team.name,
     });
 
     await teamClient.connect();
