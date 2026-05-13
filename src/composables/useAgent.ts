@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { getDefaultTools } from "../agent/tools";
 import { reactLoop } from "../agent/react";
+import type { AgentResult } from "../types";
 
 export type { AgentTool, AgentToolSchema } from "../agent/tools";
 export { createUploadResourceTool, createQueryResourcesTool, createReadResourceTool } from "../agent/tools";
@@ -13,18 +14,17 @@ export function useAgent() {
   async function runAgent(
     taskContent: string,
     customTools?: ReturnType<typeof getDefaultTools>,
-  ): Promise<string> {
+  ): Promise<AgentResult> {
     const tools = customTools ?? getDefaultTools();
     isRunning.value = true;
     currentStep.value = 0;
     error.value = "";
 
     try {
-      const result = await reactLoop(taskContent, tools, currentStep, error);
-      return result;
+      return await reactLoop(taskContent, tools, currentStep, error);
     } catch (e: any) {
       error.value = e.message || String(e);
-      return JSON.stringify({ error: error.value });
+      return { result: JSON.stringify({ error: error.value }), trace: [] };
     } finally {
       isRunning.value = false;
     }

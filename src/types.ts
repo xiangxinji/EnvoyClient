@@ -15,11 +15,38 @@ export interface ChatMessage {
   mine: boolean;
 }
 
+export interface ToolCallRecord {
+  name: string;
+  args: unknown;
+}
+
+export interface ToolResultRecord {
+  name: string;
+  result: unknown;
+}
+
+export interface AgentStep {
+  index: number;
+  reasoning: string;
+  toolCalls: ToolCallRecord[];
+  toolResults: ToolResultRecord[];
+}
+
+export interface AgentResult {
+  result: string;
+  trace: AgentStep[];
+}
+
 export interface TaskResource {
   type: string;
   by: string;
   data: unknown;
 }
+
+export type ClientResultData = { result: string };
+export type FileResourceData = { filename: string; size: number; uploadedAt: number };
+export type ExecutionTraceData = { steps: AgentStep[] };
+export type TaskResourceData = ClientResultData | FileResourceData | ExecutionTraceData;
 
 export interface TaskMessage {
   type: "task";

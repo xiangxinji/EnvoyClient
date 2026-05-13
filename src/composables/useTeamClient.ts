@@ -27,7 +27,7 @@ export interface TeamClientOptions extends ClientOptions {
 }
 
 export function useTeamClient(role: "leader" | "member", options: TeamClientOptions) {
-  const clientOpts = { ...options };
+  const clientOpts = { ...options, autoSendResult: false };
   const client = role === "leader" ? new Leader(clientOpts) : new Member(clientOpts);
   const myId = options.id;
   const teamName = options.teamName;
@@ -239,14 +239,21 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
       const queryResTool = createQueryResourcesTool({ teamName });
       const readResTool = createReadResourceTool({ teamName });
       const tools = [...getDefaultTools(), uploadTool, queryResTool, readResTool];
-      const result = await agent.runAgent(taskContent, tools);
+      const agentResult = await agent.runAgent(taskContent, tools);
+
       let parsed;
       try {
-        parsed = JSON.parse(result);
+        parsed = JSON.parse(agentResult.result);
       } catch {
-        parsed = { result };
+        parsed = { result: agentResult.result };
       }
-      postToManager(`/api/tasks/${taskId}/result`, { from: myId, success: true, data: parsed });
+
+      postToManager(`/api/tasks/${taskId}/result`, {
+        from: myId,
+        success: true,
+        data: parsed,
+        trace: agentResult.trace,
+      });
       return parsed;
     } catch (e) {
       const error = String(e);
@@ -274,6 +281,7 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
   return {
     myId,
     role,
+    teamName,
     status,
     members,
     messages,

@@ -59,9 +59,15 @@ export default function messageRoutes(app: Hono, teams: Map<string, Team>) {
       success?: boolean;
       data?: unknown;
       error?: string;
+      trace?: unknown[];
     }>();
     if (!body.from || body.success === undefined) {
       return c.json({ error: "from, success are required" }, 400);
+    }
+
+    // Add execution-trace to task before receiveResult, so the notification includes both
+    if (body.trace && Array.isArray(body.trace) && body.trace.length > 0) {
+      team.innerServer.addResourceToTask(taskId, "execution-trace", body.from!, { steps: body.trace }, false);
     }
 
     team.innerServer.receiveResult(body.from, taskId, body.success, body.data, body.error);
@@ -104,6 +110,21 @@ export default function messageRoutes(app: Hono, teams: Map<string, Team>) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const filePath = join(resDir, file.name);
     await writeFile(filePath, buffer);
+
+    // Register file-resource in task resources (deduplicate by filename)
+    if (from) {
+      const task = team.innerServer.getTask(taskId);
+      const alreadyExists = task?.resources.some(
+        (r) => r.type === "file-resource" && (r.data as any)?.filename === file.name
+      );
+      if (!alreadyExists) {
+        team.innerServer.addResourceToTask(taskId, "file-resource", from, {
+          filename: file.name,
+          size: buffer.length,
+          uploadedAt: Date.now(),
+        });
+      }
+    }
 
     const relativePath = `resources/${file.name}`;
     return c.json({ ok: true, path: relativePath });

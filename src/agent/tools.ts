@@ -122,10 +122,12 @@ export function createUploadResourceTool(ctx: {
         resolved = resolved.replace("~", homedir());
       }
 
-      const content = await invoke("file_read", { path: resolved }) as string;
+      const result = await invoke("file_read", { path: resolved }) as { content?: string; error?: string };
+      if (!result?.content) return { error: result?.error ?? "Failed to read file" };
+
       const filename = resolved.split(/[/\\]/).pop() ?? "file";
 
-      const blob = new Blob([content]);
+      const blob = new Blob([result.content]);
       const formData = new FormData();
       formData.append("file", blob, filename);
       formData.append("from", ctx.myId);

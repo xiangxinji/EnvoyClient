@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>粒子星系动效</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    body {
+        background: #0a0a1a;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: 'Arial', sans-serif;
+    }
+    canvas {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+    .info {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255,255,255,0.3);
+        font-size: 14px;
+        letter-spacing: 2px;
+        text-align: center;
+        pointer-events: none;
+        text-shadow: 0 0 10px rgba(100,150,255,0.2);
+        animation: pulse 3s ease-in-out infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.7; }
+    }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<div class="info">✦ 移动鼠标与星系互动 ✦</div>
+
+<script>
+(function() {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let W, H;
+    let particles = [];
+    const PARTICLE_COUNT = 2000;
+    const MAX_DIST = 120;
+    const MOUSE_RADIUS = 180;
+    
+    let mouse = { x: -1000, y: -1000, vx: 0, vy: 0 };
+    let time = 0;
+    
+    // 颜色方案
+    const colors = [
+        { r: 100, g: 180, b: 255 },  // 蓝色
+        { r: 150, g: 100, b: 255 },  // 紫色
+        { r: 255, g: 100, b: 200 },  // 粉色
+        { r: 100, g: 255, b: 220 },  // 青色
+        { r: 255, g: 200, b: 100 },  // 金色
+    ];
+
+    function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    class Particle {
+        constructor() {
+            this.reset(true);
+        }
+        
+        reset(initial = false) {
+            // 使用球体分布创建立体星系效果
+            const radius = Math.pow(Math.random(), 0.5) * Math.min(W, H) * 0.45;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            
+            this.baseX = W/2 + radius * Math.sin(phi) * Math.cos(theta);
+            this.baseY = H/2 + radius * Math.cos(phi);
+            this.baseZ = radius * Math.sin(phi) * Math.sin(theta);
+            
+            this.x = this.baseX;
+            this.y = this.baseY;
+            this.z = this.baseZ;
+            
+            // 轨道参数
+            this.orbitSpeed = (0.2 + Math.random() * 0.8) * 0.02;
+            this.orbitRadius = radius;
+            this.orbitAngle = theta;
+            this.orbitTilt = phi;
+            this.orbitOffset = Math.random() * Math.PI * 2;
+            
+            // 大小和颜色
+            this.size = 1 + Math.random() * 2.5;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            this.color = color;
+            this.alpha = 0.3 + Math.random() * 0.7;
+            this.pulseSpeed = 0.5 + Math.random() * 1.5;
+            this.pulseOffset = Math.random() * Math.PI * 2;
+            
+            // 尾巴效果
+            this.trail = [];
+            this.trailLength = Math.floor(3 + Math.random() * 5);
+        }
+        
+        update() {
+            time += 0.001;
+            
+            // 轨道运动
+            this.orbitAngle += this.orbitSpeed * (1 + 0.3 * Math.sin(time * 0.5));
+            
+            const radius = this.orbitRadius;
+            const tilt = this.orbitTilt;
+            const angle = this.orbitAngle;
+            
+            // 计算新位置
+            this.baseX = W/2 + radius * Math.sin(tilt) * Math.cos(angle);
+            this.baseY = H/2 + radius * Math.cos(tilt);
+            this.baseZ = radius * Math.sin(tilt) * Math.sin(angle);
+            
+            // 鼠标交互 - 排斥/吸引
+            const dx = this.baseX - mouse.x;
+            const dy = this.baseY - mouse.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < MOUSE_RADIUS && dist > 0) {
+                const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS;
+                const angle2 = Math.atan2(dy, dx);
+                const repel = 1.5;
+                this.x = this.baseX + Math.cos(angle2) * force * MOUSE_RADIUS * repel * 0.3;
+                this.y = this.baseY + Math.sin(angle2) * force * MOUSE_RADIUS * repel * 0.3;
+            } else {
+                this.x += (this.baseX - this.x) * 0.1;
+                this.y += (this.baseY - this.y) * 0.1;
+            }
+            
+            // 记录轨迹
+            this.trail.push({ x: this.x, y: this.y });
+            if (this.trail.length > this.trailLength) {
+                this.trail.shift();
+            }
+            
+            // 脉冲大小
+            this.currentSize = this.size * (0.8 + 0.4 * Math.sin(time * this.pulseSpeed + this.pulseOffset));
+        }
+        
+        draw() {
+            const depth = (this.baseZ / (Math.min(W, H) * 0.45) + 1) / 2;
+            const alpha = this.alpha * (0.5 + depth * 0.5);
+            const size = this.currentSize * (0.6 + depth * 0.6);
+            
+            // 绘制轨迹
+            if (this.trail.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                for (let i = 1; i < this.trail.length; i++) {
+                    ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                }
+                ctx.strokeStyle = `rgba(${this.color.r},${this.color.g},${this.color.b},${alpha * 0.15})`;
+                ctx.lineWidth = size * 0.3;
+                ctx.stroke();
+            }
+            
+            // 绘制粒子光晕
+            const glowSize = size * 4;
+            const gradient = ctx.createRadialGradient(
+                this.x, this.y, 0,
+                this.x, this.y, glowSize
+            );
+            gradient.addColorStop(0, `rgba(${this.color.r},${this.color.g},${this.color.b},${alpha * 0.6})`);
+            gradient.addColorStop(0.3, `rgba(${this.color.r},${this.color.g},${this.color.b},${alpha * 0.2})`);
+            gradient.addColorStop(1, `rgba(${this.color.r},${this.color.g},${this.color.b},0)`);
+            
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, glowSize, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // 绘制粒子核心
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${this.color.r},${this.color.g},${this.color.b},${alpha})`;
+            ctx.fill();
+            
+            // 高光
+            if (size > 1.5) {
+                ctx.beginPath();
+                ctx.arc(this.x - size * 0.2, this.y - size * 0.2, size * 0.3, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,255,${alpha * 0.4})`;
+                ctx.fill();
+            }
+        }
+    }
+
+    // 初始化粒子
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+        particles.push(new Particle());
+    }
+
+    // 鼠标事件
+    let prevMouseX = mouse.x;
+    let prevMouseY = mouse.y;
+    
+    canvas.addEventListener('mousemove', (e) => {
+        mouse.vx = e.clientX - prevMouseX;
+        mouse.vy = e.clientY - prevMouseY;
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        prevMouseX = mouse.x;
+        prevMouseY = mouse.y;
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+        mouse.x = -1000;
+        mouse.y = -1000;
+    });
+    
+    // 触摸支持
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        mouse.vx = touch.clientX - prevMouseX;
+        mouse.vy = touch.clientY - prevMouseY;
+        mouse.x = touch.clientX;
+        mouse.y = touch.clientY;
+        prevMouseX = mouse.x;
+        prevMouseY = mouse.y;
+    }, { passive: false });
+    
+    canvas.addEventListener('touchend', () => {
+        mouse.x = -1000;
+        mouse.y = -1000;
+    });
+
+    // 连接线 - 优化性能，只连接近距离粒子
+    function drawConnections() {
+        // 只对部分粒子进行连接检测以提高性能
+        const step = 3;
+        for (let i = 0; i < particles.length; i += step) {
+            for (let j = i + step; j < particles.length; j += step) {
+                const dx = particles[i].x - particles[j].x;
+                const dy = particles[i].y - particles[j].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < MAX_DIST) {
+                    const alpha = (1 - dist / MAX_DIST) * 0.12;
+                    const avgColor = {
+                        r: (particles[i].color.r + particles[j].color.r) / 2,
+                        g: (particles[i].color.g + particles[j].color.g) / 2,
+                        b: (particles[i].color.b + particles[j].color.b) / 2
+                    };
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.strokeStyle = `rgba(${avgColor.r},${avgColor.g},${avgColor.b},${alpha})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    // 绘制背景星空
+    function drawBackground() {
+        // 深空渐变
+        const gradient = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.7);
+        gradient.addColorStop(0, '#0d0d2b');
+        gradient.addColorStop(0.5, '#0a0a1a');
+        gradient.addColorStop(1, '#050510');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, W, H);
+        
+        // 远处星星
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        for (let i = 0; i < 100; i++) {
+            const sx = (i * 137.5) % W;
+            const sy = (i * 97.3) % H;
+            const ss = 0.3 + (i % 3) * 0.3;
+            ctx.beginPath();
+            ctx.arc(sx, sy, ss, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // 动画循环
+    function animate() {
+        drawBackground();
+        
+        // 更新和绘制粒子
+        for (const p of particles) {
+            p.update();
+        }
+        
+        // 绘制连接线（在粒子下方）
+        drawConnections();
+        
+        // 绘制粒子（在上方）
+        for (const p of particles) {
+            p.draw();
+        }
+        
+        // 中心光晕
+        const centerGrad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, 200);
+        centerGrad.addColorStop(0, 'rgba(100,150,255,0.03)');
+        centerGrad.addColorStop(0.5, 'rgba(100,150,255,0.01)');
+        centerGrad.addColorStop(1, 'rgba(100,150,255,0)');
+        ctx.fillStyle = centerGrad;
+        ctx.fillRect(0, 0, W, H);
+        
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+})();
+</script>
+</body>
+</html>

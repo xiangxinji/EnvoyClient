@@ -9,7 +9,7 @@ import type { TimelineItem, ChatMessage, TaskPlan } from "../types";
 const props = defineProps<{ peerId: string }>();
 
 const ctx = inject(TeamClientKey)!;
-const { getConversation, sendChat, dispatchTask, role, myId, markRead, members } = ctx;
+const { getConversation, sendChat, dispatchTask, role, myId, markRead, members, teamName } = ctx;
 
 const peerStatus = computed(() => {
   const m = members.value.find((m: any) => m.id === props.peerId);
@@ -232,7 +232,7 @@ function handleCancelAIPlan() {
         <div v-else-if="hasMoreHistory" class="load-hint">↑ 向上滚动加载更多</div>
         <template v-for="item in visibleMessages" :key="item.id">
           <MessageBubble v-if="item.type === 'chat'" :message="item" :my-id="myId" />
-          <TaskCard v-else :task="item" />
+          <TaskCard v-else :task="item" :team-name="teamName" />
         </template>
 
         <!-- AI suggestion overlay -->

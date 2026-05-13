@@ -1,5 +1,6 @@
 import type { AgentTool } from "./tools";
 import { apiUrl } from "../api";
+import type { AgentResult, AgentStep } from "../types";
 
 // ─── Types ───
 
@@ -68,12 +69,14 @@ export async function reactLoop(
   tools: AgentTool[],
   currentStep: { value: number },
   error: { value: string },
-): Promise<string> {
+): Promise<AgentResult> {
   const schemas = tools.map(({ execute, ...schema }) => schema);
 
   const messages: AgentMessage[] = [
     { role: "user", content: taskContent },
   ];
+
+  const trace: AgentStep[] = [];
 
   for (let step = 0; step < MAX_STEPS; step++) {
     currentStep.value = step + 1;
@@ -85,20 +88,34 @@ export async function reactLoop(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages, tools: schemas }),
       },
-      30_000,
+      120_000,
     );
 
     if (!response.ok) {
       const text = await response.text().catch(() => "");
       error.value = `AI reasoning failed: ${response.status} ${text}`;
-      return JSON.stringify({ error: error.value });
+      return { result: JSON.stringify({ error: error.value }), trace };
     }
 
     const data = await response.json();
 
     if (!data.toolCalls?.length) {
-      return data.text || JSON.stringify({ result: "Task completed" });
+      const result = data.text || JSON.stringify({ result: "Task completed" });
+      trace.push({
+        index: step + 1,
+        reasoning: data.text || "",
+        toolCalls: [],
+        toolResults: [],
+      });
+      return { result, trace };
     }
+
+    const agentStep: AgentStep = {
+      index: step + 1,
+      reasoning: data.text || "",
+      toolCalls: data.toolCalls.map((c: any) => ({ name: c.name, args: c.args })),
+      toolResults: [],
+    };
 
     messages.push({
       role: "assistant",
@@ -109,12 +126,14 @@ export async function reactLoop(
     for (const call of data.toolCalls) {
       const tool = tools.find((t) => t.name === call.name);
       if (!tool) {
+        const errResult = { error: `Unknown tool: ${call.name}` };
         messages.push({
           role: "tool",
-          content: JSON.stringify({ error: `Unknown tool: ${call.name}` }),
+          content: JSON.stringify(errResult),
           toolCallId: call.id,
           toolName: call.name,
         });
+        agentStep.toolResults.push({ name: call.name, result: errResult });
         continue;
       }
 
@@ -125,7 +144,9 @@ export async function reactLoop(
         );
 
         if (call.name === "done" && result?.done) {
-          return result.result;
+          agentStep.toolResults.push({ name: call.name, result });
+          trace.push(agentStep);
+          return { result: result.result, trace };
         }
 
         result = truncateToolResult(call.name, result);
@@ -136,17 +157,22 @@ export async function reactLoop(
           toolCallId: call.id,
           toolName: call.name,
         });
+        agentStep.toolResults.push({ name: call.name, result });
       } catch (e: any) {
+        const errResult = { error: e.message || String(e) };
         messages.push({
           role: "tool",
-          content: JSON.stringify({ error: e.message || String(e) }),
+          content: JSON.stringify(errResult),
           toolCallId: call.id,
           toolName: call.name,
         });
+        agentStep.toolResults.push({ name: call.name, result: errResult });
       }
     }
+
+    trace.push(agentStep);
   }
 
   error.value = `Max steps (${MAX_STEPS}) reached`;
-  return JSON.stringify({ error: error.value, maxStepsReached: true });
+  return { result: JSON.stringify({ error: error.value, maxStepsReached: true }), trace };
 }
