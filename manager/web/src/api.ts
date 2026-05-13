@@ -33,7 +33,7 @@ export interface DashboardData {
   recentTasks: RecentTask[];
 }
 
-export interface MemberInfo {
+export interface ServerClientInfo {
   id: string;
   role: "client" | "watcher";
   status: "online" | "offline";
@@ -111,7 +111,7 @@ export const api = {
     }),
   deleteTeam: (name: string) =>
     request<{ ok: boolean }>(`/teams/${name}`, { method: "DELETE" }),
-  getMembers: (name: string) => request<MemberInfo[]>(`/teams/${name}/members`),
+  getMembers: (name: string) => request<ServerClientInfo[]>(`/teams/${name}/members`),
   getTasks: (name: string) => request<TaskInfo[]>(`/teams/${name}/tasks`),
   getTaskDetail: (team: string, id: string) => request<TaskDetailData>(`/teams/${team}/tasks/${id}`),
   getUsers: () => request<UserInfo[]>("/users"),

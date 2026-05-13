@@ -5,7 +5,9 @@ import { Member } from "../../envoy/packages/teams/member.js";
 import type { ClientOptions } from "@envoy/client";
 import type { Message } from "@envoy/core";
 import type { MemberInfo, TimelineItem, ChatMessage, TaskMessage, TaskResource } from "../types";
-import { useAgent, getDefaultTools, createUploadResourceTool, createQueryResourcesTool, createReadResourceTool } from "./useAgent";
+import { useAgent } from "./useAgent";
+import { getDefaultTools, createUploadResourceTool, createQueryResourcesTool, createReadResourceTool } from "../agent/tools";
+import { managerPost } from "../api";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
@@ -21,7 +23,6 @@ export type ConnectionStatus =
   | "reconnecting";
 
 export interface TeamClientOptions extends ClientOptions {
-  managerUrl: string;
   teamName: string;
 }
 
@@ -29,17 +30,10 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
   const clientOpts = { ...options, autoSendResult: false };
   const client = role === "leader" ? new Leader(clientOpts) : new Member(clientOpts);
   const myId = options.id;
-  const { managerUrl, teamName } = options;
+  const teamName = options.teamName;
 
-  function apiRequest(path: string, body: Record<string, unknown>) {
-    return fetch(`${managerUrl}${path}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        team: teamName,
-      },
-      body: JSON.stringify(body),
-    });
+  function postToManager(path: string, body: Record<string, unknown>) {
+    return managerPost(path, body, { team: teamName });
   }
 
   const status = ref<ConnectionStatus>("disconnected");
@@ -138,7 +132,6 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
       timestamp: Date.now(),
     };
 
-    // 尝试更新已有的任务卡片（在所有对话中查找）
     let updated = false;
     for (const [peerId, items] of messages.value) {
       const idx = items.findIndex((t) => t.type === "task" && "taskId" in t && t.taskId === task.id);
@@ -150,10 +143,7 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
       }
     }
 
-    // 没有找到已有卡片，新增
     if (!updated) {
-      // Leader 派的任务：插入到所有 subscribe 成员的对话中
-      // Member 收到的任务：插入到 Leader 的对话中
       const targetPeers = task.createBy === myId
         ? (task.subscribe ?? [])
         : [task.createBy];
@@ -164,7 +154,6 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
     }
   }
 
-  // 服务端的 task 状态更新通过 "task" 事件触发（不是 "message"）
   client.on("task", handleTaskUpdate);
 
   function connect() {
@@ -187,11 +176,11 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
       mine: true,
     };
     addToConversation(targetId, chatMsg);
-    apiRequest("/api/messages", { from: myId, to: targetId, text });
+    postToManager("/api/messages", { from: myId, to: targetId, text });
   }
 
   function dispatchTask(targetIds: string[], content: string) {
-    apiRequest("/api/tasks", {
+    postToManager("/api/tasks", {
       from: myId,
       content,
       subscribe: targetIds,
@@ -201,21 +190,20 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
 
   const agent = useAgent();
 
-  // Member 端 Agent ReAct 循环处理任务
   client.doing(async (clientTask) => {
     const taskId = clientTask.serverTask.id;
     const taskContent = clientTask.serverTask.content;
 
     if (!isTauri) {
       const result = { taskId, note: "browser mode, no agent tools" };
-      apiRequest(`/api/tasks/${taskId}/result`, { from: myId, success: true, data: result });
+      postToManager(`/api/tasks/${taskId}/result`, { from: myId, success: true, data: result });
       return result;
     }
 
     try {
-      const uploadTool = createUploadResourceTool({ managerUrl, teamName, taskId, myId });
-      const queryResTool = createQueryResourcesTool({ managerUrl, teamName });
-      const readResTool = createReadResourceTool({ managerUrl, teamName });
+      const uploadTool = createUploadResourceTool({ teamName, taskId, myId });
+      const queryResTool = createQueryResourcesTool({ teamName });
+      const readResTool = createReadResourceTool({ teamName });
       const tools = [...getDefaultTools(), uploadTool, queryResTool, readResTool];
       const result = await agent.runAgent(taskContent, tools);
       let parsed;
@@ -224,11 +212,11 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
       } catch {
         parsed = { result };
       }
-      apiRequest(`/api/tasks/${taskId}/result`, { from: myId, success: true, data: parsed });
+      postToManager(`/api/tasks/${taskId}/result`, { from: myId, success: true, data: parsed });
       return parsed;
     } catch (e) {
       const error = String(e);
-      apiRequest(`/api/tasks/${taskId}/result`, { from: myId, success: false, error });
+      postToManager(`/api/tasks/${taskId}/result`, { from: myId, success: false, error });
       return { error };
     }
   });
@@ -238,7 +226,7 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
   }
 
   async function importHistory(peerId: string, sourcePath: string) {
-    await safeInvoke("import_history", { myId, peerId, sourcePath });
+    await safeInvoke("importHistory", { myId, peerId, sourcePath });
     const items = await safeInvoke("load_history", { myId, peerId }) as TimelineItem[] | undefined;
     if (items) {
       messages.value.set(peerId, items);

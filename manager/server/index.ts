@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
+import { mkdir, writeFile } from "node:fs/promises";
 import { Team } from "../../envoy/packages/teams/team.js";
 import { loadRegistry, ensureTeamsDir, getTasksDir, getTaskDir, getResourcesDir } from "./team-registry.js";
 import type { Task } from "../../envoy/packages/core/task.js";
@@ -44,7 +45,6 @@ function setupTaskPersistence(teamName: string, team: Team): void {
 async function persistTask(teamName: string, task: Task): Promise<void> {
   try {
     const taskDir = getTaskDir(teamName, task.id);
-    const { mkdir, writeFile } = await import("node:fs/promises");
     await mkdir(taskDir, { recursive: true });
     await writeFile(
       `${taskDir}/task.json`,

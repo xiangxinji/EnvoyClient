@@ -13,13 +13,6 @@ const statusLabels: Record<TaskMessage["status"], string> = {
   failed: "失败",
 };
 
-const memberStatusLabels: Record<TaskMessage["status"], string> = {
-  pending: "等待中",
-  running: "执行中",
-  completed: "已完成",
-  failed: "失败",
-};
-
 interface MemberEntry {
   id: string;
   hasResult: boolean;
@@ -90,7 +83,7 @@ function formatResource(res: TaskResource): string {
       <div v-for="entry in memberEntries" :key="entry.id" class="task-member-row">
         <span class="task-member-id">{{ entry.id }}</span>
         <span class="task-member-status" :class="entry.hasResult ? task.status : 'pending'">
-          {{ entry.hasResult ? memberStatusLabels[task.status] : "等待中" }}
+          {{ entry.hasResult ? statusLabels[task.status] : "等待中" }}
         </span>
       </div>
     </div>

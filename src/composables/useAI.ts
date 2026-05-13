@@ -1,16 +1,6 @@
 import { ref } from "vue";
 import type { ChatMessage, MemberInfo, TaskMessage } from "../types";
-
-let _managerUrl: string | null = null;
-
-export function setAIManagerUrl(url: string) {
-  _managerUrl = url;
-}
-
-function apiUrl(path: string): string {
-  const base = _managerUrl ?? "http://localhost:8080";
-  return `${base}${path}`;
-}
+import { apiUrl, managerFetch } from "../api";
 
 // ─── SSE 解析器 ───
 
@@ -21,16 +11,11 @@ interface StreamCallbacks {
 }
 
 async function consumeSSE(url: string, body: object, callbacks: StreamCallbacks) {
-  const response = await fetch(url, {
+  const response = await managerFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`AI request failed: ${response.status} ${text}`);
-  }
 
   if (!response.body) throw new Error("Empty response body");
 
@@ -138,7 +123,7 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      const res = await fetch(apiUrl("/api/ai/task/generate"), {
+      const res = await managerFetch(apiUrl("/api/ai/task/generate"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -146,7 +131,6 @@ export function useAI() {
           members: members.map((m) => ({ id: m.id, role: m.role })),
         }),
       });
-      if (!res.ok) throw new Error(`Task generate failed: ${res.status}`);
       return await res.json();
     } catch (e: any) {
       aiError.value = e.message;
@@ -158,7 +142,7 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      const res = await fetch(apiUrl("/api/ai/task/analyze"), {
+      const res = await managerFetch(apiUrl("/api/ai/task/analyze"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -178,7 +162,6 @@ export function useAI() {
           })),
         }),
       });
-      if (!res.ok) throw new Error(`Analyze failed: ${res.status}`);
       return await res.json();
     } catch (e: any) {
       aiError.value = e.message;
@@ -190,15 +173,11 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      const res = await fetch(apiUrl("/api/ai/task/dispatch"), {
+      const res = await managerFetch(apiUrl("/api/ai/task/dispatch"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description, members }),
       });
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`Dispatch failed: ${res.status} ${text}`);
-      }
       return await res.json() as { subscribe: string[]; content: string };
     } catch (e: any) {
       aiError.value = e.message;

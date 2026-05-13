@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
-import { api, type MemberInfo, type TaskInfo } from "../api";
+import { api, type ServerClientInfo, type TaskInfo } from "../api";
 import MemberTable from "../components/MemberTable.vue";
 import TaskTable from "../components/TaskTable.vue";
 
 const props = defineProps<{ name: string }>();
 
-const members = ref<MemberInfo[]>([]);
+const members = ref<ServerClientInfo[]>([]);
 const tasks = ref<TaskInfo[]>([]);
 const loading = ref(true);
 const error = ref("");

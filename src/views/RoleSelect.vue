@@ -3,8 +3,7 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useTeamClient } from "../composables/useTeamClient";
 import { setTeamClientInstance } from "../composables/teamClientContext";
-import { setAIManagerUrl } from "../composables/useAI";
-import { setAgentManagerUrl } from "../composables/useAgent";
+import { setManagerUrl } from "../api";
 import logo from "../assets/logo.png";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
@@ -120,20 +119,18 @@ async function handleConnect() {
   error.value = "";
 
   try {
+    setManagerUrl(managerUrl.value.trim());
     const url = new URL(managerUrl.value.trim());
     const wsUrl = `ws://${url.hostname}:${team.port}`;
 
     const teamClient = useTeamClient(role.value, {
       id: username.value.trim(),
       servers: [wsUrl],
-      managerUrl: managerUrl.value.trim(),
       teamName: team.name,
     });
 
     await teamClient.connect();
     setTeamClientInstance(teamClient);
-    setAIManagerUrl(managerUrl.value.trim());
-    setAgentManagerUrl(managerUrl.value.trim());
     router.push("/chat");
   } catch (e) {
     error.value = e instanceof Error ? e.message : "连接失败";

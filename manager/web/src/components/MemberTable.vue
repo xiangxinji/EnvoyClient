@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { MemberInfo } from "../api";
+import type { ServerClientInfo } from "../api";
 
-defineProps<{ members: MemberInfo[] }>();
+defineProps<{ members: ServerClientInfo[] }>();
 
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
