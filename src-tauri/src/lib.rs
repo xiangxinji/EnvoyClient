@@ -139,6 +139,11 @@ fn import_history(my_id: &str, peer_id: &str, source_path: &str) -> Result<(), S
 }
 
 #[tauri::command]
+fn delete_history(my_id: &str, peer_id: &str) -> Result<(), String> {
+    history::delete_history(my_id, peer_id)
+}
+
+#[tauri::command]
 fn get_settings() -> Result<serde_json::Value, String> {
     settings::get_settings()
 }
@@ -173,6 +178,7 @@ pub fn run() {
             save_message,
             load_history,
             load_all_history,
+            delete_history,
             export_history,
             import_history,
             get_settings,

@@ -73,6 +73,16 @@ pub fn load_all_history(my_id: &str) -> Result<HashMap<String, Vec<serde_json::V
     Ok(result)
 }
 
+pub fn delete_history(my_id: &str, peer_id: &str) -> Result<(), String> {
+    let path = history_file(my_id, peer_id).ok_or("Cannot determine home directory")?;
+
+    if path.exists() {
+        fs::remove_file(&path).map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
 pub fn export_history(my_id: &str, peer_id: &str, target_path: &str) -> Result<(), String> {
     let src = history_file(my_id, peer_id).ok_or("Cannot determine home directory")?;
 

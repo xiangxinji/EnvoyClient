@@ -274,6 +274,18 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
     }
   }
 
+  async function clearConversation(peerId: string) {
+    const newMessages = new Map(messages.value);
+    newMessages.delete(peerId);
+    messages.value = newMessages;
+
+    const newUnread = new Map(unreadCounts.value);
+    newUnread.delete(peerId);
+    unreadCounts.value = newUnread;
+
+    await safeInvoke("delete_history", { myId, peerId });
+  }
+
   onUnmounted(() => {
     client.disconnect();
   });
@@ -293,6 +305,7 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
     getConversation,
     incrementUnread,
     markRead,
+    clearConversation,
     exportHistory,
     importHistory,
   };

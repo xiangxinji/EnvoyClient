@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { inject, ref, nextTick, watch, computed } from "vue";
+import { inject, ref, nextTick, watch, computed, onMounted, onBeforeUnmount } from "vue";
 import { TeamClientKey } from "../composables/teamClientContext";
 import { useAI } from "../composables/useAI";
 import MessageBubble from "./MessageBubble.vue";
 import TaskCard from "./TaskCard.vue";
+import ConfirmDialog from "./ConfirmDialog.vue";
+import Toast from "./Toast.vue";
 import type { TimelineItem, ChatMessage, TaskPlan } from "../types";
 
 const props = defineProps<{ peerId: string }>();
 
 const ctx = inject(TeamClientKey)!;
-const { getConversation, sendChat, dispatchTask, role, myId, markRead, members, teamName } = ctx;
+const { getConversation, sendChat, dispatchTask, role, myId, markRead, members, teamName, clearConversation } = ctx;
 
 const peerStatus = computed(() => {
   const m = members.value.find((m: any) => m.id === props.peerId);
@@ -20,6 +22,10 @@ const inputText = ref("");
 const taskInputVisible = ref(false);
 const taskContent = ref("");
 const messageList = ref<HTMLDivElement | null>(null);
+const menuOpen = ref(false);
+const confirmVisible = ref(false);
+const toastVisible = ref(false);
+const toastMessage = ref("");
 
 // AI dispatch preview
 const dispatchPreview = ref<{ subscribe: string[]; content: string } | null>(null);
@@ -124,6 +130,23 @@ function handleSend() {
   inputText.value = "";
 }
 
+function handleClearChat() {
+  menuOpen.value = false;
+  confirmVisible.value = true;
+}
+
+function handleConfirmClear() {
+  confirmVisible.value = false;
+  if (!props.peerId) return;
+  clearConversation(props.peerId);
+  toastMessage.value = `已清除与 ${props.peerId} 的聊天记录`;
+  toastVisible.value = true;
+}
+
+function handleCancelClear() {
+  confirmVisible.value = false;
+}
+
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
@@ -208,6 +231,16 @@ function handleCancelAIPlan() {
   aiPlanVisible.value = false;
   aiPlan.value = null;
 }
+
+function closeMenuOnClickOutside(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (!target.closest(".header-actions")) {
+    menuOpen.value = false;
+  }
+}
+
+onMounted(() => document.addEventListener("click", closeMenuOnClickOutside));
+onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOutside));
 </script>
 
 <template>
@@ -223,6 +256,17 @@ function handleCancelAIPlan() {
       <div class="header">
         <span class="header-name">{{ peerId }}</span>
         <span v-if="peerStatus === 'offline'" class="header-status offline">离线</span>
+        <div class="header-actions">
+          <button class="btn-menu" @click="menuOpen = !menuOpen" title="操作">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+          </button>
+          <div v-if="menuOpen" class="dropdown" @click.stop>
+            <button class="dropdown-item danger" @click="handleClearChat">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              清除聊天记录
+            </button>
+          </div>
+        </div>
       </div>
 
       <div ref="messageList" class="messages" @scroll="handleScroll">
@@ -355,6 +399,23 @@ function handleCancelAIPlan() {
         </div>
       </div>
     </template>
+
+    <ConfirmDialog
+      :visible="confirmVisible"
+      title="清除聊天记录"
+      :message="`确认清除与 ${peerId} 的所有聊天记录？此操作不可撤销。`"
+      confirm-text="清除"
+      :danger="true"
+      @confirm="handleConfirmClear"
+      @cancel="handleCancelClear"
+    />
+
+    <Toast
+      :visible="toastVisible"
+      :message="toastMessage"
+      type="success"
+      @done="toastVisible = false"
+    />
   </div>
 </template>
 
@@ -410,6 +471,71 @@ function handleCancelAIPlan() {
 .header-status.offline {
   background: var(--bg-secondary);
   color: var(--text-muted);
+}
+
+.header-actions {
+  margin-left: auto;
+  position: relative;
+}
+
+.btn-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-menu:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 160px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 0.85em;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-secondary);
+}
+
+.dropdown-item.danger {
+  color: var(--error);
+}
+
+.dropdown-item.danger:hover {
+  background: var(--task-failed-bg);
 }
 
 .messages {
