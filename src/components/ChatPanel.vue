@@ -11,6 +11,11 @@ const props = defineProps<{ peerId: string }>();
 const ctx = inject(TeamClientKey)!;
 const { getConversation, sendChat, dispatchTask, role, myId, markRead, members } = ctx;
 
+const peerStatus = computed(() => {
+  const m = members.value.find((m: any) => m.id === props.peerId);
+  return m?.status;
+});
+
 const inputText = ref("");
 const taskInputVisible = ref(false);
 const taskContent = ref("");
@@ -98,6 +103,18 @@ watch(
     dispatchPreview.value = null;
     dispatchLoading.value = false;
   }
+);
+
+watch(
+  () => props.peerId,
+  () => {
+    nextTick(() => {
+      if (messageList.value) {
+        messageList.value.scrollTop = messageList.value.scrollHeight;
+      }
+    });
+  },
+  { flush: 'post', immediate: true }
 );
 
 function handleSend() {
@@ -205,6 +222,7 @@ function handleCancelAIPlan() {
     <template v-else>
       <div class="header">
         <span class="header-name">{{ peerId }}</span>
+        <span v-if="peerStatus === 'offline'" class="header-status offline">离线</span>
       </div>
 
       <div ref="messageList" class="messages" @scroll="handleScroll">
@@ -372,11 +390,26 @@ function handleCancelAIPlan() {
   padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--border);
   background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .header-name {
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.header-status {
+  font-size: 0.7em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.header-status.offline {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
 }
 
 .messages {

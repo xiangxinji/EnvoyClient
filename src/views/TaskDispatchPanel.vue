@@ -6,7 +6,7 @@ import { useAI } from "../composables/useAI";
 const ctx = inject(TeamClientKey)!;
 const { members, dispatchTask } = ctx;
 
-const { dispatchTask: aiDispatchTask, aiAvailable } = useAI();
+const { dispatchTask: aiDispatchTask, aiAvailable, aiError: dispatchAiError, isStreaming } = useAI();
 
 const taskContent = ref("");
 const dispatchPreview = ref<{ subscribe: string[]; content: string } | null>(null);
@@ -16,8 +16,14 @@ async function handleSubmit() {
   const content = taskContent.value.trim();
   if (!content) return;
 
+  if (members.value.length === 0) {
+    dispatchAiError.value = "暂无成员在线，无法分派任务";
+    return;
+  }
+
   dispatchLoading.value = true;
   dispatchPreview.value = null;
+  dispatchAiError.value = "";
 
   const memberList = members.value.map((m: any) => ({ id: m.id, responsibilities: m.responsibilities }));
   const result = await aiDispatchTask(content, memberList);
@@ -67,6 +73,13 @@ function getMatchedMembers() {
       暂无成员在线，无法分派任务
     </div>
 
+    <!-- AI unavailable notice -->
+    <div v-if="!aiAvailable" class="section">
+      <div class="notice notice-warn">
+        AI 服务未就绪，请检查 Manager 是否运行且已配置 AI API Key
+      </div>
+    </div>
+
     <!-- Task input -->
     <div class="section">
       <h3 class="section-title">任务描述</h3>
@@ -78,6 +91,10 @@ function getMatchedMembers() {
         @keydown.ctrl.enter="handleSubmit"
       />
       <div class="input-hint">Ctrl + Enter 提交</div>
+
+      <!-- Error display -->
+      <div v-if="dispatchAiError" class="notice notice-error">{{ dispatchAiError }}</div>
+
       <button
         class="btn-dispatch"
         :disabled="!taskContent.trim() || dispatchLoading || !aiAvailable"
@@ -243,6 +260,25 @@ textarea::placeholder {
 .btn-dispatch:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.notice {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: 0.85em;
+  margin-top: var(--space-md);
+}
+
+.notice-warn {
+  background: rgba(255, 149, 10, 0.1);
+  border: 1px solid rgba(255, 149, 10, 0.3);
+  color: #ff9f0a;
+}
+
+.notice-error {
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  color: var(--error);
 }
 
 .spinner-small {

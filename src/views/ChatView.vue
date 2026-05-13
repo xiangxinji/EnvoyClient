@@ -14,7 +14,7 @@ if (!ctx) {
   router.replace("/");
 }
 
-const selectedPeer = ref("");
+const selectedPeer = ref("__tasks__");
 
 function handleSelectPeer(peerId: string) {
   selectedPeer.value = peerId;

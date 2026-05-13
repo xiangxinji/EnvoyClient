@@ -95,7 +95,7 @@ function getInitial(name: string): string {
       >
         <div class="avatar">
           {{ getInitial(m.id) }}
-          <span class="online-dot"></span>
+          <span class="status-dot" :class="m.status"></span>
         </div>
         <div class="member-info">
           <span class="member-name">{{ m.id }}</span>
@@ -112,7 +112,7 @@ function getInitial(name: string): string {
           <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
-        <span>暂无成员在线</span>
+        <span>暂无成员</span>
       </li>
     </ul>
   </aside>
@@ -184,15 +184,22 @@ li.active {
   flex-shrink: 0;
 }
 
-.online-dot {
+.status-dot {
   position: absolute;
   bottom: 0;
   right: 0;
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--online-dot);
   border: 2px solid var(--bg-secondary);
+}
+
+.status-dot.online {
+  background: var(--online-dot);
+}
+
+.status-dot.offline {
+  background: var(--text-muted);
 }
 
 .member-info {

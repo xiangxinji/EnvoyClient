@@ -1,7 +1,7 @@
 export interface MemberInfo {
   id: string;
   role: "leader" | "member";
-  status: "online";
+  status: "online" | "offline";
   responsibilities?: string;
 }
 

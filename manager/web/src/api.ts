@@ -67,6 +67,11 @@ export interface UserInfo {
   createdAt: number;
 }
 
+export interface TeamMember {
+  username: string;
+  responsibilities?: string;
+}
+
 async function rsaEncrypt(publicKeyPem: string, plaintext: string): Promise<string> {
   const binaryDer = pemToArrayBuffer(publicKeyPem);
   const key = await crypto.subtle.importKey("spki", binaryDer, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]);
@@ -103,11 +108,21 @@ export const api = {
   getDashboard: () => request<DashboardData>("/dashboard"),
   getTeams: () => request<TeamInfo[]>("/teams"),
   getTeam: (name: string) => request<TeamInfo>(`/teams/${name}`),
-  createTeam: (name: string, port?: number) =>
+  getConfiguredMembers: (name: string) =>
+    request<{ leader: string; members: TeamMember[] }>(`/teams/${name}/configured-members`),
+  addTeamMember: (team: string, username: string, responsibilities?: string) =>
+    request<{ ok: boolean }>(`/teams/${team}/members/${username}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ responsibilities }),
+    }),
+  removeTeamMember: (team: string, username: string) =>
+    request<{ ok: boolean }>(`/teams/${team}/members/${username}`, { method: "DELETE" }),
+  createTeam: (name: string, leader: string, port?: number) =>
     request<TeamInfo>("/teams", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, port }),
+      body: JSON.stringify({ name, leader, port }),
     }),
   deleteTeam: (name: string) =>
     request<{ ok: boolean }>(`/teams/${name}`, { method: "DELETE" }),

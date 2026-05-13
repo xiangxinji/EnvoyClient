@@ -76,7 +76,10 @@ export function useAI() {
   fetch(apiUrl("/api/ai/health"))
     .then((r) => r.json())
     .then((h: any) => { aiAvailable.value = h.configured; })
-    .catch(() => { aiAvailable.value = false; });
+    .catch((e) => {
+      console.warn("[useAI] health check failed:", e);
+      aiAvailable.value = false;
+    });
 
   function formatHistory(items: ChatMessage[]): { role: "user" | "assistant"; content: string }[] {
     return items
@@ -96,7 +99,7 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      await consumeSSE(apiUrl("/api/ai/chat/stream"), { messages }, {
+      await consumeSSE("/api/ai/chat/stream", { messages }, {
         onTextDelta: (text) => { suggestion.value += text; },
         onDone: () => { isStreaming.value = false; },
         onError: (msg) => { aiError.value = msg; isStreaming.value = false; },
@@ -123,7 +126,7 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      const res = await managerFetch(apiUrl("/api/ai/task/generate"), {
+      const res = await managerFetch("/api/ai/task/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -142,7 +145,7 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      const res = await managerFetch(apiUrl("/api/ai/task/analyze"), {
+      const res = await managerFetch("/api/ai/task/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -173,7 +176,7 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      const res = await managerFetch(apiUrl("/api/ai/task/dispatch"), {
+      const res = await managerFetch("/api/ai/task/dispatch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description, members }),

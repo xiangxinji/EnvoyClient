@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from "vue";
+import { ref, computed, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { Leader } from "../../envoy/packages/teams/leader.js";
 import { Member } from "../../envoy/packages/teams/member.js";
@@ -7,7 +7,7 @@ import type { Message } from "@envoy/core";
 import type { MemberInfo, TimelineItem, ChatMessage, TaskMessage, TaskResource } from "../types";
 import { useAgent } from "./useAgent";
 import { getDefaultTools, createUploadResourceTool, createQueryResourcesTool, createReadResourceTool } from "../agent/tools";
-import { managerPost } from "../api";
+import { managerPost, managerFetch } from "../api";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
@@ -27,7 +27,7 @@ export interface TeamClientOptions extends ClientOptions {
 }
 
 export function useTeamClient(role: "leader" | "member", options: TeamClientOptions) {
-  const clientOpts = { ...options, autoSendResult: false };
+  const clientOpts = { ...options };
   const client = role === "leader" ? new Leader(clientOpts) : new Member(clientOpts);
   const myId = options.id;
   const teamName = options.teamName;
@@ -37,9 +37,19 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
   }
 
   const status = ref<ConnectionStatus>("disconnected");
-  const members = ref<MemberInfo[]>([]);
+  const configuredMembers = ref<MemberInfo[]>([]);
+  const onlineIds = ref<Set<string>>(new Set());
   const messages = ref<Map<string, TimelineItem[]>>(new Map());
   const unreadCounts = ref<Map<string, number>>(new Map());
+
+  const members = computed<MemberInfo[]>(() => {
+    return configuredMembers.value
+      .map((m) => ({
+        ...m,
+        status: onlineIds.value.has(m.id) ? "online" as const : "offline" as const,
+      }))
+      .filter((m) => m.id !== myId);
+  });
 
   function getConversation(peerId: string): TimelineItem[] {
     return messages.value.get(peerId) ?? [];
@@ -73,9 +83,29 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
     }
   }
 
+  async function loadConfiguredMembers() {
+    try {
+      const res = await managerFetch(`/api/teams/${encodeURIComponent(teamName)}/configured-members`);
+      const data = await res.json() as { leader: string; members: { username: string; responsibilities?: string }[] };
+      const list: MemberInfo[] = [
+        { id: data.leader, role: "leader", status: "offline" },
+        ...data.members.map((m) => ({
+          id: m.username,
+          role: "member" as const,
+          status: "offline" as const,
+          responsibilities: m.responsibilities,
+        })),
+      ];
+      configuredMembers.value = list;
+    } catch {
+      // API unavailable, fallback to WS-only members
+    }
+  }
+
   client.on("connected", () => {
     status.value = "connected";
     loadHistory();
+    loadConfiguredMembers();
   });
 
   client.on("disconnected", () => {
@@ -89,7 +119,11 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
   client.on("message", (msg: Message) => {
     if (msg.type === "notify" && msg.subtype === "team:members") {
       const payload = msg.payload as { members: MemberInfo[] };
-      members.value = payload.members.filter((m) => m.id !== myId);
+      onlineIds.value = new Set(payload.members.map((m) => m.id));
+      // If configured members not loaded yet (API slow), use WS data as fallback
+      if (configuredMembers.value.length === 0) {
+        configuredMembers.value = payload.members.map((m) => ({ ...m, status: "online" as const }));
+      }
       return;
     }
 

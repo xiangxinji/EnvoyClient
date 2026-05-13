@@ -110,6 +110,43 @@ export default function teamRoutes(app: Hono, teams: Map<string, Team>, onTeamCr
     return c.json({ ok: true });
   });
 
+  // Get configured team members (from meta)
+  app.get("/api/teams/:name/configured-members", async (c) => {
+    const meta = await loadMeta(c.req.param("name"));
+    if (!meta) return c.json({ error: "team not found" }, 404);
+    return c.json({ leader: meta.leader, members: meta.members });
+  });
+
+  // Add member to team
+  app.put("/api/teams/:name/members/:username", async (c) => {
+    const teamName = c.req.param("name");
+    const username = c.req.param("username");
+    const meta = await loadMeta(teamName);
+    if (!meta) return c.json({ error: "team not found" }, 404);
+    if (meta.members.some((m) => m.username === username))
+      return c.json({ error: "member already in team" }, 409);
+
+    const body = await c.req.json<{ responsibilities?: string }>().catch(() => ({}));
+    meta.members.push({ username, responsibilities: body.responsibilities });
+    await saveMeta(meta);
+    return c.json({ ok: true });
+  });
+
+  // Remove member from team
+  app.delete("/api/teams/:name/members/:username", async (c) => {
+    const teamName = c.req.param("name");
+    const username = c.req.param("username");
+    const meta = await loadMeta(teamName);
+    if (!meta) return c.json({ error: "team not found" }, 404);
+
+    const idx = meta.members.findIndex((m) => m.username === username);
+    if (idx === -1) return c.json({ error: "member not found" }, 404);
+
+    meta.members.splice(idx, 1);
+    await saveMeta(meta);
+    return c.json({ ok: true });
+  });
+
   app.get("/api/teams/:name/members", async (c) => {
     const instance = teams.get(c.req.param("name"));
     if (!instance) return c.json({ error: "team not found" }, 404);

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { api, type TeamInfo } from "../api";
+import { api, type TeamInfo, type UserInfo } from "../api";
 import TeamCard from "../components/TeamCard.vue";
 
 const router = useRouter();
@@ -10,12 +10,16 @@ const loading = ref(true);
 const error = ref("");
 const showCreate = ref(false);
 const newName = ref("");
+const newLeader = ref("");
 const creating = ref(false);
+const leaders = ref<UserInfo[]>([]);
 let timer: ReturnType<typeof setInterval>;
 
 async function refresh() {
   try {
-    teams.value = await api.getTeams();
+    const [teamList, users] = await Promise.all([api.getTeams(), api.getUsers()]);
+    teams.value = teamList;
+    leaders.value = users.filter((u) => u.role === "leader");
     error.value = "";
   } catch (e: any) {
     error.value = e.message;
@@ -26,11 +30,13 @@ async function refresh() {
 
 async function handleCreate() {
   const name = newName.value.trim();
-  if (!name) return;
+  const leader = newLeader.value;
+  if (!name || !leader) return;
   creating.value = true;
   try {
-    await api.createTeam(name);
+    await api.createTeam(name, leader);
     newName.value = "";
+    newLeader.value = "";
     showCreate.value = false;
     await refresh();
   } catch (e: any) {
@@ -92,12 +98,16 @@ onUnmounted(() => clearInterval(timer));
         <input
           v-model="newName"
           placeholder="输入团队名称"
-          @keydown.enter="handleCreate"
           autofocus
         />
+        <select v-model="newLeader">
+          <option value="" disabled>选择 Leader</option>
+          <option v-for="u in leaders" :key="u.username" :value="u.username">{{ u.username }}</option>
+        </select>
+        <p v-if="leaders.length === 0" class="hint">暂无 Leader 用户，请先在用户管理中创建</p>
         <div class="modal-actions">
           <button class="btn-cancel" @click="showCreate = false">取消</button>
-          <button class="btn-confirm" :disabled="creating || !newName.trim()" @click="handleCreate">
+          <button class="btn-confirm" :disabled="creating || !newName.trim() || !newLeader" @click="handleCreate">
             {{ creating ? "创建中..." : "创建" }}
           </button>
         </div>
@@ -199,6 +209,28 @@ onUnmounted(() => clearInterval(timer));
 
 .modal input:focus {
   border-color: var(--accent);
+}
+
+.modal select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9em;
+  outline: none;
+  margin-bottom: var(--space-sm);
+}
+
+.modal select:focus {
+  border-color: var(--accent);
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 0.8em;
+  margin-bottom: var(--space-lg);
 }
 
 .modal-actions {
