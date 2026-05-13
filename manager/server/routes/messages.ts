@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import type { Team } from "../../../envoy/packages/teams/team.js";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, writeFile, readdir, readFile, stat } from "node:fs/promises";
+import { join, basename } from "node:path";
 import { getResourcesDir, getTaskDir } from "../team-registry.js";
 
 export default function messageRoutes(app: Hono, teams: Map<string, Team>) {
@@ -107,5 +107,63 @@ export default function messageRoutes(app: Hono, teams: Map<string, Team>) {
 
     const relativePath = `resources/${file.name}`;
     return c.json({ ok: true, path: relativePath });
+  });
+
+  // List resources for a task
+  app.get("/api/tasks/:id/resources", async (c) => {
+    const teamName = c.req.header("team");
+    if (!teamName) return c.json({ error: "team header is required" }, 400);
+
+    const team = teams.get(teamName);
+    if (!team) return c.json({ error: "team not found" }, 404);
+
+    const taskId = c.req.param("id");
+    const resDir = getResourcesDir(teamName, taskId);
+
+    try {
+      const entries = await readdir(resDir, { withFileTypes: true });
+      const files = await Promise.all(
+        entries
+          .filter((e) => e.isFile())
+          .map(async (e) => {
+            const fullPath = join(resDir, e.name);
+            const s = await stat(fullPath);
+            return {
+              filename: e.name,
+              size: s.size,
+              uploadedAt: s.mtimeMs,
+              path: `resources/${e.name}`,
+            };
+          })
+      );
+      return c.json({ files });
+    } catch {
+      return c.json({ files: [] });
+    }
+  });
+
+  // Download a specific resource file
+  app.get("/api/tasks/:id/resources/:file", async (c) => {
+    const teamName = c.req.header("team");
+    if (!teamName) return c.json({ error: "team header is required" }, 400);
+
+    const team = teams.get(teamName);
+    if (!team) return c.json({ error: "team not found" }, 404);
+
+    const taskId = c.req.param("id");
+    const filename = basename(c.req.param("file"));
+    const filePath = join(getResourcesDir(teamName, taskId), filename);
+
+    try {
+      const data = await readFile(filePath);
+      return new Response(data, {
+        headers: {
+          "Content-Disposition": `attachment; filename="${filename}"`,
+          "Content-Type": "application/octet-stream",
+        },
+      });
+    } catch {
+      return c.json({ error: "file not found" }, 404);
+    }
   });
 }

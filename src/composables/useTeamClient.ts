@@ -5,7 +5,7 @@ import { Member } from "../../envoy/packages/teams/member.js";
 import type { ClientOptions } from "@envoy/client";
 import type { Message } from "@envoy/core";
 import type { MemberInfo, TimelineItem, ChatMessage, TaskMessage, TaskResource } from "../types";
-import { useAgent, getDefaultTools, createUploadResourceTool } from "./useAgent";
+import { useAgent, getDefaultTools, createUploadResourceTool, createQueryResourcesTool, createReadResourceTool } from "./useAgent";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
@@ -214,7 +214,9 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
 
     try {
       const uploadTool = createUploadResourceTool({ managerUrl, teamName, taskId, myId });
-      const tools = [...getDefaultTools(), uploadTool];
+      const queryResTool = createQueryResourcesTool({ managerUrl, teamName });
+      const readResTool = createReadResourceTool({ managerUrl, teamName });
+      const tools = [...getDefaultTools(), uploadTool, queryResTool, readResTool];
       const result = await agent.runAgent(taskContent, tools);
       let parsed;
       try {

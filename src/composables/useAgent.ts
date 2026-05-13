@@ -147,6 +147,78 @@ function createUploadResourceTool(ctx: {
   };
 }
 
+function createQueryResourcesTool(ctx: {
+  managerUrl: string;
+  teamName: string;
+}): AgentTool {
+  return {
+    name: "query_resources",
+    description: "查询指定任务的资源文件列表，支持查自己或其他成员的任务",
+    parameters: {
+      type: "object",
+      properties: {
+        taskId: {
+          type: "string",
+          description: "任务 ID",
+        },
+      },
+      required: ["taskId"],
+    },
+    execute: async ({ taskId }) => {
+      const res = await fetch(
+        `${ctx.managerUrl}/api/tasks/${taskId}/resources`,
+        { headers: { team: ctx.teamName } }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Query failed" }));
+        return { error: err.error };
+      }
+      return await res.json();
+    },
+  };
+}
+
+function createReadResourceTool(ctx: {
+  managerUrl: string;
+  teamName: string;
+}): AgentTool {
+  return {
+    name: "read_resource",
+    description: "读取指定任务的具体资源文件内容",
+    parameters: {
+      type: "object",
+      properties: {
+        taskId: {
+          type: "string",
+          description: "任务 ID",
+        },
+        file: {
+          type: "string",
+          description: "资源文件名（从 query_resources 获取）",
+        },
+      },
+      required: ["taskId", "file"],
+    },
+    execute: async ({ taskId, file }) => {
+      const res = await fetch(
+        `${ctx.managerUrl}/api/tasks/${taskId}/resources/${encodeURIComponent(file)}`,
+        { headers: { team: ctx.teamName } }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Read failed" }));
+        return { error: err.error };
+      }
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json") || contentType.includes("text/")) {
+        return { content: await res.text(), filename: file };
+      }
+      // Binary file: return base64
+      const buffer = Buffer.from(await res.arrayBuffer());
+      return { content: buffer.toString("base64"), filename: file, encoding: "base64" };
+    },
+  };
+}
+
 function createDoneTool(): AgentTool {
   return {
     name: "done",
@@ -162,7 +234,7 @@ function createDoneTool(): AgentTool {
   };
 }
 
-export { createUploadResourceTool };
+export { createUploadResourceTool, createQueryResourcesTool, createReadResourceTool };
 
 export function getDefaultTools(): AgentTool[] {
   return [
