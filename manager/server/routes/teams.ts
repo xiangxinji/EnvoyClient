@@ -2,9 +2,12 @@ import type { Hono } from "hono";
 import { Team } from "../../../envoy/packages/teams/team.js";
 import {
   loadRegistry,
-  saveRegistry,
   allocatePort,
+  loadMeta,
+  saveMeta,
+  deleteTeamDir,
   type TeamRecord,
+  type TeamMeta,
 } from "../team-registry.js";
 import { loadUsers } from "../user-registry.js";
 
@@ -25,26 +28,38 @@ export function teamStats(team: Team) {
   };
 }
 
-export default function teamRoutes(app: Hono, teams: Map<string, Team>) {
+export default function teamRoutes(app: Hono, teams: Map<string, Team>, onTeamCreated?: (name: string, team: Team) => void) {
   app.post("/api/teams", async (c) => {
-    const body = await c.req.json<{ name?: string; port?: number }>();
+    const body = await c.req.json<{
+      name?: string;
+      port?: number;
+      leader?: string;
+      members?: { username: string; responsibilities?: string }[];
+    }>();
     const name = body.name?.trim();
     if (!name) return c.json({ error: "name is required" }, 400);
+    if (!body.leader) return c.json({ error: "leader is required" }, 400);
     if (teams.has(name)) return c.json({ error: "team already exists" }, 409);
 
     const records = await loadRegistry();
     const port = body.port ?? allocatePort(records);
-    const record: TeamRecord = { name, port, createdAt: Date.now() };
+
+    const meta: TeamMeta = {
+      name,
+      port,
+      createdAt: Date.now(),
+      leader: body.leader,
+      members: body.members ?? [],
+    };
+    await saveMeta(meta);
 
     const team = new Team({ port, host: "0.0.0.0" });
     await team.start();
     teams.set(name, team);
-
-    records.push(record);
-    await saveRegistry(records);
+    onTeamCreated?.(name, team);
 
     console.log(`[created] team "${name}" on port ${port}`);
-    return c.json({ name, port, createdAt: record.createdAt }, 201);
+    return c.json({ name, port, createdAt: meta.createdAt }, 201);
   });
 
   app.get("/api/teams", async (c) => {
@@ -63,31 +78,33 @@ export default function teamRoutes(app: Hono, teams: Map<string, Team>) {
 
   app.get("/api/teams/:name", async (c) => {
     const name = c.req.param("name");
-    const instance = teams.get(name);
-    if (!instance) return c.json({ error: "team not found" }, 404);
+    const meta = await loadMeta(name);
+    if (!meta) return c.json({ error: "team not found" }, 404);
 
-    const records = await loadRegistry();
-    const record = records.find((r) => r.name === name);
+    const instance = teams.get(name);
     return c.json({
-      name,
-      port: record?.port,
-      createdAt: record?.createdAt,
-      status: "running",
-      stats: teamStats(instance),
+      name: meta.name,
+      port: meta.port,
+      createdAt: meta.createdAt,
+      leader: meta.leader,
+      members: meta.members,
+      status: instance ? "running" : "stopped",
+      stats: instance ? teamStats(instance) : null,
     });
   });
 
   app.delete("/api/teams/:name", async (c) => {
     const name = c.req.param("name");
+    const meta = await loadMeta(name);
+    if (!meta) return c.json({ error: "team not found" }, 404);
+
     const instance = teams.get(name);
-    if (!instance) return c.json({ error: "team not found" }, 404);
+    if (instance) {
+      await instance.stop();
+      teams.delete(name);
+    }
 
-    await instance.stop();
-    teams.delete(name);
-
-    let records = await loadRegistry();
-    records = records.filter((r) => r.name !== name);
-    await saveRegistry(records);
+    await deleteTeamDir(name);
 
     console.log(`[deleted] team "${name}"`);
     return c.json({ ok: true });

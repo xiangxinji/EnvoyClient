@@ -92,6 +92,61 @@ function createFileWriteTool(): AgentTool {
   };
 }
 
+function createUploadResourceTool(ctx: {
+  managerUrl: string;
+  teamName: string;
+  taskId: string;
+  myId: string;
+}): AgentTool {
+  return {
+    name: "upload_resource",
+    description: "上传本地文件到 Manager 作为任务资源",
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "本地文件路径（~ 开头表示用户 home 目录）",
+        },
+      },
+      required: ["path"],
+    },
+    execute: async ({ path: filePath }) => {
+      if (!isTauri) return { error: "Not in Tauri environment" };
+
+      // Resolve ~ to home dir
+      let resolved = filePath;
+      if (resolved.startsWith("~")) {
+        const { homedir } = await import("node:os");
+        resolved = resolved.replace("~", homedir());
+      }
+
+      // Read file via Tauri IPC
+      const content = await invoke("file_read", { path: resolved }) as string;
+      const filename = resolved.split(/[/\\]/).pop() ?? "file";
+
+      // Upload to Manager
+      const blob = new Blob([content]);
+      const formData = new FormData();
+      formData.append("file", blob, filename);
+      formData.append("from", ctx.myId);
+
+      const res = await fetch(`${ctx.managerUrl}/api/tasks/${ctx.taskId}/resources`, {
+        method: "POST",
+        headers: { team: ctx.teamName },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Upload failed" }));
+        return { error: err.error };
+      }
+
+      return await res.json();
+    },
+  };
+}
+
 function createDoneTool(): AgentTool {
   return {
     name: "done",
@@ -106,6 +161,8 @@ function createDoneTool(): AgentTool {
     execute: async ({ result }) => ({ done: true, result }),
   };
 }
+
+export { createUploadResourceTool };
 
 export function getDefaultTools(): AgentTool[] {
   return [

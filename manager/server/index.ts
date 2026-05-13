@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import { Team } from "../../envoy/packages/teams/team.js";
-import { loadRegistry, ensureRegistryDir } from "./team-registry.js";
+import { loadRegistry, ensureTeamsDir, getTasksDir, getTaskDir, getResourcesDir } from "./team-registry.js";
+import type { Task } from "../../envoy/packages/core/task.js";
 import teamRoutes from "./routes/teams.js";
 import userRoutes from "./routes/users.js";
 import dashboardRoutes from "./routes/dashboard.js";
@@ -26,7 +27,32 @@ async function restoreTeams(): Promise<void> {
     const team = new Team({ port: rec.port, host: "0.0.0.0" });
     await team.start();
     teamInstances.set(rec.name, team);
+    setupTaskPersistence(rec.name, team);
     console.log(`[restored] team "${rec.name}" on port ${rec.port}`);
+  }
+}
+
+function setupTaskPersistence(teamName: string, team: Team): void {
+  const server = team.innerServer;
+
+  server.on("task:created", (task: Task) => persistTask(teamName, task));
+  server.on("task:updated", (task: Task) => persistTask(teamName, task));
+  server.on("task:completed", (task: Task) => persistTask(teamName, task));
+  server.on("task:failed", (task: Task) => persistTask(teamName, task));
+}
+
+async function persistTask(teamName: string, task: Task): Promise<void> {
+  try {
+    const taskDir = getTaskDir(teamName, task.id);
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    await mkdir(taskDir, { recursive: true });
+    await writeFile(
+      `${taskDir}/task.json`,
+      JSON.stringify(task, null, 2),
+      "utf-8"
+    );
+  } catch (e) {
+    console.error(`[persist] failed for task ${task.id}:`, e);
   }
 }
 
@@ -34,14 +60,14 @@ async function restoreTeams(): Promise<void> {
 adminRoutes(app);
 aiRoutes(app);
 messageRoutes(app, teamInstances);
-teamRoutes(app, teamInstances);
+teamRoutes(app, teamInstances, (name, team) => setupTaskPersistence(name, team));
 userRoutes(app);
 dashboardRoutes(app, teamInstances);
 
 // Start
 const PORT = Number(process.env.MANAGER_PORT) || 8080;
 
-await ensureRegistryDir();
+await ensureTeamsDir();
 await initSettings();
 await restoreTeams();
 

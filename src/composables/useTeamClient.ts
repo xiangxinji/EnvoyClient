@@ -5,7 +5,7 @@ import { Member } from "../../envoy/packages/teams/member.js";
 import type { ClientOptions } from "@envoy/client";
 import type { Message } from "@envoy/core";
 import type { MemberInfo, TimelineItem, ChatMessage, TaskMessage, TaskResource } from "../types";
-import { useAgent, getDefaultTools } from "./useAgent";
+import { useAgent, getDefaultTools, createUploadResourceTool } from "./useAgent";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
@@ -26,7 +26,8 @@ export interface TeamClientOptions extends ClientOptions {
 }
 
 export function useTeamClient(role: "leader" | "member", options: TeamClientOptions) {
-  const client = role === "leader" ? new Leader(options) : new Member(options);
+  const clientOpts = { ...options, autoSendResult: false };
+  const client = role === "leader" ? new Leader(clientOpts) : new Member(clientOpts);
   const myId = options.id;
   const { managerUrl, teamName } = options;
 
@@ -202,21 +203,31 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
 
   // Member 端 Agent ReAct 循环处理任务
   client.doing(async (clientTask) => {
+    const taskId = clientTask.serverTask.id;
     const taskContent = clientTask.serverTask.content;
 
     if (!isTauri) {
-      return { taskId: clientTask.serverTask.id, note: "browser mode, no agent tools" };
+      const result = { taskId, note: "browser mode, no agent tools" };
+      apiRequest(`/api/tasks/${taskId}/result`, { from: myId, success: true, data: result });
+      return result;
     }
 
     try {
-      const result = await agent.runAgent(taskContent, getDefaultTools());
+      const uploadTool = createUploadResourceTool({ managerUrl, teamName, taskId, myId });
+      const tools = [...getDefaultTools(), uploadTool];
+      const result = await agent.runAgent(taskContent, tools);
+      let parsed;
       try {
-        return JSON.parse(result);
+        parsed = JSON.parse(result);
       } catch {
-        return { result };
+        parsed = { result };
       }
+      apiRequest(`/api/tasks/${taskId}/result`, { from: myId, success: true, data: parsed });
+      return parsed;
     } catch (e) {
-      return { error: String(e) };
+      const error = String(e);
+      apiRequest(`/api/tasks/${taskId}/result`, { from: myId, success: false, error });
+      return { error };
     }
   });
 
