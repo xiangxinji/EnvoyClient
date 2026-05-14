@@ -154,6 +154,74 @@ fn save_settings(settings: serde_json::Value) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn init_workspace(username: String) -> Result<serde_json::Value, String> {
+    let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
+    let workspace_dir = home.join(".envoy").join("workspace").join(&username);
+    if !workspace_dir.exists() {
+        std::fs::create_dir_all(&workspace_dir).map_err(|e| e.to_string())?;
+    }
+    Ok(serde_json::json!({ "workspace_dir": workspace_dir.to_string_lossy() }))
+}
+
+/// Parse YAML-like frontmatter from a markdown file.
+/// Returns a map of key-value pairs from the `---` delimited block.
+fn parse_frontmatter(content: &str) -> HashMap<String, String> {
+    let mut map = HashMap::new();
+    let trimmed = content.trim_start();
+    if !trimmed.starts_with("---") {
+        return map;
+    }
+    let rest = &trimmed[3..];
+    let end = rest.find("---").unwrap_or(rest.len());
+    for line in rest[..end].lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if let Some((k, v)) = line.split_once(':') {
+            let key = k.trim().to_string();
+            let val = v.trim().trim_matches('"').trim_matches('\'').to_string();
+            map.insert(key, val);
+        }
+    }
+    map
+}
+
+#[tauri::command]
+fn load_skill_catalog(username: String) -> Result<serde_json::Value, String> {
+    let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
+    let skills_dir = home.join(".envoy").join("brains").join(&username).join("skills");
+
+    if !skills_dir.exists() {
+        return Ok(serde_json::json!({ "skills": [] }));
+    }
+
+    let mut skills = Vec::new();
+    let entries = std::fs::read_dir(&skills_dir).map_err(|e| e.to_string())?;
+
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("md") {
+            continue;
+        }
+        let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_string();
+        let content = match std::fs::read_to_string(&path) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+        let fm = parse_frontmatter(&content);
+        skills.push(serde_json::json!({
+            "name": fm.get("name").cloned().unwrap_or_else(|| filename.clone()),
+            "description": fm.get("description").cloned().unwrap_or_default(),
+            "filename": filename,
+        }));
+    }
+
+    Ok(serde_json::json!({ "skills": skills }))
+}
+
+#[tauri::command]
 fn shell_exec(command: String) -> Result<serde_json::Value, String> {
     let output = if cfg!(target_os = "windows") {
         Command::new("cmd").args(["/C", &command]).output()
@@ -187,6 +255,8 @@ pub fn run() {
             file_read,
             file_write,
             brains::init_brains,
+            init_workspace,
+            load_skill_catalog,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

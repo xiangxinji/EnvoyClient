@@ -69,12 +69,28 @@ export async function reactLoop(
   tools: AgentTool[],
   currentStep: { value: number },
   error: { value: string },
+  workspacePath?: string,
+  skillCatalog?: string,
 ): Promise<AgentResult> {
   const schemas = tools.map(({ execute, ...schema }) => schema);
 
-  const messages: AgentMessage[] = [
-    { role: "user", content: taskContent },
-  ];
+  const messages: AgentMessage[] = [];
+
+  if (workspacePath) {
+    messages.push({
+      role: "user",
+      content: `你的工作目录是 ${workspacePath}。所有文件增删改操作必须基于这个目录进行。`,
+    });
+  }
+
+  if (skillCatalog) {
+    messages.push({
+      role: "user",
+      content: skillCatalog,
+    });
+  }
+
+  messages.push({ role: "user", content: taskContent });
 
   const trace: AgentStep[] = [];
 

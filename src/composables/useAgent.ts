@@ -14,6 +14,8 @@ export function useAgent() {
   async function runAgent(
     taskContent: string,
     customTools?: ReturnType<typeof getDefaultTools>,
+    workspacePath?: string,
+    skillCatalog?: string,
   ): Promise<AgentResult> {
     const tools = customTools ?? getDefaultTools();
     isRunning.value = true;
@@ -21,7 +23,7 @@ export function useAgent() {
     error.value = "";
 
     try {
-      return await reactLoop(taskContent, tools, currentStep, error);
+      return await reactLoop(taskContent, tools, currentStep, error, workspacePath, skillCatalog);
     } catch (e: any) {
       error.value = e.message || String(e);
       return { result: JSON.stringify({ error: error.value }), trace: [] };

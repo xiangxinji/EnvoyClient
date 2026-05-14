@@ -6,7 +6,7 @@ import type { ClientOptions } from "@envoy/client";
 import type { Message } from "@envoy/core";
 import type { MemberInfo, TimelineItem, ChatMessage, TaskMessage, TaskResource } from "../types";
 import { useAgent } from "./useAgent";
-import { getDefaultTools, createUploadResourceTool, createQueryResourcesTool, createReadResourceTool } from "../agent/tools";
+import { getDefaultTools, createUploadResourceTool, createQueryResourcesTool, createReadResourceTool, createReadSkillTool } from "../agent/tools";
 import { managerPost, managerFetch } from "../api";
 import { useAI } from "./useAI";
 
@@ -268,8 +268,23 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
       const uploadTool = createUploadResourceTool({ teamName, taskId, myId });
       const queryResTool = createQueryResourcesTool({ teamName });
       const readResTool = createReadResourceTool({ teamName });
-      const tools = [...getDefaultTools(), uploadTool, queryResTool, readResTool];
-      const agentResult = await agent.runAgent(taskContent, tools);
+      const readSkillTool = createReadSkillTool(myId);
+      const tools = [...getDefaultTools(), uploadTool, queryResTool, readResTool, readSkillTool];
+      const workspacePath = `~/.envoy/workspace/${myId}`;
+
+      let skillCatalog: string | undefined;
+      try {
+        const catalogResult = await safeInvoke("load_skill_catalog", { username: myId }) as any;
+        const skills = catalogResult?.skills as Array<{ name: string; description: string; filename: string }> | undefined;
+        if (skills && skills.length > 0) {
+          const lines = skills.map((s) => `- ${s.name}: ${s.description}`);
+          skillCatalog = `你可以使用以下技能：\n${lines.join("\n")}\n需要使用某个技能时，调用 read_skill 工具读取完整内容。`;
+        }
+      } catch {
+        // skills unavailable, continue without
+      }
+
+      const agentResult = await agent.runAgent(taskContent, tools, workspacePath, skillCatalog);
 
       let parsed;
       try {

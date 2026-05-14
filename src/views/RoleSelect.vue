@@ -82,13 +82,14 @@ async function handleLogin() {
     const data = await res.json();
     role.value = data.role;
 
-    // 初始化 brains 目录
+    // 初始化 brains 和 workspace 目录
     if (isTauri) {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("init_brains", { username: user });
+        await invoke("init_workspace", { username: user });
       } catch (e) {
-        console.warn("init brains failed:", e);
+        console.warn("init brains/workspace failed:", e);
       }
     }
 

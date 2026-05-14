@@ -220,6 +220,27 @@ export function createReadResourceTool(ctx: {
   };
 }
 
+export function createReadSkillTool(username: string): AgentTool {
+  return {
+    name: "read_skill",
+    description: "读取指定技能的完整内容",
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "技能名称（文件名，不含 .md 后缀）",
+        },
+      },
+      required: ["name"],
+    },
+    execute: async ({ name }) => {
+      if (!isTauri) return { error: "Not in Tauri environment" };
+      return invoke("file_read", { path: `~/.envoy/brains/${username}/skills/${name}.md` });
+    },
+  };
+}
+
 // ─── Default tool set ───
 
 export function getDefaultTools(): AgentTool[] {
