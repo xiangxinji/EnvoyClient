@@ -27,9 +27,9 @@ async function loadSettings() {
   try {
     const { invoke } = await import("@tauri-apps/api/core");
     const settings = (await invoke("get_settings")) as any;
-    if (settings?.env?.MANAGER_URL) managerUrl.value = settings.env.MANAGER_URL;
-    if (settings?.lastLogin) {
-      const { username: savedUser, team: savedTeam } = settings.lastLogin;
+    if (settings?.env?.manager_url) managerUrl.value = settings.env.manager_url;
+    if (settings?.last_login) {
+      const { username: savedUser, team: savedTeam } = settings.last_login;
       if (savedUser) username.value = savedUser;
       if (savedTeam) selectedTeam.value = savedTeam;
       // Load password from OS keychain
@@ -104,7 +104,7 @@ async function handleLogin() {
         const account = `${user}|${base}`;
         await invoke("save_credential", { account, password: pass });
         const settings = (await invoke("get_settings")) as any;
-        settings.lastLogin = { username: user, team: selectedTeam.value || null };
+        settings.last_login = { username: user, team: selectedTeam.value || null };
         await invoke("save_settings", { settings });
         await invoke("init_brains", { username: user });
         await invoke("init_workspace", { username: user });

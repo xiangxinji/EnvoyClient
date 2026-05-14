@@ -15,7 +15,7 @@ async function loadSettings() {
   try {
     const { invoke } = await import("@tauri-apps/api/core");
     const settings = (await invoke("get_settings")) as any;
-    if (settings?.env?.MANAGER_URL) managerUrl.value = settings.env.MANAGER_URL;
+    if (settings?.env?.manager_url) managerUrl.value = settings.env.manager_url;
   } catch {}
 }
 
@@ -42,7 +42,7 @@ async function handleSave() {
     const { invoke } = await import("@tauri-apps/api/core");
     const settings = (await invoke("get_settings")) as any;
     settings.env = settings.env || {};
-    settings.env.MANAGER_URL = url;
+    settings.env.manager_url = url;
     await invoke("save_settings", { settings });
     saved.value = true;
     error.value = "";
