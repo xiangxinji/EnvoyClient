@@ -5,6 +5,7 @@ mod settings;
 
 use std::collections::HashMap;
 use std::process::Command;
+use tauri::Manager;
 
 /// Resolve a path string to a safe absolute path within `~/.envoy/`.
 /// Expands `~` to `~/.envoy`, canonicalizes (resolving `..` and symlinks),
@@ -314,6 +315,14 @@ fn shell_exec(command: String, working_dir: Option<String>) -> Result<serde_json
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))
+                    .expect("failed to load icon");
+                window.set_icon(icon).ok();
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             save_message,
             load_history,

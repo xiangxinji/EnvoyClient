@@ -6,7 +6,7 @@ import { useAI } from "../composables/useAI";
 const ctx = inject(TeamClientKey)!;
 const { members, dispatchTask } = ctx;
 
-const { dispatchTask: aiDispatchTask, aiAvailable, aiError: dispatchAiError, isStreaming } = useAI();
+const { dispatchTask: aiDispatchTask, aiAvailable, aiError: dispatchAiError } = useAI();
 
 const taskContent = ref("");
 const dispatchPreview = ref<{ subscribe: string[]; content: string } | null>(null);

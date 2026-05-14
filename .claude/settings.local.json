@@ -58,7 +58,29 @@
       "Bash(python3 *)",
       "Bash(python \"C:/Users/xiangxj/Desktop/workspace/EnvoyClient/gen-arch.py\")",
       "Bash(rsvg-convert \"C:/Users/xiangxj/Desktop/workspace/EnvoyClient/envoy-architecture.svg\" -o /dev/null)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(identify /c/Users/Administrator/Desktop/EnvoyClient/src-tauri/icons/icon.png)",
+      "Bash(npx --yes png-to-ico@2 --help)",
+      "Bash(npx --yes to-ico --help)",
+      "Bash(npm list *)",
+      "Bash(npx --yes sharp-cli --help)",
+      "Bash(npx --yes sharp-cli resize 16 16 -f png src-tauri/icons/icon.png -o src-tauri/icons/tmp_16.png)",
+      "Bash(npx --yes sharp-cli resize 32 32 -f png src-tauri/icons/icon.png -o src-tauri/icons/tmp_32.png)",
+      "Bash(npx --yes sharp-cli resize 48 48 -f png src-tauri/icons/icon.png -o src-tauri/icons/tmp_48.png)",
+      "Bash(npx --yes sharp-cli resize 256 256 -f png src-tauri/icons/icon.png -o src-tauri/icons/tmp_256.png)",
+      "Bash(mkdir -p /c/wix)",
+      "Bash(unzip -o \"D:/迅雷下载/wix314-binaries.zip\" -d /c/wix)",
+      "Read(//c//**)",
+      "Bash(export WIX=\"C:\\\\\\\\wix\")",
+      "Bash(export PATH=\"/c/wix:$PATH\")",
+      "Bash(candle.exe -?)",
+      "Bash(WIX='C:\\\\wix' npm run tauri build)",
+      "Bash(mkdir -p \"/c/Users/Administrator/AppData/Local/tauri/WixTools314\")",
+      "Bash(cp /c/wix/* \"/c/Users/Administrator/AppData/Local/tauri/WixTools314/\")",
+      "Bash(\"/c/Users/Administrator/AppData/Local/tauri/WixTools314/light.exe\" -?)",
+      "Bash(WIX='C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\tauri\\\\WixTools314' npm run tauri build)",
+      "Bash(\"/c/Users/Administrator/AppData/Local/tauri/WixTools314/light.exe\" -ext WixUIExtension -ext WixUtilExtension -cultures:en-us main.wixobj -out \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\EnvoyClient\\\\src-tauri\\\\target\\\\release\\\\bundle\\\\msi\\\\EnvoyClient_0.1.0_x64_en-US.msi\")",
+      "Bash(/c/Users/Administrator/AppData/Local/tauri/WixTools314/light.exe *)"
     ]
   }
 }
