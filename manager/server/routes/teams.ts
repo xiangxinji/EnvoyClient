@@ -111,11 +111,21 @@ export default function teamRoutes(app: Hono, teams: Map<string, Team>, onTeamCr
     return c.json({ ok: true });
   });
 
-  // Get configured team members (from meta)
+  // Get configured team members (from meta, merged with latest user data)
   app.get("/api/teams/:name/configured-members", async (c) => {
     const meta = await loadMeta(c.req.param("name"));
     if (!meta) return c.json({ error: "team not found" }, 404);
-    return c.json({ leader: meta.leader, members: meta.members });
+    const users = await loadUsers();
+    const userMap = new Map(users.map((u) => [u.username, u]));
+    const members = meta.members.map((m) => {
+      const user = userMap.get(m.username);
+      return {
+        username: m.username,
+        responsibilities: user?.responsibilities ?? m.responsibilities ?? "",
+        capabilities: user?.capabilities ?? m.capabilities ?? "",
+      };
+    });
+    return c.json({ leader: meta.leader, members });
   });
 
   // Add member to team
@@ -127,8 +137,8 @@ export default function teamRoutes(app: Hono, teams: Map<string, Team>, onTeamCr
     if (meta.members.some((m) => m.username === username))
       return c.json({ error: "member already in team" }, 409);
 
-    const body = await c.req.json<{ responsibilities?: string }>().catch(() => ({}));
-    meta.members.push({ username, responsibilities: body.responsibilities });
+    const body = await c.req.json<{ responsibilities?: string; capabilities?: string }>().catch(() => ({}));
+    meta.members.push({ username, responsibilities: body.responsibilities, capabilities: body.capabilities });
     await saveMeta(meta);
     return c.json({ ok: true });
   });

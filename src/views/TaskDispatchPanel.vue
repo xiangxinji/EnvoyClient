@@ -25,7 +25,7 @@ async function handleSubmit() {
   dispatchPreview.value = null;
   dispatchAiError.value = "";
 
-  const memberList = members.value.map((m) => ({ id: m.id, responsibilities: m.responsibilities }));
+  const memberList = members.value.map((m) => ({ id: m.id, responsibilities: m.responsibilities, capabilities: m.capabilities }));
   const result = await aiDispatchTask(content, memberList);
 
   dispatchLoading.value = false;
@@ -65,7 +65,11 @@ function getMatchedMembers() {
       <div class="member-chips">
         <div v-for="m in members" :key="m.id" class="member-chip">
           <span class="chip-name">{{ m.id }}</span>
-          <span class="chip-desc">{{ m.responsibilities || '无职责描述' }}</span>
+          <div class="chip-info">
+            <span v-if="m.responsibilities" class="chip-desc">职责: {{ m.responsibilities }}</span>
+            <span v-if="m.capabilities" class="chip-cap">能力: {{ m.capabilities }}</span>
+            <span v-if="!m.responsibilities && !m.capabilities" class="chip-desc">无描述</span>
+          </div>
         </div>
       </div>
     </div>
@@ -115,7 +119,10 @@ function getMatchedMembers() {
           <div class="matched-list">
             <div v-for="m in getMatchedMembers()" :key="m.id" class="matched-member">
               <span class="matched-name">{{ m.id }}</span>
-              <span class="matched-desc">{{ m.responsibilities }}</span>
+              <div class="matched-info">
+                <span v-if="m.responsibilities" class="matched-desc">{{ m.responsibilities }}</span>
+                <span v-if="m.capabilities" class="matched-cap">{{ m.capabilities }}</span>
+              </div>
             </div>
             <div v-if="dispatchPreview.subscribe.length === 0" class="no-match">
               无匹配成员，请调整任务描述或添加更多成员
@@ -191,9 +198,26 @@ function getMatchedMembers() {
   min-width: 60px;
 }
 
+.chip-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
 .chip-desc {
   font-size: 0.85em;
   color: var(--text-muted);
+}
+
+.chip-cap {
+  font-size: 0.82em;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  align-self: flex-start;
 }
 
 .empty-members {
@@ -329,7 +353,7 @@ textarea::placeholder {
 
 .matched-member {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-sm);
   padding: var(--space-xs) var(--space-sm);
   background: var(--accent-light);
@@ -340,11 +364,24 @@ textarea::placeholder {
   font-weight: 600;
   color: var(--accent);
   font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.matched-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .matched-desc {
   font-size: 0.8em;
   color: var(--text-muted);
+}
+
+.matched-cap {
+  font-size: 0.78em;
+  color: var(--accent);
 }
 
 .no-match {

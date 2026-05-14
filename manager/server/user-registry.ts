@@ -8,6 +8,7 @@ export interface UserRecord {
   password: string; // bcrypt hash
   role: "leader" | "member";
   responsibilities: string;
+  capabilities: string;
   createdAt: number;
 }
 

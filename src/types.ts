@@ -3,6 +3,7 @@ export interface MemberInfo {
   role: "leader" | "member";
   status: "online" | "offline";
   responsibilities?: string;
+  capabilities?: string;
 }
 
 export interface ChatMessage {

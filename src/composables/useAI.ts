@@ -182,7 +182,7 @@ export function useAI() {
     }
   }
 
-  async function dispatchTask(description: string, members: Array<{ id: string; responsibilities?: string }>) {
+  async function dispatchTask(description: string, members: Array<{ id: string; responsibilities?: string; capabilities?: string }>) {
     aiError.value = "";
 
     try {

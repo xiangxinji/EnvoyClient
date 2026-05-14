@@ -160,8 +160,8 @@ async function handleConnect() {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         const settings = (await invoke("get_settings")) as any;
-        if (settings.lastLogin) {
-          settings.lastLogin.team = team.name;
+        if (settings.last_login) {
+          settings.last_login.team = team.name;
           await invoke("save_settings", { settings });
         }
       } catch {}
@@ -179,25 +179,6 @@ function handleLogout() {
   teams.value = [];
   selectedTeam.value = "";
   error.value = "";
-
-  // Clear saved credentials
-  if (isTauri) {
-    const user = username.value.trim();
-    const url = managerUrl.value.trim();
-    if (user && url) {
-      const account = `${user}|${url}`;
-      import("@tauri-apps/api/core").then(({ invoke }) => {
-        invoke("delete_credential", { account }).catch(() => {});
-        invoke("get_settings").then((settings: unknown) => {
-          const s = settings as Record<string, unknown> | null;
-          if (s?.lastLogin) {
-            delete s.lastLogin;
-            invoke("save_settings", { settings: s }).catch(() => {});
-          }
-        }).catch(() => {});
-      }).catch(() => {});
-    }
-  }
 }
 
 onMounted(loadSettings);

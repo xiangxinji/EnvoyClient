@@ -1,5 +1,5 @@
 import type { AgentTool } from "./tools";
-import { apiUrl } from "../api";
+import { apiUrl, getClientToken } from "../api";
 import type { AgentResult, AgentStep, AgentToolCall, AgentReasonResponse } from "../types";
 
 // ─── Types ───
@@ -99,11 +99,15 @@ export async function reactLoop(
   for (let step = 0; step < MAX_STEPS; step++) {
     currentStep.value = step + 1;
 
+    const token = getClientToken();
     const response = await fetchWithTimeout(
       apiUrl("/api/ai/agent/reason"),
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "X-Envoy-Token": token } : {}),
+        },
         body: JSON.stringify({ messages, tools: schemas }),
       },
       120_000,

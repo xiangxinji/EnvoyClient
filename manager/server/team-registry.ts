@@ -5,6 +5,7 @@ import { join } from "node:path";
 export interface TeamMember {
   username: string;
   responsibilities?: string;
+  capabilities?: string;
 }
 
 export interface TeamMeta {

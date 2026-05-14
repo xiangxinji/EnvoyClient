@@ -46,7 +46,7 @@ export function useConnection(
       );
       const data = await res.json() as {
         leader: string;
-        members: { username: string; responsibilities?: string }[];
+        members: { username: string; responsibilities?: string; capabilities?: string }[];
       };
       const list: MemberInfo[] = [
         { id: data.leader, role: "leader", status: "offline" },
@@ -55,6 +55,7 @@ export function useConnection(
           role: "member" as const,
           status: "offline" as const,
           responsibilities: m.responsibilities,
+          capabilities: m.capabilities,
         })),
       ];
       configuredMembers.value = list;

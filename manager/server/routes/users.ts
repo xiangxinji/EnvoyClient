@@ -29,15 +29,16 @@ export default function userRoutes(app: Hono) {
 
   app.get("/api/users", async (c) => {
     const users = await loadUsers();
-    return c.json(users.map((u) => ({ username: u.username, role: u.role, responsibilities: u.responsibilities ?? "", createdAt: u.createdAt })));
+    return c.json(users.map((u) => ({ username: u.username, role: u.role, responsibilities: u.responsibilities ?? "", capabilities: u.capabilities ?? "", createdAt: u.createdAt })));
   });
 
   app.post("/api/users", async (c) => {
-    const body = await c.req.json<{ username?: string; password?: string; role?: string; responsibilities?: string }>();
+    const body = await c.req.json<{ username?: string; password?: string; role?: string; responsibilities?: string; capabilities?: string }>();
     const username = body.username?.trim();
     const encryptedPassword = body.password;
     const role = body.role === "leader" ? "leader" : "member";
     const responsibilities = body.responsibilities?.trim() ?? "";
+    const capabilities = body.capabilities?.trim() ?? "";
     if (!username || !encryptedPassword) return c.json({ error: "username and password are required" }, 400);
 
     const password = decryptWithPrivateKey(encryptedPassword);
@@ -46,12 +47,26 @@ export default function userRoutes(app: Hono) {
     if (users.some((u) => u.username === username)) return c.json({ error: "user already exists" }, 409);
 
     const hashed = await hashPassword(password);
-    const user: UserRecord = { username, password: hashed, role, responsibilities, createdAt: Date.now() };
+    const user: UserRecord = { username, password: hashed, role, responsibilities, capabilities, createdAt: Date.now() };
     users.push(user);
     await saveUsers(users);
 
     console.log(`[user-created] ${username} (${role})`);
-    return c.json({ username, role, responsibilities, createdAt: user.createdAt }, 201);
+    return c.json({ username, role, responsibilities, capabilities, createdAt: user.createdAt }, 201);
+  });
+
+  app.patch("/api/users/:username", async (c) => {
+    const username = c.req.param("username");
+    const body = await c.req.json<{ responsibilities?: string; capabilities?: string }>();
+    const users = await loadUsers();
+    const user = users.find((u) => u.username === username);
+    if (!user) return c.json({ error: "user not found" }, 404);
+
+    if (body.responsibilities !== undefined) user.responsibilities = body.responsibilities.trim();
+    if (body.capabilities !== undefined) user.capabilities = body.capabilities.trim();
+    await saveUsers(users);
+
+    return c.json({ ok: true, responsibilities: user.responsibilities, capabilities: user.capabilities });
   });
 
   app.delete("/api/users/:username", async (c) => {

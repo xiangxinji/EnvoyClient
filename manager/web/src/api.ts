@@ -65,12 +65,15 @@ export interface TaskDetailData extends Omit<TaskInfo, "assignedTo" | "result"> 
 export interface UserInfo {
   username: string;
   role: "leader" | "member";
+  responsibilities: string;
+  capabilities: string;
   createdAt: number;
 }
 
 export interface TeamMember {
   username: string;
   responsibilities?: string;
+  capabilities?: string;
 }
 
 async function rsaEncrypt(publicKeyPem: string, plaintext: string): Promise<string> {
@@ -111,11 +114,11 @@ export const api = {
   getTeam: (name: string) => request<TeamInfo>(`/teams/${name}`),
   getConfiguredMembers: (name: string) =>
     request<{ leader: string; members: TeamMember[] }>(`/teams/${name}/configured-members`),
-  addTeamMember: (team: string, username: string, responsibilities?: string) =>
+  addTeamMember: (team: string, username: string, responsibilities?: string, capabilities?: string) =>
     request<{ ok: boolean }>(`/teams/${team}/members/${username}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ responsibilities }),
+      body: JSON.stringify({ responsibilities, capabilities }),
     }),
   removeTeamMember: (team: string, username: string) =>
     request<{ ok: boolean }>(`/teams/${team}/members/${username}`, { method: "DELETE" }),
@@ -131,17 +134,23 @@ export const api = {
   getTasks: (name: string) => request<TaskInfo[]>(`/teams/${name}/tasks`),
   getTaskDetail: (team: string, id: string) => request<TaskDetailData>(`/teams/${team}/tasks/${id}`),
   getUsers: () => request<UserInfo[]>("/users"),
-  createUser: async (username: string, password: string, role: "leader" | "member", responsibilities?: string) => {
+  createUser: async (username: string, password: string, role: "leader" | "member", responsibilities?: string, capabilities?: string) => {
     const pubKey = await getPublicKey();
     const encrypted = await rsaEncrypt(pubKey, password);
     return request<UserInfo>("/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password: encrypted, role, responsibilities }),
+      body: JSON.stringify({ username, password: encrypted, role, responsibilities, capabilities }),
     });
   },
   deleteUser: (username: string) =>
     request<{ ok: boolean }>(`/users/${username}`, { method: "DELETE" }),
+  updateUser: (username: string, data: { responsibilities?: string; capabilities?: string }) =>
+    request<{ ok: boolean }>(`/users/${username}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
   auth: async (username: string, password: string) => {
     const pubKey = await getPublicKey();
     const encrypted = await rsaEncrypt(pubKey, password);

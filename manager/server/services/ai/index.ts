@@ -1,7 +1,6 @@
 import { Hono } from "hono";
-import type { AIConfig, AIConfigPublic, ProviderType } from "../../../../shared/types/ai.js";
+import type { AIConfig, ProviderType } from "../../../../shared/types/ai.js";
 import { PROVIDERS } from "./constants.js";
-import { toPublicConfig } from "./config.js";
 import { handleChatStream, handleChatGenerate } from "./chat.js";
 import { handleTaskGenerate } from "./task.js";
 import { handleAnalyze } from "./analyze.js";
@@ -51,16 +50,7 @@ export function createAIRoutes(options: AIRouterOptions) {
     return handleAnalyze(c, config);
   });
 
-  // ─── Config ───
-
-  router.get("/config", async (c) => {
-    const config = await getConfig();
-    return c.json(toPublicConfig(config));
-  });
-
-  router.put("/config", async (c) => {
-    return c.json({ error: "Use PUT /api/ai/config instead" }, 400);
-  });
+  // ─── Config (handled directly in ai.ts routes with admin auth) ───
 
   // ─── Models ───
 

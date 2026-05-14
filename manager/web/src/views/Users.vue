@@ -6,10 +6,16 @@ const users = ref<UserInfo[]>([]);
 const loading = ref(true);
 const error = ref("");
 const showCreate = ref(false);
+const showEdit = ref(false);
+const editTarget = ref<UserInfo | null>(null);
+const editResponsibilities = ref("");
+const editCapabilities = ref("");
+const editSaving = ref(false);
 const newName = ref("");
 const newPass = ref("");
 const newRole = ref<"leader" | "member">("member");
 const newResponsibilities = ref("");
+const newCapabilities = ref("");
 const creating = ref(false);
 
 async function refresh() {
@@ -29,11 +35,12 @@ async function handleCreate() {
   if (!username || !password) return;
   creating.value = true;
   try {
-    await api.createUser(username, password, newRole.value, newResponsibilities.value.trim() || undefined);
+    await api.createUser(username, password, newRole.value, newResponsibilities.value.trim() || undefined, newCapabilities.value.trim() || undefined);
     newName.value = "";
     newPass.value = "";
     newRole.value = "member";
     newResponsibilities.value = "";
+    newCapabilities.value = "";
     showCreate.value = false;
     await refresh();
   } catch (e: any) {
@@ -50,6 +57,31 @@ async function handleDelete(username: string) {
     await refresh();
   } catch (e: any) {
     error.value = e.message;
+  }
+}
+
+function openEdit(u: UserInfo) {
+  editTarget.value = u;
+  editResponsibilities.value = u.responsibilities;
+  editCapabilities.value = u.capabilities;
+  showEdit.value = true;
+}
+
+async function handleEditSave() {
+  if (!editTarget.value) return;
+  editSaving.value = true;
+  try {
+    await api.updateUser(editTarget.value.username, {
+      responsibilities: editResponsibilities.value.trim(),
+      capabilities: editCapabilities.value.trim(),
+    });
+    showEdit.value = false;
+    editTarget.value = null;
+    await refresh();
+  } catch (e: any) {
+    error.value = e.message;
+  } finally {
+    editSaving.value = false;
   }
 }
 
@@ -73,6 +105,8 @@ onMounted(refresh);
             <tr>
               <th>用户名</th>
               <th>角色</th>
+              <th>职责</th>
+              <th>能力</th>
               <th>创建时间</th>
               <th>操作</th>
             </tr>
@@ -83,8 +117,11 @@ onMounted(refresh);
               <td>
                 <span class="role-badge" :class="u.role">{{ u.role }}</span>
               </td>
+              <td class="desc-cell">{{ u.responsibilities || '-' }}</td>
+              <td class="desc-cell">{{ u.capabilities || '-' }}</td>
               <td>{{ new Date(u.createdAt).toLocaleString() }}</td>
-              <td>
+              <td class="actions-cell">
+                <button class="btn-edit" @click="openEdit(u)">编辑</button>
                 <button class="btn-delete" @click="handleDelete(u.username)">删除</button>
               </td>
             </tr>
@@ -114,13 +151,38 @@ onMounted(refresh);
         </div>
         <div v-if="newRole === 'member'" class="field">
           <label>职责描述</label>
-          <textarea v-model="newResponsibilities" placeholder="描述成员的能力和职责（选填）" rows="3" @keydown.enter.ctrl="handleCreate"></textarea>
+          <textarea v-model="newResponsibilities" placeholder="描述成员的职责（选填）" rows="2" @keydown.enter.ctrl="handleCreate"></textarea>
+        </div>
+        <div v-if="newRole === 'member'" class="field">
+          <label>能力描述</label>
+          <textarea v-model="newCapabilities" placeholder="描述成员的技能和能力（选填）" rows="2" @keydown.enter.ctrl="handleCreate"></textarea>
         </div>
         <div v-if="error" class="error">{{ error }}</div>
         <div class="modal-actions">
           <button class="btn-cancel" @click="showCreate = false; error = ''">取消</button>
           <button class="btn-confirm" :disabled="creating || !newName.trim() || !newPass" @click="handleCreate">
             {{ creating ? "创建中..." : "创建" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showEdit" class="modal-overlay" @click.self="showEdit = false">
+      <div class="modal">
+        <h3>编辑用户 - {{ editTarget?.username }}</h3>
+        <div class="field">
+          <label>职责描述</label>
+          <textarea v-model="editResponsibilities" placeholder="描述成员的职责（选填）" rows="2"></textarea>
+        </div>
+        <div class="field">
+          <label>能力描述</label>
+          <textarea v-model="editCapabilities" placeholder="描述成员的技能和能力（选填）" rows="2"></textarea>
+        </div>
+        <div v-if="error" class="error">{{ error }}</div>
+        <div class="modal-actions">
+          <button class="btn-cancel" @click="showEdit = false; error = ''">取消</button>
+          <button class="btn-confirm" :disabled="editSaving" @click="handleEditSave">
+            {{ editSaving ? "保存中..." : "保存" }}
           </button>
         </div>
       </div>
@@ -207,6 +269,33 @@ tr:last-child td {
 .name-cell {
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.desc-cell {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82em;
+}
+
+.actions-cell {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.btn-edit {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.82em;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-edit:hover {
+  background: var(--accent-light);
 }
 
 .btn-delete {

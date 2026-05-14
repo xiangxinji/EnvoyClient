@@ -7,7 +7,7 @@ import { resolveModel, getModelOptions } from "./provider.js";
 
 interface DispatchRequest {
   description: string;
-  members: Array<{ id: string; responsibilities: string }>;
+  members: Array<{ id: string; responsibilities: string; capabilities: string }>;
 }
 
 const dispatchSchema = z.object({
@@ -29,7 +29,13 @@ export async function handleTaskDispatch(c: Context, config: AIConfig) {
   const options = getModelOptions(config);
 
   const memberList = body.members
-    .map((m) => `  - ${m.id}: ${m.responsibilities || "无职责描述"}`)
+    .map((m) => {
+      const parts = [`  - ${m.id}:`];
+      if (m.responsibilities) parts.push(`    职责: ${m.responsibilities}`);
+      if (m.capabilities) parts.push(`    能力: ${m.capabilities}`);
+      if (!m.responsibilities && !m.capabilities) parts.push("    无描述");
+      return parts.join("\n");
+    })
     .join("\n");
 
   const prompt = `任务描述：${body.description}\n\n可用成员：\n${memberList}`;

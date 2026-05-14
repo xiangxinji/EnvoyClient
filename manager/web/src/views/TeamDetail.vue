@@ -16,6 +16,7 @@ const allUsers = ref<UserInfo[]>([]);
 const showAddMember = ref(false);
 const addUsername = ref("");
 const addResponsibilities = ref("");
+const addCapabilities = ref("");
 const adding = ref(false);
 let timer: ReturnType<typeof setInterval>;
 
@@ -55,9 +56,10 @@ async function handleAddMember() {
   if (!username) return;
   adding.value = true;
   try {
-    await api.addTeamMember(props.name, username, addResponsibilities.value || undefined);
+    await api.addTeamMember(props.name, username, addResponsibilities.value || undefined, addCapabilities.value || undefined);
     addUsername.value = "";
     addResponsibilities.value = "";
+    addCapabilities.value = "";
     showAddMember.value = false;
     await refresh();
   } catch (e: any) {
@@ -109,7 +111,10 @@ onUnmounted(() => clearInterval(timer));
           </div>
           <div v-for="m in configuredMembers" :key="m.username" class="member-item">
             <span class="member-name">{{ m.username }}</span>
-            <span v-if="m.responsibilities" class="member-resp">{{ m.responsibilities }}</span>
+            <div class="member-desc-group">
+              <span class="member-resp">{{ m.responsibilities || '-' }}</span>
+              <span class="member-cap" :class="{ 'empty-cap': !m.capabilities }">{{ m.capabilities || '未设置' }}</span>
+            </div>
             <span class="role-badge member-badge">Member</span>
             <button class="btn-remove" @click="handleRemoveMember(m.username)" title="移除">x</button>
           </div>
@@ -141,6 +146,10 @@ onUnmounted(() => clearInterval(timer));
         <input
           v-model="addResponsibilities"
           placeholder="职责说明（可选）"
+        />
+        <input
+          v-model="addCapabilities"
+          placeholder="能力描述（可选）"
         />
         <div class="modal-actions">
           <button class="btn-cancel" @click="showAddMember = false">取消</button>
@@ -234,12 +243,48 @@ onUnmounted(() => clearInterval(timer));
 .member-name {
   font-weight: 500;
   color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.member-desc-group {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
 }
 
 .member-resp {
   color: var(--text-muted);
   font-size: 0.85em;
-  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-resp:empty::before {
+  content: '-';
+}
+
+.member-cap {
+  font-size: 0.82em;
+  padding: 1px 8px;
+  border-radius: var(--radius-sm);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.member-cap:not(.empty-cap) {
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+.member-cap.empty-cap {
+  color: var(--text-muted);
+  background: var(--bg-secondary);
 }
 
 .role-badge {
