@@ -1,4 +1,5 @@
 mod brains;
+mod credentials;
 mod history;
 mod settings;
 
@@ -257,6 +258,9 @@ pub fn run() {
             brains::init_brains,
             init_workspace,
             load_skill_catalog,
+            credentials::get_credential,
+            credentials::save_credential,
+            credentials::delete_credential,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -5,7 +5,6 @@ import { useTeamClient } from "../composables/useTeamClient";
 import { setTeamClientInstance } from "../composables/teamClientContext";
 import { setManagerUrl } from "../api";
 import logo from "../assets/logo.png";
-
 const isTauri = "__TAURI_INTERNALS__" in window;
 
 const router = useRouter();
@@ -29,6 +28,19 @@ async function loadSettings() {
     const { invoke } = await import("@tauri-apps/api/core");
     const settings = (await invoke("get_settings")) as any;
     if (settings?.env?.MANAGER_URL) managerUrl.value = settings.env.MANAGER_URL;
+    if (settings?.lastLogin) {
+      const { username: savedUser, team: savedTeam } = settings.lastLogin;
+      if (savedUser) username.value = savedUser;
+      if (savedTeam) selectedTeam.value = savedTeam;
+      // Load password from OS keychain
+      const account = `${savedUser}|${managerUrl.value}`;
+      try {
+        const pass = (await invoke("get_credential", { account })) as string;
+        if (pass) password.value = pass;
+      } catch {
+        // Credential not found in keychain, ignore
+      }
+    }
   } catch {}
 }
 
@@ -82,14 +94,19 @@ async function handleLogin() {
     const data = await res.json();
     role.value = data.role;
 
-    // 初始化 brains 和 workspace 目录
+    // Save credentials + initialize workspace
     if (isTauri) {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
+        const account = `${user}|${base}`;
+        await invoke("save_credential", { account, password: pass });
+        const settings = (await invoke("get_settings")) as any;
+        settings.lastLogin = { username: user, team: selectedTeam.value || null };
+        await invoke("save_settings", { settings });
         await invoke("init_brains", { username: user });
         await invoke("init_workspace", { username: user });
       } catch (e) {
-        console.warn("init brains/workspace failed:", e);
+        console.warn("save credentials / init workspace failed:", e);
       }
     }
 
@@ -103,7 +120,9 @@ async function handleLogin() {
       return;
     }
 
-    selectedTeam.value = teams.value[0].name;
+    if (!teams.value.find((t) => t.name === selectedTeam.value)) {
+      selectedTeam.value = teams.value[0].name;
+    }
     authenticated.value = true;
   } catch (e: any) {
     error.value = e.message;
@@ -132,6 +151,19 @@ async function handleConnect() {
 
     await teamClient.connect();
     setTeamClientInstance(teamClient);
+
+    // Update last selected team
+    if (isTauri) {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const settings = (await invoke("get_settings")) as any;
+        if (settings.lastLogin) {
+          settings.lastLogin.team = team.name;
+          await invoke("save_settings", { settings });
+        }
+      } catch {}
+    }
+
     router.push("/chat");
   } catch (e) {
     error.value = e instanceof Error ? e.message : "连接失败";
@@ -144,6 +176,24 @@ function handleLogout() {
   teams.value = [];
   selectedTeam.value = "";
   error.value = "";
+
+  // Clear saved credentials
+  if (isTauri) {
+    const user = username.value.trim();
+    const url = managerUrl.value.trim();
+    if (user && url) {
+      const account = `${user}|${url}`;
+      import("@tauri-apps/api/core").then(({ invoke }) => {
+        invoke("delete_credential", { account }).catch(() => {});
+        invoke("get_settings").then((settings: any) => {
+          if (settings?.lastLogin) {
+            delete settings.lastLogin;
+            invoke("save_settings", { settings }).catch(() => {});
+          }
+        }).catch(() => {});
+      }).catch(() => {});
+    }
+  }
 }
 
 onMounted(loadSettings);
@@ -173,6 +223,8 @@ onMounted(loadSettings);
           <span v-if="loading" class="spinner"></span>
           <span>{{ loading ? "登录中..." : "登录" }}</span>
         </button>
+
+        <button class="btn-settings" @click="router.push('/settings')">设置</button>
       </template>
 
       <!-- Step 2: Select team -->
@@ -385,5 +437,19 @@ select {
   color: var(--error);
   font-size: 0.8em;
   margin: 0;
+}
+
+.btn-settings {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8em;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.btn-settings:hover {
+  color: var(--text-secondary);
 }
 </style>
