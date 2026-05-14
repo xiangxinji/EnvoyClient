@@ -21,7 +21,7 @@ export interface RecentTask {
   createBy: string;
   assignedTo: string | null;
   result: unknown;
-  resources: { type: string; by: string; data: unknown }[];
+  resources: { type: string; by: string; data: unknown; attempt: number }[];
   createdAt: number;
 }
 
@@ -49,11 +49,12 @@ export interface TaskInfo {
   subscribe: string[];
   content: string;
   mode: "serial" | "parallel";
-  status: "pending" | "running" | "completed" | "failed";
-  resources: { type: string; by: string; data: unknown }[];
+  status: "pending" | "running" | "reviewing" | "completed" | "failed";
+  resources: { type: string; by: string; data: unknown; attempt: number }[];
   assignedTo: string | null;
   result: unknown;
   createdAt: number;
+  attempt: number;
 }
 
 export interface TaskDetailData extends Omit<TaskInfo, "assignedTo" | "result"> {

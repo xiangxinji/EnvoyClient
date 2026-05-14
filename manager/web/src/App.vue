@@ -173,6 +173,7 @@ const navItems = [
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --status-running: #34c759;
+  --status-reviewing: #5ac8fa;
   --status-pending: #ff9f0a;
   --status-completed: #30d158;
   --status-failed: #ff453a;

@@ -76,6 +76,11 @@ function formatTime(ts: number): string {
             <span class="breakdown-value">{{ data.taskSummary.running ?? 0 }}</span>
           </div>
           <div class="breakdown-item">
+            <span class="dot reviewing"></span>
+            <span class="breakdown-label">审查中</span>
+            <span class="breakdown-value">{{ data.taskSummary.reviewing ?? 0 }}</span>
+          </div>
+          <div class="breakdown-item">
             <span class="dot completed"></span>
             <span class="breakdown-label">已完成</span>
             <span class="breakdown-value">{{ data.taskSummary.completed ?? 0 }}</span>
@@ -185,7 +190,7 @@ function formatTime(ts: number): string {
 
 .breakdown-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--space-md);
 }
 
@@ -209,6 +214,7 @@ function formatTime(ts: number): string {
 
 .dot.pending { background: var(--status-pending); }
 .dot.running { background: var(--status-running); }
+.dot.reviewing { background: var(--status-reviewing); }
 .dot.completed { background: var(--status-completed); }
 .dot.failed { background: var(--status-failed); }
 
@@ -291,6 +297,7 @@ tr:last-child td {
 
 .status-badge.pending { color: var(--status-pending); }
 .status-badge.running { color: var(--status-running); }
+.status-badge.reviewing { color: var(--status-reviewing); }
 .status-badge.completed { color: var(--status-completed); }
 .status-badge.failed { color: var(--status-failed); }
 </style>

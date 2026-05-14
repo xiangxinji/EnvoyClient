@@ -41,6 +41,7 @@ export interface TaskResource {
   type: string;
   by: string;
   data: unknown;
+  attempt: number;
 }
 
 export type ClientResultData = { result: string };
@@ -54,7 +55,7 @@ export interface TaskMessage {
   taskId: string;
   from: string;
   content: string;
-  status: "pending" | "running" | "completed" | "failed";
+  status: "pending" | "running" | "reviewing" | "completed" | "failed";
   resources: TaskResource[];
   subscribe?: string[];
   timestamp: number;

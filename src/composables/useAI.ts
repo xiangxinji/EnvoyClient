@@ -188,6 +188,30 @@ export function useAI() {
     }
   }
 
+  async function reviewTaskResult(taskContent: string, memberResults: any[]): Promise<{ success: boolean; summary: string }> {
+    aiError.value = "";
+
+    try {
+      const resultsSummary = memberResults.map((r: any) => ({
+        from: r.by ?? r.from ?? "unknown",
+        data: r.data ?? r.content ?? r,
+      }));
+
+      const res = await managerFetch("/api/ai/task/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskDescription: taskContent,
+          results: resultsSummary,
+        }),
+      });
+      return await res.json() as { success: boolean; summary: string };
+    } catch (e: any) {
+      aiError.value = e.message;
+      return { success: false, summary: `Review failed: ${e.message}` };
+    }
+  }
+
   return {
     suggestion,
     isStreaming,
@@ -199,5 +223,6 @@ export function useAI() {
     planTask,
     analyzeTaskResult,
     dispatchTask,
+    reviewTaskResult,
   };
 }

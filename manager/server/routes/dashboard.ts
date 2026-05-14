@@ -8,7 +8,7 @@ export default function dashboardRoutes(app: Hono, teams: Map<string, Team>) {
     const records = await loadRegistry();
     let totalOnline = 0;
     let totalTasks = 0;
-    const taskSummary = { pending: 0, running: 0, completed: 0, failed: 0 };
+    const taskSummary = { pending: 0, running: 0, reviewing: 0, completed: 0, failed: 0 };
     const allTasks: Array<{
       id: string;
       team: string;
@@ -17,7 +17,7 @@ export default function dashboardRoutes(app: Hono, teams: Map<string, Team>) {
       createBy: string;
       assignedTo: string | null;
       result: unknown;
-      resources: Array<{ type: string; by: string; data: unknown }>;
+      resources: Array<{ type: string; by: string; data: unknown; attempt: number }>;
       createdAt: number;
     }> = [];
 
@@ -29,6 +29,7 @@ export default function dashboardRoutes(app: Hono, teams: Map<string, Team>) {
       totalTasks += stats.totalTasks;
       taskSummary.pending += stats.tasksByStatus.pending;
       taskSummary.running += stats.tasksByStatus.running;
+      taskSummary.reviewing += stats.tasksByStatus.reviewing;
       taskSummary.completed += stats.tasksByStatus.completed;
       taskSummary.failed += stats.tasksByStatus.failed;
 

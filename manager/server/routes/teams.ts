@@ -22,6 +22,7 @@ export function teamStats(team: Team) {
     tasksByStatus: {
       pending: tasks.filter((t) => t.status === "pending").length,
       running: tasks.filter((t) => t.status === "running").length,
+      reviewing: tasks.filter((t) => t.status === "reviewing").length,
       completed: tasks.filter((t) => t.status === "completed").length,
       failed: tasks.filter((t) => t.status === "failed").length,
     },

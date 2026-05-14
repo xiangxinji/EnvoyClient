@@ -8,6 +8,7 @@ import type { MemberInfo, TimelineItem, ChatMessage, TaskMessage, TaskResource }
 import { useAgent } from "./useAgent";
 import { getDefaultTools, createUploadResourceTool, createQueryResourcesTool, createReadResourceTool } from "../agent/tools";
 import { managerPost, managerFetch } from "../api";
+import { useAI } from "./useAI";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
@@ -227,7 +228,36 @@ export function useTeamClient(role: "leader" | "member", options: TeamClientOpti
   client.doing(async (clientTask) => {
     const taskId = clientTask.serverTask.id;
     const taskContent = clientTask.serverTask.content;
+    const taskStatus = clientTask.serverTask.status;
 
+    // Leader 审查模式
+    if (role === "leader" && taskStatus === "reviewing") {
+      const task = clientTask.serverTask;
+      const memberResults = task.resources.filter(
+        (r: any) => r.type === "client-result" && r.attempt === task.attempt
+      );
+
+      try {
+        const ai = useAI();
+        const reviewResult = await ai.reviewTaskResult(taskContent, memberResults);
+
+        postToManager(`/api/tasks/${taskId}/result`, {
+          from: myId,
+          success: reviewResult.success,
+          data: { review: reviewResult.summary, ...reviewResult },
+        });
+        return reviewResult;
+      } catch (e) {
+        postToManager(`/api/tasks/${taskId}/result`, {
+          from: myId,
+          success: false,
+          error: `Leader review failed: ${String(e)}`,
+        });
+        return { error: String(e) };
+      }
+    }
+
+    // Member 执行模式
     if (!isTauri) {
       const result = { taskId, note: "browser mode, no agent tools" };
       postToManager(`/api/tasks/${taskId}/result`, { from: myId, success: true, data: result });

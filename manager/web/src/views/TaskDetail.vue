@@ -32,6 +32,7 @@ function formatTime(ts: number): string {
 const statusLabels: Record<string, string> = {
   pending: "等待中",
   running: "执行中",
+  reviewing: "审查中",
   completed: "已完成",
   failed: "失败",
 };
@@ -220,6 +221,11 @@ function formatResultData(data: unknown): string {
 .status-badge.running {
   background: rgba(52, 199, 89, 0.12);
   color: var(--status-running);
+}
+
+.status-badge.reviewing {
+  background: rgba(90, 200, 250, 0.12);
+  color: var(--status-reviewing);
 }
 
 .status-badge.completed {

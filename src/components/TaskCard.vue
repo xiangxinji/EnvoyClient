@@ -23,6 +23,7 @@ const props = defineProps<{
 const statusLabels: Record<TaskMessage["status"], string> = {
   pending: "等待中",
   running: "执行中",
+  reviewing: "审查中",
   completed: "已完成",
   failed: "失败",
 };
@@ -269,6 +270,7 @@ function formatToolResult(result: unknown): string {
 }
 
 .task-card.running { border-left-color: var(--task-running-border); }
+.task-card.reviewing { border-left-color: #5ac8fa; }
 .task-card.completed { border-left-color: var(--task-completed-border); }
 .task-card.failed { border-left-color: var(--task-failed-border); }
 
@@ -297,6 +299,7 @@ function formatToolResult(result: unknown): string {
 
 .status-badge.pending { background: var(--task-pending-bg); color: var(--task-pending-text); }
 .status-badge.running { background: var(--task-running-bg); color: var(--task-running-text); }
+.status-badge.reviewing { background: rgba(90, 200, 250, 0.15); color: #5ac8fa; }
 .status-badge.completed { background: var(--task-completed-bg); color: var(--task-completed-text); }
 .status-badge.failed { background: var(--task-failed-bg); color: var(--task-failed-text); }
 
@@ -334,6 +337,7 @@ function formatToolResult(result: unknown): string {
 
 .task-member-status.pending { background: var(--task-pending-bg); color: var(--task-pending-text); }
 .task-member-status.running { background: var(--task-running-bg); color: var(--task-running-text); }
+.task-member-status.reviewing { background: rgba(90, 200, 250, 0.15); color: #5ac8fa; }
 .task-member-status.completed { background: var(--task-completed-bg); color: var(--task-completed-text); }
 .task-member-status.failed { background: var(--task-failed-bg); color: var(--task-failed-text); }
 
