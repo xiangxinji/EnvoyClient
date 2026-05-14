@@ -73,6 +73,7 @@ async function handleSave() {
 }
 
 async function handleLogout() {
+  if (!confirm("确定要退出登录吗？")) return;
   try {
     await api.adminLogout();
   } catch {}

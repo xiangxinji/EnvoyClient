@@ -325,3 +325,13 @@ npm run manager:web            # 仅启动前端
 ### Theme Toggle
 
 使用 `useTheme()` composable，通过 `html.dark` class 切换。用户偏好保存在 `localStorage` key `envoy-theme`，默认 dark。
+
+### 危险操作二次确认
+
+所有不可逆或高风险操作必须执行前弹窗二次确认（`confirm()` 或自定义确认弹窗），用户明确同意后才执行。适用范围包括但不限于：
+- 退出登录 / 断开连接
+- 删除用户、团队、成员
+- 清空聊天记录 / 历史导出覆盖
+- 取消/终止正在运行的任务
+
+确认文案必须清楚说明操作后果（如 `确定要删除团队 "xxx" 吗？此操作不可恢复`）。
