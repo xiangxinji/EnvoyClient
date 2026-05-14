@@ -14,7 +14,7 @@ const ctx = inject(TeamClientKey)!;
 const { getConversation, sendChat, dispatchTask, role, myId, markRead, members, teamName, clearConversation } = ctx;
 
 const peerStatus = computed(() => {
-  const m = members.value.find((m: any) => m.id === props.peerId);
+  const m = members.value.find((m) => m.id === props.peerId);
   return m?.status;
 });
 
@@ -162,7 +162,7 @@ async function handleDispatchTask() {
   dispatchLoading.value = true;
   dispatchPreview.value = null;
 
-  const memberList = members.value.map((m: any) => ({ id: m.id, responsibilities: m.responsibilities }));
+  const memberList = members.value.map((m) => ({ id: m.id, responsibilities: m.responsibilities }));
   const result = await aiDispatchTask(content, memberList);
 
   dispatchLoading.value = false;

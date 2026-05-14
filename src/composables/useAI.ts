@@ -1,6 +1,24 @@
 import { ref } from "vue";
-import type { ChatMessage, MemberInfo, TaskMessage } from "../types";
+import type { ChatMessage, MemberInfo, TaskMessage, SSEEventData, AIHealthResponse, TaskResource } from "../types";
 import { apiUrl, managerFetch } from "../api";
+
+// ─── Helpers ───
+
+function getErrorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+function extractResultOutput(data: unknown): { stdout: string; stderr: string; exit_code: number } {
+  if (typeof data === "object" && data !== null) {
+    const obj = data as Record<string, unknown>;
+    return {
+      stdout: typeof obj.stdout === "string" ? obj.stdout : "",
+      stderr: typeof obj.stderr === "string" ? obj.stderr : "",
+      exit_code: typeof obj.exit_code === "number" ? obj.exit_code : -1,
+    };
+  }
+  return { stdout: JSON.stringify(data), stderr: "", exit_code: 0 };
+}
 
 // ─── SSE 解析器 ───
 
@@ -37,20 +55,20 @@ async function consumeSSE(url: string, body: object, callbacks: StreamCallbacks)
 
       switch (parsed.event) {
         case "text-delta":
-          callbacks.onTextDelta?.(parsed.data.text);
+          callbacks.onTextDelta?.((parsed.data as { text: string }).text);
           break;
         case "done":
-          callbacks.onDone?.(parsed.data);
+          callbacks.onDone?.(parsed.data as { finishReason: string; usage: { promptTokens: number; completionTokens: number } });
           break;
         case "error":
-          callbacks.onError?.(parsed.data.message);
+          callbacks.onError?.((parsed.data as { message: string }).message);
           break;
       }
     }
   }
 }
 
-function parseSSE(raw: string): { event: string; data: any } | null {
+function parseSSE(raw: string): { event: string; data: SSEEventData } | null {
   let event = "message";
   let dataStr = "";
 
@@ -75,7 +93,7 @@ export function useAI() {
   // Check AI availability
   fetch(apiUrl("/api/ai/health"))
     .then((r) => r.json())
-    .then((h: any) => { aiAvailable.value = h.configured; })
+    .then((h: AIHealthResponse) => { aiAvailable.value = h.configured; })
     .catch((e) => {
       console.warn("[useAI] health check failed:", e);
       aiAvailable.value = false;
@@ -104,8 +122,8 @@ export function useAI() {
         onDone: () => { isStreaming.value = false; },
         onError: (msg) => { aiError.value = msg; isStreaming.value = false; },
       });
-    } catch (e: any) {
-      aiError.value = e.message;
+    } catch (e: unknown) {
+      aiError.value = getErrorMessage(e);
       isStreaming.value = false;
     }
   }
@@ -135,8 +153,8 @@ export function useAI() {
         }),
       });
       return await res.json();
-    } catch (e: any) {
-      aiError.value = e.message;
+    } catch (e: unknown) {
+      aiError.value = getErrorMessage(e);
       return null;
     }
   }
@@ -153,21 +171,13 @@ export function useAI() {
           results: results.map((r) => ({
             memberId: r.by,
             commands: [taskDescription],
-            stdout: typeof r.data === "object" && r.data !== null && "stdout" in (r.data as any)
-              ? (r.data as any).stdout ?? ""
-              : JSON.stringify(r.data),
-            stderr: typeof r.data === "object" && r.data !== null && "stderr" in (r.data as any)
-              ? (r.data as any).stderr ?? ""
-              : "",
-            exitCode: typeof r.data === "object" && r.data !== null && "exit_code" in (r.data as any)
-              ? (r.data as any).exit_code ?? -1
-              : 0,
+            ...extractResultOutput(r.data),
           })),
         }),
       });
       return await res.json();
-    } catch (e: any) {
-      aiError.value = e.message;
+    } catch (e: unknown) {
+      aiError.value = getErrorMessage(e);
       return null;
     }
   }
@@ -182,19 +192,22 @@ export function useAI() {
         body: JSON.stringify({ description, members }),
       });
       return await res.json() as { subscribe: string[]; content: string };
-    } catch (e: any) {
-      aiError.value = e.message;
+    } catch (e: unknown) {
+      aiError.value = getErrorMessage(e);
       return null;
     }
   }
 
-  async function reviewTaskResult(taskContent: string, memberResults: any[]): Promise<{ success: boolean; summary: string }> {
+  async function reviewTaskResult(
+    taskContent: string,
+    memberResults: TaskResource[],
+  ): Promise<{ success: boolean; summary: string }> {
     aiError.value = "";
 
     try {
-      const resultsSummary = memberResults.map((r: any) => ({
-        from: r.by ?? r.from ?? "unknown",
-        data: r.data ?? r.content ?? r,
+      const resultsSummary = memberResults.map((r) => ({
+        from: r.by ?? "unknown",
+        data: r.data ?? r,
       }));
 
       const res = await managerFetch("/api/ai/task/review", {
@@ -206,9 +219,9 @@ export function useAI() {
         }),
       });
       return await res.json() as { success: boolean; summary: string };
-    } catch (e: any) {
-      aiError.value = e.message;
-      return { success: false, summary: `Review failed: ${e.message}` };
+    } catch (e: unknown) {
+      aiError.value = getErrorMessage(e);
+      return { success: false, summary: `Review failed: ${getErrorMessage(e)}` };
     }
   }
 

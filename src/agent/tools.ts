@@ -8,11 +8,11 @@ const isTauri = "__TAURI_INTERNALS__" in window;
 export interface AgentToolSchema {
   name: string;
   description: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 export interface AgentTool extends AgentToolSchema {
-  execute: (args: Record<string, any>) => Promise<any>;
+  execute: (args: Record<string, unknown>) => Promise<unknown>;
 }
 
 // ─── Built-in tools ───
@@ -31,7 +31,7 @@ export function createShellTool(username?: string): AgentTool {
     },
     execute: async ({ command }) => {
       if (!isTauri) return { error: "Not in Tauri environment" };
-      return invoke("shell_exec", { command, workingDir: workspaceDir });
+      return invoke("shell_exec", { command: command as string, workingDir: workspaceDir });
     },
   };
 }
@@ -52,7 +52,7 @@ export function createFileReadTool(): AgentTool {
     },
     execute: async ({ path }) => {
       if (!isTauri) return { error: "Not in Tauri environment" };
-      return invoke("file_read", { path });
+      return invoke("file_read", { path: path as string });
     },
   };
 }
@@ -74,7 +74,7 @@ export function createFileWriteTool(): AgentTool {
     },
     execute: async ({ path, content }) => {
       if (!isTauri) return { error: "Not in Tauri environment" };
-      return invoke("file_write", { path, content });
+      return invoke("file_write", { path: path as string, content: content as string });
     },
   };
 }
@@ -90,7 +90,7 @@ export function createDoneTool(): AgentTool {
       },
       required: ["result"],
     },
-    execute: async ({ result }) => ({ done: true, result }),
+    execute: async ({ result }) => ({ done: true, result: result as string }),
   };
 }
 
@@ -117,7 +117,7 @@ export function createUploadResourceTool(ctx: {
     execute: async ({ path: filePath }) => {
       if (!isTauri) return { error: "Not in Tauri environment" };
 
-      let resolved = filePath;
+      let resolved = filePath as string;
       if (resolved.startsWith("~")) {
         const { homedir } = await import("node:os");
         resolved = resolved.replace("~", homedir());
@@ -200,8 +200,10 @@ export function createReadResourceTool(ctx: {
       required: ["taskId", "file"],
     },
     execute: async ({ taskId, file }) => {
+      const taskIdStr = taskId as string;
+      const fileName = file as string;
       const res = await fetch(
-        apiUrl(`/api/tasks/${taskId}/resources/${encodeURIComponent(file)}`),
+        apiUrl(`/api/tasks/${taskIdStr}/resources/${encodeURIComponent(fileName)}`),
         { headers: { team: ctx.teamName } }
       );
       if (!res.ok) {
@@ -237,7 +239,7 @@ export function createReadSkillTool(username: string): AgentTool {
     },
     execute: async ({ name }) => {
       if (!isTauri) return { error: "Not in Tauri environment" };
-      return invoke("file_read", { path: `~/.envoy/brains/${username}/skills/${name}.md` });
+      return invoke("file_read", { path: `~/.envoy/brains/${username}/skills/${name as string}.md` });
     },
   };
 }

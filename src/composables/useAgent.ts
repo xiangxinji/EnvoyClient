@@ -24,8 +24,8 @@ export function useAgent() {
 
     try {
       return await reactLoop(taskContent, tools, currentStep, error, workspacePath, skillCatalog);
-    } catch (e: any) {
-      error.value = e.message || String(e);
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e);
       return { result: JSON.stringify({ error: error.value }), trace: [] };
     } finally {
       isRunning.value = false;

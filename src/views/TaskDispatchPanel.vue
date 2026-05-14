@@ -25,7 +25,7 @@ async function handleSubmit() {
   dispatchPreview.value = null;
   dispatchAiError.value = "";
 
-  const memberList = members.value.map((m: any) => ({ id: m.id, responsibilities: m.responsibilities }));
+  const memberList = members.value.map((m) => ({ id: m.id, responsibilities: m.responsibilities }));
   const result = await aiDispatchTask(content, memberList);
 
   dispatchLoading.value = false;
@@ -48,7 +48,7 @@ function handleCancel() {
 
 function getMatchedMembers() {
   if (!dispatchPreview.value) return [];
-  return members.value.filter((m: any) => dispatchPreview.value!.subscribe.includes(m.id));
+  return members.value.filter((m) => dispatchPreview.value!.subscribe.includes(m.id));
 }
 </script>
 

@@ -291,6 +291,14 @@ npm run manager:web            # 仅启动前端
 
 ## Style Rules
 
+### TypeScript 类型安全
+
+- **禁止使用 `any` 类型**，必须使用具体的类型或 `unknown` 配合类型守卫
+- 函数参数和返回值必须有明确的类型声明
+- `catch (e)` 中使用 `e: unknown`，通过 `e instanceof Error ? e.message : String(e)` 提取错误信息
+- 从动态数据（JSON 解析、API 响应）获取的值使用 `as` 类型断言或类型守卫进行收窄
+- 工具函数参数（如 `Record<string, unknown>`）在 execute 内部用 `as string` 等断言转换
+
 ### Dark/Light Mode
 
 项目使用 CSS 变量实现主题切换，定义在 `App.vue` 的 `:root` 和 `html.dark` 中。

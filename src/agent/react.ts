@@ -1,6 +1,6 @@
 import type { AgentTool } from "./tools";
 import { apiUrl } from "../api";
-import type { AgentResult, AgentStep } from "../types";
+import type { AgentResult, AgentStep, AgentToolCall, AgentReasonResponse } from "../types";
 
 // ─── Types ───
 
@@ -9,7 +9,7 @@ export type AgentMessage =
   | {
       role: "assistant";
       content: string;
-      toolCalls: Array<{ id: string; name: string; args: any }>;
+      toolCalls: Array<{ id: string; name: string; args: Record<string, unknown> }>;
     }
   | { role: "tool"; content: string; toolCallId: string; toolName: string };
 
@@ -45,19 +45,19 @@ function executeWithTimeout<T>(
   ]);
 }
 
-function truncateToolResult(_toolName: string, result: any): any {
+function truncateToolResult(_toolName: string, result: unknown): unknown {
   if (typeof result !== "object" || result === null) return result;
 
-  const truncated = { ...result };
+  const truncated = { ...(result as Record<string, unknown>) };
   if (typeof truncated.stdout === "string" && truncated.stdout.length > 2000) {
     truncated.stdout =
       truncated.stdout.slice(0, 2000) +
-      `... (truncated, total ${result.stdout.length} chars)`;
+      `... (truncated, total ${(truncated.stdout as string).length} chars)`;
   }
   if (typeof truncated.stderr === "string" && truncated.stderr.length > 1000) {
     truncated.stderr =
       truncated.stderr.slice(0, 1000) +
-      `... (truncated, total ${result.stderr.length} chars)`;
+      `... (truncated, total ${(truncated.stderr as string).length} chars)`;
   }
   return truncated;
 }
@@ -113,7 +113,7 @@ export async function reactLoop(
       return { result: JSON.stringify({ error: error.value }), trace };
     }
 
-    const data = await response.json();
+    const data = await response.json() as AgentReasonResponse;
 
     if (!data.toolCalls?.length) {
       const result = data.text || JSON.stringify({ result: "Task completed" });
@@ -129,7 +129,7 @@ export async function reactLoop(
     const agentStep: AgentStep = {
       index: step + 1,
       reasoning: data.text || "",
-      toolCalls: data.toolCalls.map((c: any) => ({ name: c.name, args: c.args })),
+      toolCalls: data.toolCalls.map((c: AgentToolCall) => ({ name: c.name, args: c.args })),
       toolResults: [],
     };
 
@@ -159,10 +159,11 @@ export async function reactLoop(
           60_000,
         );
 
-        if (call.name === "done" && result?.done) {
+        if (call.name === "done" && typeof result === "object" && result !== null && "done" in result) {
+          const doneResult = result as { done: boolean; result: string };
           agentStep.toolResults.push({ name: call.name, result });
           trace.push(agentStep);
-          return { result: result.result, trace };
+          return { result: doneResult.result, trace };
         }
 
         result = truncateToolResult(call.name, result);
@@ -174,8 +175,9 @@ export async function reactLoop(
           toolName: call.name,
         });
         agentStep.toolResults.push({ name: call.name, result });
-      } catch (e: any) {
-        const errResult = { error: e.message || String(e) };
+      } catch (e: unknown) {
+        const errMsg = e instanceof Error ? e.message : String(e);
+        const errResult = { error: errMsg };
         messages.push({
           role: "tool",
           content: JSON.stringify(errResult),

@@ -115,7 +115,7 @@ async function handleLogin() {
 
     const teamsRes = await fetch(`${base}/api/teams`);
     const teamsData = await teamsRes.json();
-    teams.value = teamsData.map((t: any) => ({ name: t.name, port: t.port }));
+    teams.value = teamsData.map((t: { name: string; port: number }) => ({ name: t.name, port: t.port }));
 
     if (teams.value.length === 0) {
       error.value = "暂无可用的团队，请先在 Manager 中创建";
@@ -127,8 +127,8 @@ async function handleLogin() {
       selectedTeam.value = teams.value[0].name;
     }
     authenticated.value = true;
-  } catch (e: any) {
-    error.value = e.message;
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : String(e);
   } finally {
     loading.value = false;
   }
@@ -188,10 +188,11 @@ function handleLogout() {
       const account = `${user}|${url}`;
       import("@tauri-apps/api/core").then(({ invoke }) => {
         invoke("delete_credential", { account }).catch(() => {});
-        invoke("get_settings").then((settings: any) => {
-          if (settings?.lastLogin) {
-            delete settings.lastLogin;
-            invoke("save_settings", { settings }).catch(() => {});
+        invoke("get_settings").then((settings: unknown) => {
+          const s = settings as Record<string, unknown> | null;
+          if (s?.lastLogin) {
+            delete s.lastLogin;
+            invoke("save_settings", { settings: s }).catch(() => {});
           }
         }).catch(() => {});
       }).catch(() => {});
