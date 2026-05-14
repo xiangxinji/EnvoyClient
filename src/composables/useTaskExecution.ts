@@ -48,7 +48,7 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
   async function handleLeaderReview(clientTask: { serverTask: { id: string; content: string; status: string; attempt: number; resources: TaskResource[] } }, taskId: string, taskContent: string) {
     const task = clientTask.serverTask;
     const memberResults = task.resources.filter(
-      (r) => r.type === "client-result" && r.attempt === task.attempt,
+      (r) => r.attempt === task.attempt,
     );
 
     try {

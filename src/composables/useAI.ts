@@ -205,17 +205,33 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      const resultsSummary = memberResults.map((r) => ({
-        from: r.by ?? "unknown",
-        data: r.data ?? r,
-      }));
+      // Only send client-result (actual task output) as results
+      const clientResults = memberResults
+        .filter((r) => r.type === "client-result")
+        .map((r) => ({
+          from: r.by ?? "unknown",
+          data: r.data ?? r,
+        }));
+
+      // Send file resources separately with metadata
+      const fileResources = memberResults
+        .filter((r) => r.type === "file-resource")
+        .map((r) => {
+          const d = r.data as Record<string, unknown> | undefined;
+          return {
+            by: r.by ?? "unknown",
+            filename: (d?.filename as string) ?? "",
+            size: (d?.size as number) ?? 0,
+          };
+        });
 
       const res = await managerFetch("/api/ai/task/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           taskDescription: taskContent,
-          results: resultsSummary,
+          results: clientResults,
+          resources: fileResources,
         }),
       });
       return await res.json() as { success: boolean; summary: string };

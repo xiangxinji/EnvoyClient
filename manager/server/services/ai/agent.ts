@@ -29,7 +29,13 @@ export async function handleAgentReason(c: Context, config: AIConfig) {
     return c.json({ error: "messages and tools are required" }, 400);
   }
 
-  const model = resolveModel(config);
+  let model: ReturnType<typeof resolveModel>;
+  try {
+    model = resolveModel(config);
+  } catch (e: unknown) {
+    return c.json({ error: `AI provider error: ${e instanceof Error ? e.message : String(e)}` }, 500);
+  }
+
   const options = getModelOptions(config);
 
   // Convert JSON schema tool definitions to ai-sdk tool definitions
@@ -93,13 +99,20 @@ export async function handleAgentReason(c: Context, config: AIConfig) {
   // Flush any trailing tool results
   flushToolResults();
 
-  const result = await generateText({
-    model,
-    messages,
-    tools,
-    temperature: options.temperature,
-    maxTokens: options.maxTokens,
-  });
+  let result: Awaited<ReturnType<typeof generateText>>;
+  try {
+    result = await generateText({
+      model,
+      messages,
+      tools,
+      temperature: options.temperature,
+      maxTokens: options.maxTokens,
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[agent-reason] AI call failed:", msg);
+    return c.json({ error: `AI call failed: ${msg}` }, 500);
+  }
 
   // Extract tool calls if any
   const toolCalls = result.toolCalls?.map((tc) => ({
