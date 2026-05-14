@@ -1,7 +1,16 @@
 let _managerUrl = "http://localhost:8080";
+let _clientToken = "";
 
 export function setManagerUrl(url: string) {
   _managerUrl = url;
+}
+
+export function setClientToken(token: string) {
+  _clientToken = token;
+}
+
+export function getClientToken(): string {
+  return _clientToken;
 }
 
 export function apiUrl(path: string): string {
@@ -9,7 +18,13 @@ export function apiUrl(path: string): string {
 }
 
 export async function managerFetch(path: string, init?: RequestInit): Promise<Response> {
-  const res = await fetch(apiUrl(path), init);
+  const res = await fetch(apiUrl(path), {
+    ...init,
+    headers: {
+      ...(init?.headers || {}),
+      ...(_clientToken ? { "X-Envoy-Token": _clientToken } : {}),
+    },
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `Request failed: ${res.status}`);

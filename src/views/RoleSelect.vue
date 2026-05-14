@@ -3,7 +3,7 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useTeamClient } from "../composables/useTeamClient";
 import { setTeamClientInstance } from "../composables/teamClientContext";
-import { setManagerUrl } from "../api";
+import { setManagerUrl, setClientToken } from "../api";
 import logo from "../assets/logo.png";
 const isTauri = "__TAURI_INTERNALS__" in window;
 
@@ -93,6 +93,9 @@ async function handleLogin() {
 
     const data = await res.json();
     role.value = data.role;
+
+    // Store client token for authenticated API calls
+    if (data.token) setClientToken(data.token);
 
     // Save credentials + initialize workspace
     if (isTauri) {

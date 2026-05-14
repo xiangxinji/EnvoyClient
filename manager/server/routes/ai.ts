@@ -1,5 +1,6 @@
 import type { Hono, Context, Next } from "hono";
 import { validateSession } from "./admin.js";
+import { validateClientToken } from "./users.js";
 import { getAIConfig, updateAIConfig } from "../settings.js";
 import { createAIRoutes } from "../services/ai/index.js";
 import { handleAgentReason } from "../services/ai/agent.js";
@@ -14,10 +15,18 @@ async function adminAuth(c: Context, next: Next) {
   await next();
 }
 
-export default function aiRoutes(app: Hono) {
-  // ─── Public routes (no auth) ───
+async function clientAuth(c: Context, next: Next) {
+  const token = c.req.header("X-Envoy-Token")
+    || c.req.query("token");
+  if (!token || !validateClientToken(token)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  await next();
+}
 
-  // Health check
+export default function aiRoutes(app: Hono) {
+  // ─── Health check (public, non-sensitive) ───
+
   app.get("/api/ai/health", (c) => {
     const ai = getAIConfig();
     return c.json({
@@ -27,12 +36,16 @@ export default function aiRoutes(app: Hono) {
     });
   });
 
-  // AI generation routes — reads config from manager.json via getAIConfig()
+  // ─── Client-authenticated routes ───
+
+  // AI generation routes (SSE streaming)
+  app.use("/api/ai/chat/*", clientAuth);
+  app.use("/api/ai/task/generate", clientAuth);
   const router = createAIRoutes({ getConfig: getAIConfig });
   app.route("/api/ai", router);
 
-  // Agent reasoning — public, no auth
-  app.post("/api/ai/agent/reason", async (c) => {
+  // Agent reasoning
+  app.post("/api/ai/agent/reason", clientAuth, async (c) => {
     const config = getAIConfig();
     if (!config.apiKey) {
       return c.json({ error: "AI not configured" }, 503);
@@ -40,8 +53,8 @@ export default function aiRoutes(app: Hono) {
     return handleAgentReason(c, config);
   });
 
-  // Task dispatch — public, no auth
-  app.post("/api/ai/task/dispatch", async (c) => {
+  // Task dispatch
+  app.post("/api/ai/task/dispatch", clientAuth, async (c) => {
     const config = getAIConfig();
     if (!config.apiKey) {
       return c.json({ error: "AI not configured" }, 503);
@@ -49,8 +62,8 @@ export default function aiRoutes(app: Hono) {
     return handleTaskDispatch(c, config);
   });
 
-  // Task review — public, no auth
-  app.post("/api/ai/task/review", async (c) => {
+  // Task review
+  app.post("/api/ai/task/review", clientAuth, async (c) => {
     const config = getAIConfig();
     if (!config.apiKey) {
       return c.json({ error: "AI not configured" }, 503);

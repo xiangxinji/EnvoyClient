@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import { randomBytes } from "node:crypto";
 import {
   loadUsers,
   saveUsers,
@@ -7,6 +8,19 @@ import {
   type UserRecord,
 } from "../user-registry.js";
 import { getPublicKey, decryptWithPrivateKey } from "../crypto.js";
+
+const clientSessions = new Map<string, { userId: string; role: string; createdAt: number }>();
+const SESSION_TTL = 24 * 60 * 60 * 1000;
+
+export function validateClientToken(token: string): boolean {
+  const session = clientSessions.get(token);
+  if (!session) return false;
+  if (Date.now() - session.createdAt > SESSION_TTL) {
+    clientSessions.delete(token);
+    return false;
+  }
+  return true;
+}
 
 export default function userRoutes(app: Hono) {
   app.get("/api/public-key", (c) => {
@@ -61,6 +75,10 @@ export default function userRoutes(app: Hono) {
 
     const user = await authenticate(username, password);
     if (!user) return c.json({ error: "invalid credentials" }, 401);
-    return c.json({ ok: true, username: user.username, role: user.role });
+
+    const token = randomBytes(32).toString("hex");
+    clientSessions.set(token, { userId: user.username, role: user.role, createdAt: Date.now() });
+
+    return c.json({ ok: true, username: user.username, role: user.role, token });
   });
 }
