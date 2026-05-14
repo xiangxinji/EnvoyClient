@@ -83,6 +83,40 @@ pub fn delete_history(my_id: &str, peer_id: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Validate an external path is under user home directory.
+/// Returns the canonicalized path on success.
+fn validate_external_path(path: &str) -> Result<std::path::PathBuf, String> {
+    let target = std::path::Path::new(path);
+    if !target.is_absolute() {
+        return Err("Path must be absolute".into());
+    }
+
+    let canonical = if target.exists() {
+        target.canonicalize().map_err(|e| e.to_string())?
+    } else {
+        let file_name = target.file_name().ok_or("Invalid path")?;
+        let parent = target.parent().ok_or("Invalid path")?;
+        if !parent.exists() {
+            return Err("Parent directory does not exist".into());
+        }
+        parent.canonicalize().map_err(|e| e.to_string())?.join(file_name)
+    };
+
+    let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
+    let home_canonical = home.canonicalize().unwrap_or(home);
+
+    let canonical_str = canonical.to_string_lossy();
+    let home_str = home_canonical.to_string_lossy();
+    let canonical_clean = canonical_str.strip_prefix(r"\\?\").unwrap_or(&canonical_str);
+    let home_clean = home_str.strip_prefix(r"\\?\").unwrap_or(&home_str);
+
+    if !canonical_clean.starts_with(home_clean) {
+        return Err("Path must be under user home directory".into());
+    }
+
+    Ok(canonical)
+}
+
 pub fn export_history(my_id: &str, peer_id: &str, target_path: &str) -> Result<(), String> {
     let src = history_file(my_id, peer_id).ok_or("Cannot determine home directory")?;
 
@@ -90,16 +124,20 @@ pub fn export_history(my_id: &str, peer_id: &str, target_path: &str) -> Result<(
         return Err("No history file found for this conversation".into());
     }
 
-    if let Some(parent) = std::path::Path::new(target_path).parent() {
+    let canonical_target = validate_external_path(target_path)?;
+
+    if let Some(parent) = canonical_target.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
 
-    fs::copy(&src, target_path).map_err(|e| e.to_string())?;
+    fs::copy(&src, &canonical_target).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 pub fn import_history(my_id: &str, peer_id: &str, source_path: &str) -> Result<(), String> {
-    let data = fs::read_to_string(source_path).map_err(|e| e.to_string())?;
+    let canonical_source = validate_external_path(source_path)?;
+
+    let data = fs::read_to_string(&canonical_source).map_err(|e| e.to_string())?;
     let imported: Vec<serde_json::Value> = serde_json::from_str(&data)
         .map_err(|e| format!("Invalid JSON: {e}"))?;
 

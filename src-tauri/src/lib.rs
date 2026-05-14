@@ -6,18 +6,29 @@ mod settings;
 use std::collections::HashMap;
 use std::process::Command;
 
-/// Resolve a path string to a safe absolute path within the user's home directory.
-/// Expands `~` to home dir, canonicalizes (resolving `..` and symlinks),
-/// and verifies the result is inside the home directory.
+/// Resolve a path string to a safe absolute path within `~/.envoy/`.
+/// Expands `~` to `~/.envoy`, canonicalizes (resolving `..` and symlinks),
+/// and verifies the result is inside the `~/.envoy/` sandbox.
 fn resolve_safe_path(path: &str) -> Result<std::path::PathBuf, serde_json::Value> {
     let home = dirs::home_dir().ok_or_else(|| {
         serde_json::json!({ "error": "Cannot determine home directory" })
     })?;
+    let sandbox = home.join(".envoy");
+
+    // Ensure sandbox directory exists, then canonicalize for accurate comparison
+    if !sandbox.exists() {
+        std::fs::create_dir_all(&sandbox).map_err(|e| {
+            serde_json::json!({ "error": format!("Failed to create sandbox directory: {}", e) })
+        })?;
+    }
+    let sandbox = sandbox.canonicalize().map_err(|e| {
+        serde_json::json!({ "error": format!("Failed to resolve sandbox path: {}", e) })
+    })?;
 
     let expanded = if path.starts_with("~/") {
-        home.join(&path[2..])
+        sandbox.join(&path[2..])
     } else if path == "~" {
-        home.clone()
+        sandbox.clone()
     } else {
         std::path::PathBuf::from(path)
     };
@@ -29,7 +40,6 @@ fn resolve_safe_path(path: &str) -> Result<std::path::PathBuf, serde_json::Value
             .canonicalize()
             .map_err(|e| serde_json::json!({ "error": format!("Failed to resolve path: {}", e) }))?
     } else {
-        // Resolve parent if it exists, then append the final component
         let file_name = expanded
             .file_name()
             .ok_or_else(|| serde_json::json!({ "error": "Invalid path" }))?;
@@ -38,7 +48,6 @@ fn resolve_safe_path(path: &str) -> Result<std::path::PathBuf, serde_json::Value
         })?;
 
         if parent.as_os_str().is_empty() {
-            // Relative path with no parent — treat as relative to cwd, reject
             return Err(serde_json::json!({ "error": "Path outside allowed directory" }));
         }
 
@@ -54,16 +63,16 @@ fn resolve_safe_path(path: &str) -> Result<std::path::PathBuf, serde_json::Value
     };
 
     let canonical_str = canonical.to_string_lossy();
-    let home_str = home.to_string_lossy();
+    let sandbox_str = sandbox.to_string_lossy();
 
     // On Windows, canonicalize returns UNC prefix (\\?\), strip it for comparison
     let canonical_clean = canonical_str
         .strip_prefix(r"\\?\")
         .unwrap_or(&canonical_str);
-    let home_clean = home_str.strip_prefix(r"\\?\").unwrap_or(&home_str);
+    let sandbox_clean = sandbox_str.strip_prefix(r"\\?\").unwrap_or(&sandbox_str);
 
-    if !canonical_clean.starts_with(home_clean) {
-        return Err(serde_json::json!({ "error": "Path outside allowed directory" }));
+    if !canonical_clean.starts_with(sandbox_clean) {
+        return Err(serde_json::json!({ "error": "Path outside allowed directory (~/.envoy/)" }));
     }
 
     Ok(canonical)
@@ -222,12 +231,74 @@ fn load_skill_catalog(username: String) -> Result<serde_json::Value, String> {
     Ok(serde_json::json!({ "skills": skills }))
 }
 
+const BLOCKED_COMMANDS: &[&str] = &[
+    "rm -rf",
+    "rmdir",
+    "del /",
+    "format",
+    "mkfs",
+    "shutdown",
+    "reboot",
+    "reg ",
+    "regedit",
+    "net user",
+    "net localgroup",
+];
+
+const BLOCKED_SHELLS: &[&str] = &["bash", "sh", "cmd", "powershell", "pwsh"];
+
+fn validate_command(command: &str) -> Result<(), String> {
+    let lower = command.to_lowercase();
+
+    for blocked in BLOCKED_COMMANDS {
+        if lower.contains(blocked) {
+            return Err(format!("Command blocked: contains '{}'", blocked));
+        }
+    }
+
+    // Block direct shell invocations (bash -c "...", cmd /c "...")
+    let first_word = lower.split_whitespace().next().unwrap_or("");
+    if BLOCKED_SHELLS.contains(&first_word) {
+        return Err(format!("Command blocked: direct shell invocation '{}'", first_word));
+    }
+
+    // Block pipe to shell (with or without spaces)
+    for shell in BLOCKED_SHELLS {
+        if lower.contains(&format!("|{}", shell)) || lower.contains(&format!("| {}", shell)) {
+            return Err("Command blocked: pipe to shell not allowed".into());
+        }
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
-fn shell_exec(command: String) -> Result<serde_json::Value, String> {
+fn shell_exec(command: String, working_dir: Option<String>) -> Result<serde_json::Value, String> {
+    validate_command(&command)?;
+
+    let workspace = working_dir
+        .or_else(|| std::env::var("ENVOY_WORKSPACE").ok())
+        .or_else(|| dirs::home_dir().map(|h| h.join(".envoy").join("workspace").to_string_lossy().to_string()));
+
+    // Expand ~ to home directory
+    let workspace = workspace.map(|dir| {
+        if dir.starts_with("~/") {
+            dirs::home_dir().map(|h| h.join(&dir[2..]).to_string_lossy().to_string()).unwrap_or(dir)
+        } else {
+            dir
+        }
+    });
+
     let output = if cfg!(target_os = "windows") {
-        Command::new("cmd").args(["/C", &command]).output()
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/C", &command]);
+        if let Some(dir) = &workspace { cmd.current_dir(dir); }
+        cmd.output()
     } else {
-        Command::new("sh").arg("-c").arg(&command).output()
+        let mut cmd = Command::new("sh");
+        cmd.arg("-c").arg(&command);
+        if let Some(dir) = &workspace { cmd.current_dir(dir); }
+        cmd.output()
     }
     .map_err(|e| e.to_string())?;
 

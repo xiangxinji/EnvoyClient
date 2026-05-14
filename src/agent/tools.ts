@@ -17,7 +17,8 @@ export interface AgentTool extends AgentToolSchema {
 
 // ─── Built-in tools ───
 
-export function createShellTool(): AgentTool {
+export function createShellTool(username?: string): AgentTool {
+  const workspaceDir = username ? `~/.envoy/workspace/${username}` : undefined;
   return {
     name: "shell",
     description: "执行 shell 命令并返回输出",
@@ -30,7 +31,7 @@ export function createShellTool(): AgentTool {
     },
     execute: async ({ command }) => {
       if (!isTauri) return { error: "Not in Tauri environment" };
-      return invoke("shell_exec", { command });
+      return invoke("shell_exec", { command, workingDir: workspaceDir });
     },
   };
 }
