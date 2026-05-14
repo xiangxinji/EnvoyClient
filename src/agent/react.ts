@@ -49,15 +49,17 @@ function truncateToolResult(_toolName: string, result: unknown): unknown {
   if (typeof result !== "object" || result === null) return result;
 
   const truncated = { ...(result as Record<string, unknown>) };
-  if (typeof truncated.stdout === "string" && truncated.stdout.length > 2000) {
+  const stdout = truncated.stdout;
+  if (typeof stdout === "string" && stdout.length > 2000) {
     truncated.stdout =
-      truncated.stdout.slice(0, 2000) +
-      `... (truncated, total ${(truncated.stdout as string).length} chars)`;
+      stdout.slice(0, 2000) +
+      `... (truncated, total ${stdout.length} chars)`;
   }
-  if (typeof truncated.stderr === "string" && truncated.stderr.length > 1000) {
+  const stderr = truncated.stderr;
+  if (typeof stderr === "string" && stderr.length > 1000) {
     truncated.stderr =
-      truncated.stderr.slice(0, 1000) +
-      `... (truncated, total ${(truncated.stderr as string).length} chars)`;
+      stderr.slice(0, 1000) +
+      `... (truncated, total ${stderr.length} chars)`;
   }
   return truncated;
 }

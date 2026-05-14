@@ -90,14 +90,6 @@ export interface AgentReasonResponse {
   toolCalls: AgentToolCall[];
 }
 
-/** Task resource with structured data (from Agent execution) */
-export interface TaskResultResource {
-  type: string;
-  by: string;
-  data: { stdout?: string; stderr?: string; exit_code?: number; result?: string; [key: string]: unknown };
-  attempt: number;
-}
-
 /** Skill catalog entry */
 export interface SkillCatalogEntry { name: string; description: string; filename: string }
 export interface SkillCatalogResponse { skills: SkillCatalogEntry[] }
