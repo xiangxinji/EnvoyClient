@@ -77,6 +77,9 @@ export interface TeamMember {
 }
 
 async function rsaEncrypt(publicKeyPem: string, plaintext: string): Promise<string> {
+  if (!crypto.subtle) {
+    throw new Error("RSA 加密需要安全上下文（HTTPS 或 localhost），请通过 http://localhost:5180 访问");
+  }
   const binaryDer = pemToArrayBuffer(publicKeyPem);
   const key = await crypto.subtle.importKey("spki", binaryDer, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]);
   const encoded = new TextEncoder().encode(plaintext);
