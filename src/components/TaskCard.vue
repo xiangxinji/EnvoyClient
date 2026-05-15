@@ -360,7 +360,7 @@ function formatToolResult(result: unknown): string {
 }
 
 .task-card.running { border-left-color: var(--task-running-border); }
-.task-card.reviewing { border-left-color: #5ac8fa; }
+.task-card.reviewing { border-left-color: var(--task-reviewing-border); }
 .task-card.completed { border-left-color: var(--task-completed-border); }
 .task-card.failed { border-left-color: var(--task-failed-border); }
 
@@ -389,7 +389,7 @@ function formatToolResult(result: unknown): string {
 
 .status-badge.pending { background: var(--task-pending-bg); color: var(--task-pending-text); }
 .status-badge.running { background: var(--task-running-bg); color: var(--task-running-text); }
-.status-badge.reviewing { background: rgba(90, 200, 250, 0.15); color: #5ac8fa; }
+.status-badge.reviewing { background: var(--task-reviewing-bg); color: var(--task-reviewing-text); }
 .status-badge.completed { background: var(--task-completed-bg); color: var(--task-completed-text); }
 .status-badge.failed { background: var(--task-failed-bg); color: var(--task-failed-text); }
 
@@ -427,7 +427,7 @@ function formatToolResult(result: unknown): string {
 
 .task-member-status.pending { background: var(--task-pending-bg); color: var(--task-pending-text); }
 .task-member-status.running { background: var(--task-running-bg); color: var(--task-running-text); }
-.task-member-status.reviewing { background: rgba(90, 200, 250, 0.15); color: #5ac8fa; }
+.task-member-status.reviewing { background: var(--task-reviewing-bg); color: var(--task-reviewing-text); }
 .task-member-status.completed { background: var(--task-completed-bg); color: var(--task-completed-text); }
 .task-member-status.failed { background: var(--task-failed-bg); color: var(--task-failed-text); }
 

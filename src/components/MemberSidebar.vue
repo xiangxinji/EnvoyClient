@@ -297,8 +297,8 @@ li.active {
 }
 
 .dispatch-avatar {
-  background: rgba(255, 149, 10, 0.12);
-  color: #ff9f0a;
+  background: var(--warning-bg);
+  color: var(--warning);
 }
 
 /* Footer settings */

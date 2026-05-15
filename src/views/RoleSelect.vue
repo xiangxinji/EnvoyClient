@@ -182,10 +182,14 @@ function handleLogout() {
 }
 
 onMounted(loadSettings);
+
 </script>
 
 <template>
   <div class="role-select">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
     <div class="card">
       <img :src="logo" class="logo" alt="Envoy" />
       <h1>Envoy</h1>
@@ -248,18 +252,120 @@ onMounted(loadSettings);
   align-items: center;
   justify-content: center;
   flex: 1;
-  background: var(--bg-primary);
+  background: var(--app-gradient);
   position: relative;
+  overflow: hidden;
 }
 
-.role-select::before {
-  content: "";
+/* Shared orb base — positioned at corners, breathing toward center */
+.orb {
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 20% 50%, rgba(47, 179, 139, 0.15), transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(47, 179, 139, 0.1), transparent 50%);
+  border-radius: 50%;
   pointer-events: none;
+  z-index: 0;
+  will-change: transform, opacity;
+}
+
+/* Top-left orb → breathes down-right toward center */
+.orb-1 {
+  width: 500px;
+  height: 500px;
+  background: var(--orb-1);
+  filter: blur(60px);
+  top: -120px;
+  left: -100px;
+  animation: breathe-1 8s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+}
+
+/* Bottom-right orb → breathes up-left toward center */
+.orb-2 {
+  width: 400px;
+  height: 400px;
+  background: var(--orb-3);
+  filter: blur(60px);
+  bottom: -100px;
+  right: -80px;
+  animation: breathe-2 7s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  animation-delay: -3s;
+}
+
+/* Center-hint orb — subtle ambient glow */
+.orb-3 {
+  width: 300px;
+  height: 300px;
+  background: var(--orb-2);
+  filter: blur(50px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.6);
+  opacity: 0.3;
+  animation: breathe-3 9s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  animation-delay: -1.5s;
+}
+
+/*
+ * Breathing keyframes — simulate lung inhale / hold / exhale / rest:
+ *   0%  – rest (small, at anchor position)
+ *   40% – full inhale (expanded, drifted toward center)
+ *   50% – hold at peak
+ *   90% – full exhale back to rest
+ *  100% – brief rest before next cycle
+ */
+@keyframes breathe-1 {
+  0%, 100% {
+    transform: scale(0.75);
+    opacity: 0.45;
+  }
+  40% {
+    transform: scale(1.15) translate(100px, 80px);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.15) translate(100px, 80px);
+    opacity: 0.75;
+  }
+  90% {
+    transform: scale(0.75);
+    opacity: 0.45;
+  }
+}
+
+@keyframes breathe-2 {
+  0%, 100% {
+    transform: scale(0.75);
+    opacity: 0.45;
+  }
+  40% {
+    transform: scale(1.15) translate(-90px, -70px);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.15) translate(-90px, -70px);
+    opacity: 0.75;
+  }
+  90% {
+    transform: scale(0.75);
+    opacity: 0.45;
+  }
+}
+
+@keyframes breathe-3 {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(0.55);
+    opacity: 0.25;
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(0.95);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(0.95);
+    opacity: 0.5;
+  }
+  90% {
+    transform: translate(-50%, -50%) scale(0.55);
+    opacity: 0.25;
+  }
 }
 
 .card {
@@ -274,7 +380,7 @@ onMounted(loadSettings);
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border-radius: var(--radius-xl);
   border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--glass-shadow);
   position: relative;
   z-index: 1;
 }
@@ -370,8 +476,8 @@ select {
 }
 
 .role-badge.leader {
-  background: rgba(255, 159, 10, 0.12);
-  color: #ff9f0a;
+  background: var(--warning-bg);
+  color: var(--warning);
 }
 
 .role-badge.member {

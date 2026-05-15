@@ -134,9 +134,9 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .rich-editor {
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   transition: border-color 0.15s;
 }
 

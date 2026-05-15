@@ -59,7 +59,9 @@ function handleBackdropClick() {
 .confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--overlay-bg);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -73,13 +75,15 @@ function handleBackdropClick() {
 }
 
 .confirm-dialog {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
   min-width: 300px;
   max-width: 400px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--glass-shadow-heavy);
   transform: scale(0.95);
   transition: transform 0.15s ease;
 }

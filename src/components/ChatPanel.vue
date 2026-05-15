@@ -547,7 +547,7 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 .empty-state {
@@ -571,8 +571,10 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
 
 .header {
   padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-primary);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -625,10 +627,12 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
   right: 0;
   margin-top: 4px;
   min-width: 160px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--glass-shadow);
   z-index: 100;
   overflow: hidden;
 }
@@ -779,9 +783,11 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
 .ai-plan {
   margin-bottom: var(--space-sm);
   padding: var(--space-md);
-  background: var(--bg-secondary);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .ai-plan-header {
@@ -879,7 +885,7 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
   gap: var(--space-sm);
   margin-bottom: var(--space-sm);
   padding: var(--space-sm);
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-md);
 }
 
@@ -904,9 +910,11 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
 /* Dispatch preview panel */
 .dispatch-preview {
   padding: var(--space-md);
-  background: var(--bg-secondary);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   margin-top: var(--space-sm);
 }
 

@@ -58,9 +58,9 @@ const remember = ref(false);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: var(--overlay-bg);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .dialog {
@@ -71,7 +71,7 @@ const remember = ref(false);
   border-radius: var(--radius-xl);
   padding: var(--space-xl) var(--space-2xl);
   min-width: 340px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--glass-shadow-heavy);
 }
 
 .dialog-title {

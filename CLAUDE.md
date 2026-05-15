@@ -314,13 +314,75 @@ npm run manager:web            # 仅启动前端
 --text-*        文字色
 --border-*      边框色
 --accent        主强调色
---task-*        任务卡片相关
+--task-*        任务卡片相关（含 --task-reviewing-*）
 --bubble-*      聊天气泡
 --role-*        角色标签
 --sidebar-*     侧边栏
 --titlebar-*    标题栏
 --error         错误色
+--warning       警告色（橙色系列）
+--warning-bg    警告背景色
+--warning-border 警告边框色
+--glass-*       毛玻璃效果系列
+--overlay-bg    模态遮罩背景
+--app-gradient  应用主背景渐变
 ```
+
+### Glass Design System (毛玻璃设计系统)
+
+项目采用统一的毛玻璃设计语言。所有面板、卡片、对话框和通知组件必须遵循以下规范。
+
+#### 玻璃层级
+
+| 层级 | 变量 | 用途 | 典型组件 |
+|------|------|------|---------|
+| Light | `--glass-bg-light` (55% opacity) | 轻量背景，嵌套在 glass 容器内的子元素 | RichEditor, TaskInput, MemberChip |
+| Standard | `--glass-bg` (72% opacity) | 标准玻璃面板、卡片 | TaskCard, MessageBubble(他人), Sidebar, AIPanel, DispatchPreview |
+| Heavy | `--glass-bg-heavy` (85% opacity) | 结构性元素，需要更高可读性 | TitleBar, Header, InputArea, Dialog, Toast, LoginCard |
+
+#### 标准毛玻璃三件套
+
+需要毛玻璃效果的元素必须同时包含这三个属性：
+
+```css
+background: var(--glass-bg);       /* 或 --glass-bg-heavy / --glass-bg-light */
+backdrop-filter: blur(var(--glass-blur));
+-webkit-backdrop-filter: blur(var(--glass-blur));  /* Safari 必需 */
+border: 1px solid var(--glass-border);
+```
+
+#### 玻璃阴影
+
+| 变量 | 用途 |
+|------|------|
+| `--glass-shadow` | 卡片、下拉菜单、Toast |
+| `--glass-shadow-heavy` | 对话框、登录卡片 |
+
+#### 组件分类规则
+
+**结构面板**（Heavy glass）— TitleBar, Sidebar, 各 View 的 Header 区域
+**内容区域**（Transparent background）— 面板根容器使用 `background: transparent`，让应用渐变透出
+**卡片/浮层**（Standard glass + blur）— TaskCard, MessageBubble, AI 面板, 预览卡
+**表单控件**（Light glass，无 blur）— 嵌套在已有 blur 容器内，只需半透明背景
+**对话框/弹窗**（Heavy glass + heavy shadow + overlay）— ConfirmDialog, CloseConfirmDialog
+**Toast**（Heavy glass + standard shadow）— 保持轻量，边框颜色区分类型
+
+#### 应用背景
+
+```css
+/* html, body 使用渐变背景，这是玻璃效果可见的前提 */
+background: var(--app-gradient);
+```
+
+禁止在面板根容器使用 `--bg-primary` 等纯色背景——会遮盖渐变，导致玻璃效果失效。
+
+#### 禁忌
+
+1. **禁止硬编码 rgba 颜色** — 使用 `var(--glass-*)`, `var(--overlay-bg)`, `var(--warning-*)` 等变量
+2. **禁止遗漏 `-webkit-backdrop-filter`** — Safari 不支持无前缀版本
+3. **禁止在玻璃元素上使用 `overflow: hidden`** — 会裁切 backdrop-filter 效果
+4. **禁止纯色背景覆盖渐变** — 面板根容器必须是 `transparent`
+5. **禁止新增组件不遵循玻璃规范** — 所有新 UI 必须按上述分类选择对应层级
 
 ### Theme Toggle
 

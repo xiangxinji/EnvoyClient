@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useTheme } from "../composables/useTheme";
-import logo from "../assets/logo.png";
 
 const emit = defineEmits<{
   (e: "close-requested"): void;
@@ -55,7 +54,6 @@ function close() {
       </button>
     </div>
     <div class="title" data-tauri-drag-region>
-      <img :src="logo" class="logo" alt="Envoy" />
       <span>{{ username ? `Envoy · ${username}` : 'Envoy' }}</span>
     </div>
     <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? '浅色模式' : '深色模式'">
@@ -140,13 +138,6 @@ function close() {
   font-weight: 600;
   color: var(--titlebar-text);
   letter-spacing: 0.3px;
-}
-
-.logo {
-  height: 22px;
-  width: 22px;
-  border-radius: 5px;
-  object-fit: cover;
 }
 
 .theme-toggle {

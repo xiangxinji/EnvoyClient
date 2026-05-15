@@ -143,14 +143,14 @@ onUnmounted(() => {
   --task-failed-border: #ff3b30;
   --task-failed-bg: #fff1f0;
   --task-failed-text: #d70015;
-  --task-card-bg: #ffffff;
+  --task-reviewing-border: #5ac8fa;
+  --task-reviewing-bg: rgba(90, 200, 250, 0.12);
+  --task-reviewing-text: #32a0c4;
   --bubble-mine: #2fb38b;
   --bubble-mine-text: #ffffff;
   --bubble-other: #f0f0f2;
   --bubble-other-text: #1d1d1f;
   --badge-bg: #ff3b30;
-  --task-btn-bg: #ff9500;
-  --task-btn-text: #ffffff;
   --role-leader-bg: #ff9500;
   --role-leader-text: #ffffff;
   --role-member-bg: #e5e5e7;
@@ -159,8 +159,6 @@ onUnmounted(() => {
   --input-border: #d2d2d7;
   --sidebar-active: #eaf7f2;
   --sidebar-hover: #f0f0f2;
-  --titlebar-bg: #f5f5f7;
-  --titlebar-border: #e5e5e7;
   --titlebar-text: #6e6e73;
   --online-dot: #34c759;
   --empty-icon: #d2d2d7;
@@ -171,10 +169,22 @@ onUnmounted(() => {
   --md-link-color: #2fb38b;
   --md-blockquote-border: #d2d2d7;
   --md-blockquote-text: #6e6e73;
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-bg-heavy: rgba(255, 255, 255, 0.85);
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-bg-heavy: rgba(255, 255, 255, 0.75);
+  --glass-bg-light: rgba(255, 255, 255, 0.45);
   --glass-border: rgba(255, 255, 255, 0.3);
   --glass-blur: 20px;
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --glass-shadow-heavy: 0 8px 40px rgba(0, 0, 0, 0.12);
+  --overlay-bg: rgba(0, 0, 0, 0.3);
+  --app-gradient: #f0f0f3;
+  --warning: #ff9f0a;
+  --warning-bg: rgba(255, 159, 10, 0.1);
+  --warning-border: rgba(255, 159, 10, 0.3);
+  --orb-1: rgba(47, 179, 139, 0.6);
+  --orb-2: rgba(47, 179, 139, 0.45);
+  --orb-3: rgba(47, 179, 139, 0.5);
+  --orb-4: rgba(47, 179, 139, 0.4);
 }
 
 html.dark {
@@ -202,14 +212,14 @@ html.dark {
   --task-failed-border: #ff453a;
   --task-failed-bg: #1f0d0d;
   --task-failed-text: #ff453a;
-  --task-card-bg: #1c1c1e;
+  --task-reviewing-border: #64d2ff;
+  --task-reviewing-bg: rgba(100, 210, 255, 0.1);
+  --task-reviewing-text: #64d2ff;
   --bubble-mine: #3dd9a5;
   --bubble-mine-text: #ffffff;
   --bubble-other: #1c1c1e;
   --bubble-other-text: #f5f5f7;
   --badge-bg: #ff453a;
-  --task-btn-bg: #ff9f0a;
-  --task-btn-text: #1d1d1f;
   --role-leader-bg: #ff9f0a;
   --role-leader-text: #1d1d1f;
   --role-member-bg: #2c2c2e;
@@ -218,8 +228,6 @@ html.dark {
   --input-border: #3a3a3c;
   --sidebar-active: #152e24;
   --sidebar-hover: #1c1c1e;
-  --titlebar-bg: #161618;
-  --titlebar-border: #2c2c2e;
   --titlebar-text: #98989d;
   --online-dot: #30d158;
   --empty-icon: #3a3a3c;
@@ -230,10 +238,22 @@ html.dark {
   --md-link-color: #3dd9a5;
   --md-blockquote-border: #3a3a3c;
   --md-blockquote-text: #98989d;
-  --glass-bg: rgba(28, 28, 30, 0.72);
-  --glass-bg-heavy: rgba(28, 28, 30, 0.85);
+  --glass-bg: rgba(28, 28, 30, 0.6);
+  --glass-bg-heavy: rgba(28, 28, 30, 0.75);
+  --glass-bg-light: rgba(28, 28, 30, 0.45);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-blur: 20px;
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  --glass-shadow-heavy: 0 8px 40px rgba(0, 0, 0, 0.4);
+  --overlay-bg: rgba(0, 0, 0, 0.55);
+  --app-gradient: #141416;
+  --warning: #ffb340;
+  --warning-bg: rgba(255, 179, 64, 0.1);
+  --warning-border: rgba(255, 179, 64, 0.25);
+  --orb-1: rgba(61, 217, 165, 0.3);
+  --orb-2: rgba(61, 217, 165, 0.22);
+  --orb-3: rgba(61, 217, 165, 0.25);
+  --orb-4: rgba(61, 217, 165, 0.18);
 }
 
 html, body {
@@ -241,7 +261,7 @@ html, body {
   padding: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--bg-primary);
+  background: var(--app-gradient);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 14px;
@@ -259,6 +279,8 @@ html, body {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 input, button, textarea {

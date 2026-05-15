@@ -57,7 +57,11 @@ watch(() => props.visible, (val) => {
   z-index: 1001;
   opacity: 0;
   transition: all 0.2s ease;
-  box-shadow: var(--shadow-md);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
   pointer-events: none;
 }
 

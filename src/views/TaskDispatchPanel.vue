@@ -157,7 +157,7 @@ function getMatchedMembers() {
   flex: 1;
   overflow-y: auto;
   padding: var(--space-2xl);
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 .dispatch-header {
@@ -199,9 +199,9 @@ function getMatchedMembers() {
   align-items: center;
   gap: var(--space-md);
   padding: var(--space-md);
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .chip-name {
@@ -306,14 +306,14 @@ textarea::placeholder {
 }
 
 .notice-warn {
-  background: rgba(255, 149, 10, 0.1);
-  border: 1px solid rgba(255, 149, 10, 0.3);
-  color: #ff9f0a;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning);
 }
 
 .notice-error {
-  background: rgba(255, 59, 48, 0.1);
-  border: 1px solid rgba(255, 59, 48, 0.3);
+  background: var(--task-failed-bg);
+  border: 1px solid var(--task-failed-border);
   color: var(--error);
 }
 
@@ -331,8 +331,10 @@ textarea::placeholder {
 }
 
 .preview-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   padding: var(--space-lg);
 }

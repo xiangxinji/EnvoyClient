@@ -97,7 +97,51 @@ onMounted(loadSettings);
   align-items: center;
   justify-content: center;
   flex: 1;
-  background: var(--bg-primary);
+  background: var(--app-gradient);
+  position: relative;
+  overflow: hidden;
+}
+
+.settings-page::before {
+  content: "";
+  position: absolute;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  background: var(--orb-1);
+  filter: blur(60px);
+  top: -100px;
+  left: -80px;
+  pointer-events: none;
+  animation: float1 6s ease-in-out infinite;
+}
+
+.settings-page::after {
+  content: "";
+  position: absolute;
+  width: 350px;
+  height: 350px;
+  border-radius: 50%;
+  background: var(--orb-3);
+  filter: blur(60px);
+  bottom: -80px;
+  right: -60px;
+  pointer-events: none;
+  animation: float2 5s ease-in-out infinite;
+}
+
+@keyframes float1 {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(80px, 60px); }
+  50% { transform: translate(30px, 120px); }
+  75% { transform: translate(-60px, 50px); }
+}
+
+@keyframes float2 {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-70px, -80px); }
+  50% { transform: translate(-100px, -20px); }
+  75% { transform: translate(-20px, -90px); }
 }
 
 .card {
@@ -107,10 +151,12 @@ onMounted(loadSettings);
   gap: var(--space-lg);
   width: 380px;
   padding: var(--space-2xl);
-  background: var(--bg-elevated);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border-radius: var(--radius-xl);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-md);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
 .logo {
