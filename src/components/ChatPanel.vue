@@ -191,6 +191,7 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
         }
 
         const data = await res.json() as MessageAttachment;
+        data.url = apiUrl(data.url);
         attachments.push(data);
       }
     } catch (e: unknown) {
@@ -223,6 +224,7 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
         }
 
         const data = await res.json() as MessageAttachment;
+        data.url = apiUrl(data.url);
         attachments.push(data);
       }
     } catch (e: unknown) {

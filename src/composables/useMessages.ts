@@ -2,7 +2,7 @@ import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import type { Message } from "@envoy/core";
 import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment } from "../types";
-import { managerPost } from "../api";
+import { managerPost, apiUrl } from "../api";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
@@ -53,6 +53,11 @@ export function useMessages(
   function handleIncomingMessage(msg: Message): boolean {
     if (msg.type === "message" && msg.subtype === "chat") {
       const payload = msg.payload as { text: string; attachments?: MessageAttachment[] };
+      if (payload.attachments) {
+        for (const att of payload.attachments) {
+          if (att.url.startsWith("/")) att.url = apiUrl(att.url);
+        }
+      }
       const chatMsg: ChatMessage = {
         type: "chat",
         id: msg.id,

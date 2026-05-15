@@ -46,7 +46,7 @@ export default function messageRoutes(app: Hono, teams: Map<string, Team>) {
 
     const mimeType = file.type || "application/octet-stream";
     const attachmentType = mimeType.startsWith("image/") ? "image" : "file";
-    const url = `/api/messages/attachments/${dateStr}/${storedName}`;
+    const url = `/api/messages/attachments/${teamName}/${dateStr}/${storedName}`;
 
     return c.json({
       type: attachmentType,
@@ -58,10 +58,8 @@ export default function messageRoutes(app: Hono, teams: Map<string, Team>) {
   });
 
   // Download message attachment
-  app.get("/api/messages/attachments/:date/:file", async (c) => {
-    const teamName = c.req.header("team");
-    if (!teamName) return c.json({ error: "team header is required" }, 400);
-
+  app.get("/api/messages/attachments/:team/:date/:file", async (c) => {
+    const teamName = c.req.param("team");
     const dateDir = c.req.param("date");
     const filename = basename(c.req.param("file"));
     const home = process.env.HOME || process.env.USERPROFILE || "";

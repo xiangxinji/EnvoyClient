@@ -88,7 +88,6 @@ function handleSend() {
   if (!editor.value) return;
   const html = editor.value.getHTML();
   const text = extractText(html);
-  if (!text && pendingImages.value.length === 0) return;
 
   emit("send", text, [...pendingImages.value]);
   editor.value.commands.clearContent();

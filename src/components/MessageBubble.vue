@@ -62,12 +62,14 @@ function closeFullscreen() {
         </div>
         <!-- File card -->
         <a v-else :href="att.url" class="file-card" target="_blank" rel="noopener">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+          <div class="file-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+          </div>
           <div class="file-info">
             <span class="file-name">{{ att.name }}</span>
             <span class="file-size">{{ formatSize(att.size) }}</span>
           </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <svg class="file-download" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </a>
       </template>
     </div>
@@ -194,16 +196,23 @@ function closeFullscreen() {
 }
 
 .image-card {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
-  max-width: 320px;
+  max-width: 280px;
+  border: 1px solid var(--glass-border);
+  transition: opacity 0.15s;
+}
+
+.image-card:hover {
+  opacity: 0.92;
 }
 
 .image-card img {
   display: block;
   max-width: 100%;
-  border-radius: 8px;
+  max-height: 200px;
+  object-fit: cover;
 }
 
 .file-card {
@@ -211,17 +220,31 @@ function closeFullscreen() {
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   text-decoration: none;
   font-size: 0.85em;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s;
+  max-width: 280px;
 }
 
 .file-card:hover {
   border-color: var(--accent);
+  background: var(--glass-bg);
+}
+
+.file-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-light);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  flex-shrink: 0;
 }
 
 .file-info {
@@ -243,6 +266,16 @@ function closeFullscreen() {
   color: var(--text-muted);
 }
 
+.file-download {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.file-card:hover .file-download {
+  color: var(--accent);
+}
+
 /* Fullscreen overlay */
 .fullscreen-overlay {
   position: fixed;
@@ -261,7 +294,8 @@ function closeFullscreen() {
   max-width: 90vw;
   max-height: 90vh;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--glass-shadow-heavy);
 }
 
 .time-row {
