@@ -131,8 +131,8 @@ function getInitial(name: string): string {
 
 <style scoped>
 .sidebar {
-  width: 260px;
-  min-width: 260px;
+  width: 220px;
+  min-width: 220px;
   border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
@@ -142,8 +142,8 @@ function getInitial(name: string): string {
 }
 
 .sidebar-header {
-  padding: var(--space-lg);
-  padding-bottom: var(--space-sm);
+  padding: var(--space-md) var(--space-md);
+  padding-bottom: var(--space-xs);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -151,7 +151,7 @@ function getInitial(name: string): string {
 
 h3 {
   margin: 0;
-  font-size: 0.85em;
+  font-size: 0.8em;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -161,7 +161,7 @@ h3 {
 ul {
   list-style: none;
   margin: 0;
-  padding: var(--space-sm);
+  padding: var(--space-xs);
   overflow-y: auto;
   flex: 1;
 }
@@ -169,9 +169,9 @@ ul {
 li {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  padding: 10px var(--space-md);
-  border-radius: var(--radius-md);
+  gap: var(--space-sm);
+  padding: 6px var(--space-sm);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   color: var(--text-primary);
   transition: background 0.1s;
@@ -187,8 +187,8 @@ li.active {
 
 .avatar {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--accent-light);
   color: var(--accent);
@@ -196,7 +196,7 @@ li.active {
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 0.85em;
+  font-size: 0.75em;
   flex-shrink: 0;
 }
 
@@ -204,8 +204,8 @@ li.active {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   border: 2px solid var(--bg-secondary);
 }
@@ -221,25 +221,25 @@ li.active {
 .member-info {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  gap: var(--space-xs);
   min-width: 0;
 }
 
 .member-name {
   font-weight: 500;
-  font-size: 0.9em;
+  font-size: 0.85em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .member-role {
-  font-size: 0.7em;
-  padding: 1px 6px;
+  font-size: 0.65em;
+  padding: 1px 5px;
   border-radius: var(--radius-sm);
-  width: fit-content;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .member-role.leader {
@@ -255,11 +255,11 @@ li.active {
 .badge {
   background: var(--badge-bg);
   color: white;
-  font-size: 0.7em;
+  font-size: 0.65em;
   font-weight: 600;
-  padding: 2px 7px;
+  padding: 1px 6px;
   border-radius: 10px;
-  min-width: 20px;
+  min-width: 18px;
   text-align: center;
   flex-shrink: 0;
 }
@@ -267,10 +267,10 @@ li.active {
 .empty {
   flex-direction: column;
   gap: var(--space-sm);
-  padding: var(--space-2xl) var(--space-lg);
+  padding: var(--space-xl) var(--space-md);
   color: var(--text-muted);
   cursor: default;
-  font-size: 0.85em;
+  font-size: 0.8em;
   text-align: center;
 }
 
@@ -278,16 +278,20 @@ li.active {
   color: var(--empty-icon);
 }
 
-/* Task center entry */
+/* Task center / dispatch entries */
 .task-center-entry {
-  margin-bottom: var(--space-xs);
-  border-bottom: 1px solid var(--border-light);
-  padding-bottom: var(--space-md);
+  padding: 6px var(--space-sm);
 }
 
 .task-center-avatar {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
+}
+
+.task-center-avatar svg,
+.dispatch-avatar svg {
+  width: 14px;
+  height: 14px;
 }
 
 .badge-task {
