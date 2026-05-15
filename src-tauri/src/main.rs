@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    envoy_client_lib::run()
+    envoy_lib::run()
 }
