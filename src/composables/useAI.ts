@@ -108,7 +108,7 @@ export function useAI() {
       }));
   }
 
-  async function suggestReply(items: ChatMessage[]) {
+  async function suggestReply(items: ChatMessage[], context?: string) {
     const messages = formatHistory(items);
     if (!messages.length) return;
 
@@ -117,7 +117,9 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      await consumeSSE("/api/ai/chat/stream", { messages }, {
+      const body: { messages: { role: "user" | "assistant"; content: string }[]; context?: string } = { messages };
+      if (context) body.context = context;
+      await consumeSSE("/api/ai/chat/stream", body, {
         onTextDelta: (text) => { suggestion.value += text; },
         onDone: () => { isStreaming.value = false; },
         onError: (msg) => { aiError.value = msg; isStreaming.value = false; },

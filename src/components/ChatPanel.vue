@@ -291,18 +291,28 @@ function handleCancelDispatch() {
 }
 
 // AI suggest reply
+function buildChatContext(): string {
+  const peer = members.value.find((m) => m.id === props.peerId);
+  const parts: string[] = [];
+  parts.push(`当前团队：${teamName}`);
+  parts.push(`你的角色：${role}`);
+  if (peer) {
+    parts.push(`聊天对象：${peer.id}（${peer.role}）`);
+  }
+  return parts.join("；");
+}
+
 function handleAISuggest() {
   const chatMsgs = conversation.value.filter(
     (m): m is ChatMessage => m.type === "chat"
   );
-  suggestReply(chatMsgs);
+  suggestReply(chatMsgs, buildChatContext());
 }
 
 function handleAcceptSuggestion() {
   const text = acceptSuggestion();
-  if (text && richEditorRef.value?.editor) {
-    richEditorRef.value.editor.commands.setContent(`<p>${text}</p>`);
-    richEditorRef.value.focus();
+  if (text) {
+    sendChat(props.peerId, text);
   }
 }
 

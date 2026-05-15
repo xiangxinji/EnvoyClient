@@ -81,6 +81,42 @@ export async function deleteTeamDir(name: string): Promise<void> {
   await rm(dir, { recursive: true, force: true });
 }
 
+export interface PersistedTask {
+  id: string;
+  team: string;
+  createBy: string;
+  subscribe: string[];
+  content: string;
+  mode: string;
+  status: string;
+  resources: Array<{ type: string; by: string; data: unknown; attempt: number }>;
+  createdAt: number;
+  attempt: number;
+}
+
+export async function loadTasksForTeam(teamName: string): Promise<PersistedTask[]> {
+  const tasksDir = getTasksDir(teamName);
+  const results: PersistedTask[] = [];
+  let entries: import("node:fs").Dirent[];
+  try {
+    entries = await readdir(tasksDir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    try {
+      const raw = await readFile(join(tasksDir, entry.name, "task.json"), "utf-8");
+      const task = JSON.parse(raw) as PersistedTask;
+      task.team = teamName;
+      results.push(task);
+    } catch {
+      // skip corrupted task files
+    }
+  }
+  return results;
+}
+
 export function allocatePort(records: TeamRecord[], start = 3001): number {
   const usedPorts = new Set(records.map((r) => r.port));
   let port = start;

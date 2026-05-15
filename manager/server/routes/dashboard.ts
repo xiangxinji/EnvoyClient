@@ -1,13 +1,11 @@
 import type { Hono } from "hono";
 import { Team } from "../../../envoy/packages/teams/team.js";
-import { loadRegistry } from "../team-registry.js";
-import { teamStats } from "./teams.js";
+import { loadRegistry, loadTasksForTeam } from "../team-registry.js";
 
 export default function dashboardRoutes(app: Hono, teams: Map<string, Team>) {
   app.get("/api/dashboard", async (c) => {
     const records = await loadRegistry();
     let totalOnline = 0;
-    let totalTasks = 0;
     const taskSummary = { pending: 0, running: 0, reviewing: 0, completed: 0, failed: 0 };
     const allTasks: Array<{
       id: string;
@@ -23,17 +21,13 @@ export default function dashboardRoutes(app: Hono, teams: Map<string, Team>) {
 
     for (const rec of records) {
       const instance = teams.get(rec.name);
-      if (!instance) continue;
-      const stats = teamStats(instance);
-      totalOnline += stats.onlineClients;
-      totalTasks += stats.totalTasks;
-      taskSummary.pending += stats.tasksByStatus.pending;
-      taskSummary.running += stats.tasksByStatus.running;
-      taskSummary.reviewing += stats.tasksByStatus.reviewing;
-      taskSummary.completed += stats.tasksByStatus.completed;
-      taskSummary.failed += stats.tasksByStatus.failed;
+      if (instance) {
+        totalOnline += instance.innerServer.getOnlineClients().length;
+      }
 
-      for (const t of instance.innerServer.getAllTasks()) {
+      const tasks = await loadTasksForTeam(rec.name);
+
+      for (const t of tasks) {
         const clientResult = t.resources.find((r) => r.type === "client-result");
         allTasks.push({
           id: t.id,
@@ -46,11 +40,16 @@ export default function dashboardRoutes(app: Hono, teams: Map<string, Team>) {
           resources: t.resources,
           createdAt: t.createdAt,
         });
+
+        if (t.status in taskSummary) {
+          (taskSummary as Record<string, number>)[t.status]++;
+        }
       }
     }
 
     allTasks.sort((a, b) => b.createdAt - a.createdAt);
     const recentTasks = allTasks.slice(0, 20);
+    const totalTasks = allTasks.length;
 
     return c.json({ totalTeams: records.length, totalOnline, totalTasks, taskSummary, recentTasks });
   });
