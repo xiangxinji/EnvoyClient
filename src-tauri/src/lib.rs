@@ -5,7 +5,11 @@ mod settings;
 
 use std::collections::HashMap;
 use std::process::Command;
-use tauri::Manager;
+use tauri::{
+    menu::{MenuBuilder, MenuItemBuilder},
+    tray::TrayIconBuilder,
+    Emitter, Manager, WindowEvent,
+};
 
 /// Resolve a path string to a safe absolute path within `~/.envoy/`.
 /// Expands `~` to `~/.envoy`, canonicalizes (resolving `..` and symlinks),
@@ -467,6 +471,11 @@ fn shell_exec(command: String, working_dir: Option<String>) -> Result<serde_json
     }))
 }
 
+#[tauri::command]
+fn app_exit(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -476,8 +485,57 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))
                     .expect("failed to load icon");
-                window.set_icon(icon).ok();
+                window.set_icon(icon.clone()).ok();
+
+                // Intercept close: prevent default, emit event to frontend
+                let win = window.clone();
+                window.on_window_event(move |event| {
+                    if let WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = win.emit("close-requested", ());
+                    }
+                });
             }
+
+            // System tray
+            let show_item = MenuItemBuilder::with_id("show", "显示 Envoy").build(app)?;
+            let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
+            let menu = MenuBuilder::new(app)
+                .items(&[&show_item, &quit_item])
+                .build()?;
+
+            let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))
+                .expect("failed to load tray icon");
+            let _tray = TrayIconBuilder::new()
+                .icon(icon)
+                .tooltip("Envoy - 团队协作")
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| {
+                    match event.id().as_ref() {
+                        "show" => {
+                            if let Some(w) = app.get_webview_window("main") {
+                                let _ = w.show();
+                                let _ = w.set_focus();
+                            }
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::Click { .. } = event {
+                        let app = tray.app_handle();
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -498,6 +556,7 @@ pub fn run() {
             credentials::get_credential,
             credentials::save_credential,
             credentials::delete_credential,
+            app_exit,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

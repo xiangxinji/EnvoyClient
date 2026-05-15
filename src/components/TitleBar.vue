@@ -3,6 +3,10 @@ import { ref } from "vue";
 import { useTheme } from "../composables/useTheme";
 import logo from "../assets/logo.png";
 
+const emit = defineEmits<{
+  (e: "close-requested"): void;
+}>();
+
 defineProps<{ username?: string }>();
 
 const isTauri = "__TAURI_INTERNALS__" in window;
@@ -26,7 +30,7 @@ function toggleMaximize() {
 }
 
 function close() {
-  appWindow.value?.close();
+  emit("close-requested");
 }
 </script>
 

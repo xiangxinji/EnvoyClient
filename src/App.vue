@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import TitleBar from "./components/TitleBar.vue";
+import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
 import { useTheme } from "./composables/useTheme";
 import { useTeamClientInstance } from "./composables/teamClientContext";
 
@@ -8,12 +9,98 @@ useTheme();
 
 const instance = useTeamClientInstance();
 const username = computed(() => instance.value?.myId ?? undefined);
+
+const showDialog = ref(false);
+const isTauri = "__TAURI_INTERNALS__" in window;
+
+let unlisten: (() => void) | null = null;
+
+async function getCloseAction(): Promise<string> {
+  if (!isTauri) return "ask";
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const settings = (await invoke("get_settings")) as Record<string, unknown>;
+    return (settings.close_action as string) || "ask";
+  } catch {
+    return "ask";
+  }
+}
+
+async function saveCloseAction(action: string): Promise<void> {
+  if (!isTauri) return;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const settings = (await invoke("get_settings")) as Record<string, unknown>;
+    settings.close_action = action;
+    await invoke("save_settings", { settings });
+  } catch {}
+}
+
+async function handleHide() {
+  if (!isTauri) return;
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  await getCurrentWindow().hide();
+}
+
+async function handleExit() {
+  if (!isTauri) return;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("app_exit");
+  } catch {}
+}
+
+async function handleCloseRequested() {
+  const action = await getCloseAction();
+  if (action === "hide") {
+    await handleHide();
+    return;
+  }
+  if (action === "exit") {
+    await handleExit();
+    return;
+  }
+  showDialog.value = true;
+}
+
+async function onDialogHide(remember: boolean) {
+  if (remember) await saveCloseAction("hide");
+  await handleHide();
+}
+
+async function onDialogExit(remember: boolean) {
+  if (remember) await saveCloseAction("exit");
+  await handleExit();
+}
+
+onMounted(async () => {
+  if (!isTauri) return;
+  try {
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    const unlistenFn = await (getCurrentWindow() as any).listen(
+      "close-requested",
+      () => {
+        handleCloseRequested();
+      }
+    );
+    unlisten = unlistenFn;
+  } catch {}
+});
+
+onUnmounted(() => {
+  unlisten?.();
+});
 </script>
 
 <template>
   <div class="app-container">
-    <TitleBar :username="username" />
+    <TitleBar :username="username" @close-requested="handleCloseRequested" />
     <router-view />
+    <CloseConfirmDialog
+      v-model="showDialog"
+      @hide="onDialogHide"
+      @exit="onDialogExit"
+    />
   </div>
 </template>
 

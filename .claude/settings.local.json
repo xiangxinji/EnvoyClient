@@ -86,5 +86,8 @@
       "Bash(identify src/assets/logo.png)",
       "Bash(identify src-tauri/icons/icon.png)"
     ]
+  },
+  "enabledPlugins": {
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
   }
 }
