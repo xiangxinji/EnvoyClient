@@ -1,9 +1,9 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { Context } from "hono";
-import type { TaskGenerateRequest, TaskPlan, AIConfig } from "../../../../shared/types/ai.js";
+import type { TaskGenerateRequest, TaskPlan } from "../../../../shared/types/ai.js";
+import type { ResolvedScene } from "../../settings.js";
 import { TASK_SYSTEM_PROMPT, buildTaskPrompt } from "./prompts/task.js";
-import { resolveModel, getModelOptions } from "./provider.js";
 
 const taskPlanSchema = z.object({
   summary: z.string().describe("任务总述"),
@@ -16,7 +16,7 @@ const taskPlanSchema = z.object({
   ),
 });
 
-export async function handleTaskGenerate(c: Context, config: AIConfig) {
+export async function handleTaskGenerate(c: Context, resolved: ResolvedScene) {
   const body = await c.req.json<TaskGenerateRequest>();
 
   if (!body.description) {
@@ -26,18 +26,16 @@ export async function handleTaskGenerate(c: Context, config: AIConfig) {
     return c.json({ error: "members is required" }, 400);
   }
 
-  const model = resolveModel(config);
-  const options = getModelOptions(config);
   const prompt = buildTaskPrompt(body.description, body.members, body.context);
 
   const result = await generateObject({
-    model,
+    model: resolved.model,
     system: TASK_SYSTEM_PROMPT,
     prompt,
     schema: taskPlanSchema,
     schemaName: "TaskPlan",
-    temperature: options.temperature,
-    maxTokens: options.maxTokens,
+    temperature: resolved.temperature,
+    maxTokens: resolved.maxTokens,
   });
 
   return c.json(result.object as TaskPlan);

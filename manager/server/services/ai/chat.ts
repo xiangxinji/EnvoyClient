@@ -1,11 +1,11 @@
 import { streamText } from "ai";
 import type { Context } from "hono";
-import type { ChatRequest, AIConfig } from "../../../../shared/types/ai.js";
+import type { ChatRequest } from "../../../../shared/types/ai.js";
+import type { ResolvedScene } from "../../settings.js";
 import { buildChatMessages } from "./prompts/chat.js";
 import { toStandardSSE } from "./stream.js";
-import { resolveModel, getModelOptions } from "./provider.js";
 
-export async function handleChatStream(c: Context, config: AIConfig) {
+export async function handleChatStream(c: Context, resolved: ResolvedScene) {
   const body = await c.req.json<ChatRequest>();
 
   if (!body.messages?.length) {
@@ -13,14 +13,12 @@ export async function handleChatStream(c: Context, config: AIConfig) {
   }
 
   const messages = buildChatMessages(body.messages, body.context);
-  const model = resolveModel(config);
-  const options = getModelOptions(config);
 
   const result = streamText({
-    model,
+    model: resolved.model,
     messages,
-    temperature: options.temperature,
-    maxTokens: options.maxTokens,
+    temperature: resolved.temperature,
+    maxTokens: resolved.maxTokens,
   });
 
   const sse = toStandardSSE(result);
@@ -34,7 +32,7 @@ export async function handleChatStream(c: Context, config: AIConfig) {
   });
 }
 
-export async function handleChatGenerate(c: Context, config: AIConfig) {
+export async function handleChatGenerate(c: Context, resolved: ResolvedScene) {
   const { generateText } = await import("ai");
   const body = await c.req.json<ChatRequest>();
 
@@ -43,14 +41,12 @@ export async function handleChatGenerate(c: Context, config: AIConfig) {
   }
 
   const messages = buildChatMessages(body.messages, body.context);
-  const model = resolveModel(config);
-  const options = getModelOptions(config);
 
   const result = await generateText({
-    model,
+    model: resolved.model,
     messages,
-    temperature: options.temperature,
-    maxTokens: options.maxTokens,
+    temperature: resolved.temperature,
+    maxTokens: resolved.maxTokens,
   });
 
   return c.json({

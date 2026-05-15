@@ -1,4 +1,4 @@
-import type { ProviderType } from "./ai.js";
+import type { ProviderType } from "../../../../shared/types/ai.js";
 
 export interface ProviderOption {
   id: ProviderType;
@@ -27,9 +27,12 @@ export const PROVIDERS: ProviderOption[] = [
     label: "DeepSeek",
     models: ["deepseek-chat", "deepseek-reasoner"],
   },
+  {
+    id: "openai-compatible",
+    label: "OpenAI Compatible",
+    models: [],
+  },
 ];
 
 export const DEFAULT_TEMPERATURE = 0.7;
 export const DEFAULT_MAX_TOKENS = 4096;
-export const DEFAULT_PROVIDER: ProviderType = "openai";
-export const DEFAULT_MODEL = "gpt-4o";

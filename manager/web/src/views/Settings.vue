@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { api } from "../api";
 
@@ -14,25 +14,93 @@ const loading = ref(false);
 const error = ref("");
 const success = ref("");
 
+// ─── AI Scene Config ───
+
+interface PresetOption {
+  id: string;
+  name: string;
+  provider: string;
+  model: string;
+  isDefault: boolean;
+}
+
+interface SceneRow {
+  key: string;
+  label: string;
+  description: string;
+  presetId: string | null;
+  temperature: number;
+  maxTokens: number;
+}
+
+const presets = ref<PresetOption[]>([]);
+const sceneRows = ref<SceneRow[]>([]);
+const configured = ref(false);
+const defaultPresetName = ref<string | null>(null);
+const sceneLoading = ref(true);
+const sceneSaving = ref(false);
+const sceneError = ref("");
+const sceneSuccess = ref("");
+
+let logoutTimer: ReturnType<typeof setTimeout> | null = null;
+onUnmounted(() => {
+  if (logoutTimer) clearTimeout(logoutTimer);
+});
+
+const SCENE_DEFINITIONS: Array<{ key: string; label: string; description: string }> = [
+  { key: "chat", label: "Chat", description: "聊天建议" },
+  { key: "task", label: "Task", description: "任务规划" },
+  { key: "analyze", label: "Analyze", description: "结果分析" },
+  { key: "agent", label: "Agent", description: "推理执行" },
+  { key: "dispatch", label: "Dispatch", description: "智能分派" },
+  { key: "review", label: "Review", description: "任务审核" },
+];
+
+const hasPresets = computed(() => presets.value.length > 0);
+
 onMounted(async () => {
+  // Admin profile
   try {
     const profile = await api.getAdminProfile();
     username.value = profile.username;
   } catch {}
 
+  // AI Scene Config
   try {
-    const cfg = await api.getAIConfig();
-    aiProvider.value = cfg.provider;
-    aiModel.value = cfg.model;
-    aiTemperature.value = cfg.temperature ?? 0.7;
-    aiMaxTokens.value = cfg.maxTokens ?? 4096;
-    aiConfigured.value = cfg.configured;
-  } catch (e: any) {
-    if (e.message?.includes("unauthorized")) {
+    const [config, scenesData] = await Promise.all([api.getAIConfig(), api.getScenes()]);
+
+    presets.value = config.presets.map((p) => ({
+      id: p.id,
+      name: p.name,
+      provider: p.provider,
+      model: p.model,
+      isDefault: p.isDefault,
+    }));
+
+    configured.value = config.configured;
+    defaultPresetName.value = config.defaultPreset?.name ?? null;
+
+    sceneRows.value = SCENE_DEFINITIONS.map((def) => {
+      const existing = scenesData[def.key];
+      return {
+        key: def.key,
+        label: def.label,
+        description: def.description,
+        presetId: existing?.presetId ?? null,
+        temperature: existing?.temperature ?? 0.7,
+        maxTokens: existing?.maxTokens ?? 4096,
+      };
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("unauthorized")) {
       localStorage.removeItem("admin_token");
       router.push("/login");
       return;
     }
+    sceneError.value = msg;
+  } finally {
+    sceneLoading.value = false;
   }
 });
 
@@ -61,12 +129,12 @@ async function handleSave() {
   try {
     await api.updateAdmin(user, pass);
     success.value = "修改成功，请重新登录";
-    setTimeout(() => {
+    logoutTimer = setTimeout(() => {
       localStorage.removeItem("admin_token");
       router.push("/login");
     }, 1500);
-  } catch (e: any) {
-    error.value = e.message || "修改失败";
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : "修改失败";
   } finally {
     loading.value = false;
   }
@@ -81,58 +149,29 @@ async function handleLogout() {
   router.push("/login");
 }
 
-// ─── AI Config ───
+async function handleSceneSave() {
+  sceneSaving.value = true;
+  sceneError.value = "";
+  sceneSuccess.value = "";
 
-const PROVIDERS = [
-  { id: "openai", label: "OpenAI", models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o1", "o1-mini", "o3-mini"] },
-  { id: "anthropic", label: "Anthropic", models: ["claude-sonnet-4-20250514", "claude-haiku-4-20250414", "claude-opus-4-20250514"] },
-  { id: "google", label: "Google", models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"] },
-  { id: "deepseek", label: "DeepSeek", models: ["deepseek-chat", "deepseek-reasoner"] },
-] as const;
-
-const aiProvider = ref("openai");
-const aiApiKey = ref("");
-const aiModel = ref("gpt-4o");
-const aiTemperature = ref(0.7);
-const aiMaxTokens = ref(4096);
-const aiConfigured = ref(false);
-const aiLoading = ref(false);
-const aiError = ref("");
-const aiSuccess = ref("");
-
-const availableModels = computed(() => {
-  const found = PROVIDERS.find((p) => p.id === aiProvider.value);
-  return found?.models ?? [];
-});
-
-watch(aiProvider, () => {
-  aiModel.value = availableModels.value[0] ?? "";
-});
-
-async function handleAISave() {
-  aiLoading.value = true;
-  aiError.value = "";
-  aiSuccess.value = "";
+  const scenes: Record<string, { presetId: string | null; temperature: number; maxTokens: number }> = {};
+  for (const row of sceneRows.value) {
+    scenes[row.key] = {
+      presetId: row.presetId,
+      temperature: row.temperature,
+      maxTokens: row.maxTokens,
+    };
+  }
 
   try {
-    const update: Record<string, any> = {
-      provider: aiProvider.value,
-      model: aiModel.value,
-      temperature: aiTemperature.value,
-      maxTokens: aiMaxTokens.value,
-    };
-    if (aiApiKey.value) {
-      update.apiKey = aiApiKey.value;
-    }
-
-    const result = await api.updateAIConfig(update);
-    aiConfigured.value = result.configured;
-    aiApiKey.value = "";
-    aiSuccess.value = "AI 配置已保存";
-  } catch (e: any) {
-    aiError.value = e.message || "保存失败";
+    await api.updateScenes(scenes);
+    const config = await api.getAIConfig();
+    configured.value = config.configured;
+    sceneSuccess.value = "场景配置已保存";
+  } catch (e: unknown) {
+    sceneError.value = e instanceof Error ? e.message : "保存失败";
   } finally {
-    aiLoading.value = false;
+    sceneSaving.value = false;
   }
 }
 </script>
@@ -141,6 +180,7 @@ async function handleAISave() {
   <div class="settings-page">
     <h2>设置</h2>
 
+    <!-- Admin Account -->
     <div class="card">
       <h3>管理员账号</h3>
       <div class="fields">
@@ -154,7 +194,14 @@ async function handleAISave() {
         </div>
         <div class="field">
           <label for="confirm">确认密码</label>
-          <input id="confirm" v-model="confirm" type="password" placeholder="再次输入密码" :disabled="loading" @keydown.enter="handleSave" />
+          <input
+            id="confirm"
+            v-model="confirm"
+            type="password"
+            placeholder="再次输入密码"
+            :disabled="loading"
+            @keydown.enter="handleSave"
+          />
         </div>
       </div>
 
@@ -167,53 +214,79 @@ async function handleAISave() {
       </div>
     </div>
 
+    <!-- AI Scene Configuration -->
     <div class="card">
-      <h3>AI 配置</h3>
-      <div class="status-row">
-        <span :class="['status-dot', aiConfigured ? 'active' : 'inactive']"></span>
-        <span class="status-text">{{ aiConfigured ? "已配置" : "未配置" }}</span>
+      <h3>AI 场景配置</h3>
+
+      <!-- No presets guidance -->
+      <div v-if="sceneLoading" class="hint">加载中...</div>
+      <div v-else-if="!hasPresets" class="no-presets">
+        <p>请先在 <router-link to="/models" class="link">模型管理</router-link> 页面添加模型预设</p>
       </div>
 
-      <div class="fields">
-        <div class="field">
-          <label for="ai-provider">服务商</label>
-          <select id="ai-provider" v-model="aiProvider" :disabled="aiLoading">
-            <option v-for="p in PROVIDERS" :key="p.id" :value="p.id">{{ p.label }}</option>
-          </select>
+      <template v-else>
+        <div class="status-row">
+          <span :class="['status-dot', configured ? 'active' : 'inactive']"></span>
+          <span class="status-text">{{ configured ? "已配置" : "未配置" }}</span>
+          <span v-if="defaultPresetName" class="default-hint">
+            — 未配置的场景将使用默认模型预设 (&#9733; {{ defaultPresetName }})
+          </span>
         </div>
 
-        <div class="field">
-          <label for="ai-key">API Key {{ aiConfigured ? "(已设置，留空保持不变)" : "" }}</label>
-          <input id="ai-key" v-model="aiApiKey" type="password" placeholder="sk-..." :disabled="aiLoading" />
+        <div class="scene-table">
+          <div class="scene-header">
+            <span class="col-scene">场景</span>
+            <span class="col-preset">模型预设</span>
+            <span class="col-temp">Temperature</span>
+            <span class="col-tokens">Max Tokens</span>
+          </div>
+          <div v-for="row in sceneRows" :key="row.key" class="scene-row">
+            <div class="col-scene">
+              <span class="scene-label">{{ row.label }}</span>
+              <span class="scene-desc">{{ row.description }}</span>
+            </div>
+            <div class="col-preset">
+              <select v-model="row.presetId" :disabled="sceneSaving">
+                <option :value="null">Default (使用默认预设)</option>
+                <option v-for="p in presets" :key="p.id" :value="p.id">
+                  {{ p.name }}{{ p.isDefault ? " ★" : "" }}
+                </option>
+              </select>
+            </div>
+            <div class="col-temp">
+              <input
+                v-model.number="row.temperature"
+                type="number"
+                min="0"
+                max="2"
+                step="0.1"
+                :disabled="sceneSaving"
+              />
+            </div>
+            <div class="col-tokens">
+              <input
+                v-model.number="row.maxTokens"
+                type="number"
+                min="256"
+                max="32768"
+                step="256"
+                :disabled="sceneSaving"
+              />
+            </div>
+          </div>
         </div>
 
-        <div class="field">
-          <label for="ai-model">模型</label>
-          <select id="ai-model" v-model="aiModel" :disabled="aiLoading">
-            <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
-          </select>
+        <div class="actions">
+          <button class="save-btn" @click="handleSceneSave" :disabled="sceneSaving">
+            {{ sceneSaving ? "保存中..." : "保存场景配置" }}
+          </button>
+          <p v-if="sceneError" class="error">{{ sceneError }}</p>
+          <p v-if="sceneSuccess" class="success">{{ sceneSuccess }}</p>
         </div>
-
-        <div class="field">
-          <label for="ai-temp">Temperature: {{ aiTemperature }}</label>
-          <input id="ai-temp" v-model.number="aiTemperature" type="range" min="0" max="1" step="0.1" :disabled="aiLoading" />
-        </div>
-
-        <div class="field">
-          <label for="ai-tokens">Max Tokens</label>
-          <input id="ai-tokens" v-model.number="aiMaxTokens" type="number" min="256" max="32768" step="256" :disabled="aiLoading" />
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="save-btn" @click="handleAISave" :disabled="aiLoading">
-          {{ aiLoading ? "保存中..." : "保存 AI 配置" }}
-        </button>
-        <p v-if="aiError" class="error">{{ aiError }}</p>
-        <p v-if="aiSuccess" class="success">{{ aiSuccess }}</p>
-      </div>
+      </template>
     </div>
 
+    <!-- Logout -->
     <div class="card">
       <h3>退出登录</h3>
       <p class="hint">退出当前管理员会话</p>
@@ -224,7 +297,7 @@ async function handleAISave() {
 
 <style scoped>
 .settings-page {
-  max-width: 600px;
+  width: 100%;
 }
 
 .settings-page h2 {
@@ -250,11 +323,52 @@ async function handleAISave() {
   margin-bottom: var(--space-lg);
 }
 
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.field label {
+  font-size: 0.8em;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+input,
+select {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+  font-size: 0.9em;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
 .status-row {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
 }
 
 .status-dot {
@@ -276,62 +390,86 @@ async function handleAISave() {
   color: var(--text-secondary);
 }
 
-.fields {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  margin-bottom: var(--space-lg);
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.field label {
+.default-hint {
   font-size: 0.8em;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-input, select {
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  outline: none;
-  transition: border-color 0.15s;
-  font-size: 0.9em;
-}
-
-input:focus, select:focus {
-  border-color: var(--accent);
-}
-
-input::placeholder {
   color: var(--text-muted);
 }
 
-input[type="range"] {
-  padding: 0;
-  border: none;
-  height: 6px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: var(--border);
-  border-radius: 3px;
-  cursor: pointer;
+.no-presets {
+  text-align: center;
+  padding: 24px 0;
+  color: var(--text-muted);
+  font-size: 0.9em;
 }
 
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
+.link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+/* Scene Table */
+.scene-table {
+  margin-bottom: var(--space-lg);
+}
+
+.scene-header {
+  display: grid;
+  grid-template-columns: 140px 1fr 100px 110px;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78em;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.scene-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 100px 110px;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+
+.scene-row:last-child {
+  border-bottom: none;
+}
+
+.col-scene {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scene-label {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--text-primary);
+}
+
+.scene-desc {
+  font-size: 0.78em;
+  color: var(--text-muted);
+}
+
+.col-preset select {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.85em;
+}
+
+.col-temp input,
+.col-tokens input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.85em;
 }
 
 .actions {

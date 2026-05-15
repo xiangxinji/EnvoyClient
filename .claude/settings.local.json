@@ -84,7 +84,9 @@
       "Skill(opsx:propose)",
       "Skill(opsx:new)",
       "Bash(identify src/assets/logo.png)",
-      "Bash(identify src-tauri/icons/icon.png)"
+      "Bash(identify src-tauri/icons/icon.png)",
+      "Bash(grep *)",
+      "Skill(opsx:bulk-archive)"
     ]
   },
   "enabledPlugins": {

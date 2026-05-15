@@ -9,6 +9,7 @@ const navItems = [
   { path: "/", label: "概览" },
   { path: "/teams", label: "团队" },
   { path: "/users", label: "用户" },
+  { path: "/models", label: "模型" },
   { path: "/settings", label: "设置" },
 ];
 </script>

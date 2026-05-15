@@ -1,5 +1,6 @@
 import { Hono } from "hono";
-import type { AIConfig, ProviderType } from "../../../../shared/types/ai.js";
+import type { AIConfig, SceneType } from "../../../../shared/types/ai.js";
+import type { ResolvedScene } from "../../settings.js";
 import { PROVIDERS } from "./constants.js";
 import { handleChatStream, handleChatGenerate } from "./chat.js";
 import { handleTaskGenerate } from "./task.js";
@@ -7,71 +8,56 @@ import { handleAnalyze } from "./analyze.js";
 
 export interface AIRouterOptions {
   getConfig: () => AIConfig;
+  resolveForScene: (scene: SceneType) => ResolvedScene;
 }
 
 export function createAIRoutes(options: AIRouterOptions) {
   const router = new Hono();
 
-  const getConfig = () => Promise.resolve(options.getConfig());
-
   // ─── Chat ───
 
   router.post("/chat/stream", async (c) => {
-    const config = await getConfig();
-    if (!config.apiKey) {
+    try {
+      const resolved = options.resolveForScene("chat");
+      return handleChatStream(c, resolved);
+    } catch {
       return c.json({ error: "AI not configured" }, 503);
     }
-    return handleChatStream(c, config);
   });
 
   router.post("/chat/generate", async (c) => {
-    const config = await getConfig();
-    if (!config.apiKey) {
+    try {
+      const resolved = options.resolveForScene("chat");
+      return handleChatGenerate(c, resolved);
+    } catch {
       return c.json({ error: "AI not configured" }, 503);
     }
-    return handleChatGenerate(c, config);
   });
 
   // ─── Task ───
 
   router.post("/task/generate", async (c) => {
-    const config = await getConfig();
-    if (!config.apiKey) {
+    try {
+      const resolved = options.resolveForScene("task");
+      return handleTaskGenerate(c, resolved);
+    } catch {
       return c.json({ error: "AI not configured" }, 503);
     }
-    return handleTaskGenerate(c, config);
   });
 
   router.post("/task/analyze", async (c) => {
-    const config = await getConfig();
-    if (!config.apiKey) {
+    try {
+      const resolved = options.resolveForScene("analyze");
+      return handleAnalyze(c, resolved);
+    } catch {
       return c.json({ error: "AI not configured" }, 503);
     }
-    return handleAnalyze(c, config);
   });
-
-  // ─── Config (handled directly in ai.ts routes with admin auth) ───
 
   // ─── Models ───
 
   router.get("/models", (c) => {
-    const provider = c.req.query("provider") as ProviderType | undefined;
-    if (provider) {
-      const found = PROVIDERS.find((p) => p.id === provider);
-      return c.json(found ? found.models : []);
-    }
     return c.json(PROVIDERS);
-  });
-
-  // ─── Health ───
-
-  router.get("/health", async (c) => {
-    const config = await getConfig();
-    return c.json({
-      configured: config.apiKey.length > 0,
-      provider: config.provider,
-      model: config.model,
-    });
   });
 
   return router;

@@ -197,41 +197,98 @@ export const api = {
   // AI Configuration
   getAIConfig: () =>
     request<{
-      provider: string;
-      model: string;
-      temperature?: number;
-      maxTokens?: number;
+      presets: Array<{
+        id: string;
+        name: string;
+        provider: string;
+        model: string;
+        baseURL?: string;
+        apiKey: string;
+        isDefault: boolean;
+      }>;
+      scenes: Record<string, { presetId: string | null; temperature: number; maxTokens: number }>;
       configured: boolean;
+      defaultPreset?: { id: string; name: string; provider: string; model: string; isDefault: boolean };
     }>("/ai/config", {
       headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}` },
     }),
-  updateAIConfig: (config: {
-    provider?: string;
-    apiKey?: string;
-    model?: string;
-    temperature?: number;
-    maxTokens?: number;
+
+  // Preset CRUD
+  getPresets: () =>
+    request<
+      Array<{
+        id: string;
+        name: string;
+        provider: string;
+        model: string;
+        baseURL?: string;
+        apiKey: string;
+        isDefault: boolean;
+      }>
+    >("/ai/presets", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}` },
+    }),
+  createPreset: (data: {
+    name: string;
+    provider: string;
+    model: string;
+    baseURL?: string;
+    apiKey: string;
   }) =>
-    request<{
-      provider: string;
-      model: string;
-      configured: boolean;
-    }>("/ai/config", {
+    request<{ id: string; name: string }>("/ai/presets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}`,
+      },
+      body: JSON.stringify(data),
+    }),
+  updatePreset: (
+    id: string,
+    data: { name?: string; provider?: string; model?: string; baseURL?: string; apiKey?: string },
+  ) =>
+    request<{ id: string; name: string }>(`/ai/presets/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}`,
       },
-      body: JSON.stringify(config),
+      body: JSON.stringify(data),
     }),
-  getAIModels: (provider?: string) => {
-    const query = provider ? `?provider=${provider}` : "";
-    return request<
-      { id: string; label: string; models: string[] }[]
-    >(`/ai/models${query}`, {
+  deletePreset: (id: string) =>
+    request<{ success: boolean }>(`/ai/presets/${id}`, {
+      method: "DELETE",
       headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}` },
-    });
-  },
+    }),
+  setDefaultPreset: (id: string) =>
+    request<{ success: boolean }>(`/ai/presets/${id}/default`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}` },
+    }),
+
+  // Scene Configuration
+  getScenes: () =>
+    request<
+      Record<string, { presetId: string | null; presetName: string | null; temperature: number; maxTokens: number }>
+    >("/ai/scenes", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}` },
+    }),
+  updateScenes: (
+    scenes: Record<string, { presetId: string | null; temperature: number; maxTokens: number }>,
+  ) =>
+    request<{ success: boolean }>("/ai/scenes", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}`,
+      },
+      body: JSON.stringify({ scenes }),
+    }),
+
+  getAIModels: () =>
+    request<{ id: string; label: string; models: string[] }[]>("/ai/models", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token") || ""}` },
+    }),
   checkAIHealth: () =>
     request<{ configured: boolean; provider: string; model: string }>("/ai/health"),
 };

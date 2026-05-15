@@ -1,9 +1,9 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { Context } from "hono";
-import type { AnalyzeRequest, AnalysisResult, AIConfig } from "../../../../shared/types/ai.js";
+import type { AnalyzeRequest, AnalysisResult } from "../../../../shared/types/ai.js";
+import type { ResolvedScene } from "../../settings.js";
 import { ANALYZE_SYSTEM_PROMPT, buildAnalyzePrompt } from "./prompts/analyze.js";
-import { resolveModel, getModelOptions } from "./provider.js";
 
 const analysisSchema = z.object({
   summary: z.string().describe("执行结果总述"),
@@ -11,7 +11,7 @@ const analysisSchema = z.object({
   suggestions: z.array(z.string()).describe("后续建议"),
 });
 
-export async function handleAnalyze(c: Context, config: AIConfig) {
+export async function handleAnalyze(c: Context, resolved: ResolvedScene) {
   const body = await c.req.json<AnalyzeRequest>();
 
   if (!body.taskDescription) {
@@ -21,18 +21,16 @@ export async function handleAnalyze(c: Context, config: AIConfig) {
     return c.json({ error: "results is required" }, 400);
   }
 
-  const model = resolveModel(config);
-  const options = getModelOptions(config);
   const prompt = buildAnalyzePrompt(body.taskDescription, body.results);
 
   const result = await generateObject({
-    model,
+    model: resolved.model,
     system: ANALYZE_SYSTEM_PROMPT,
     prompt,
     schema: analysisSchema,
     schemaName: "AnalysisResult",
-    temperature: Math.min(options.temperature, 0.5),
-    maxTokens: options.maxTokens,
+    temperature: resolved.temperature,
+    maxTokens: resolved.maxTokens,
   });
 
   return c.json(result.object as AnalysisResult);

@@ -6,6 +6,7 @@ import TaskDetail from "./views/TaskDetail.vue";
 import Users from "./views/Users.vue";
 import Login from "./views/Login.vue";
 import Settings from "./views/Settings.vue";
+import Models from "./views/Models.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -16,6 +17,7 @@ const router = createRouter({
     { path: "/teams/:name", component: TeamDetail, props: true },
     { path: "/teams/:name/tasks/:id", component: TaskDetail, props: true },
     { path: "/users", component: Users },
+    { path: "/models", component: Models },
     { path: "/settings", component: Settings },
   ],
 });

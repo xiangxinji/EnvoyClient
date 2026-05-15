@@ -1,9 +1,8 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { Context } from "hono";
-import type { AIConfig } from "../../../../shared/types/ai.js";
+import type { ResolvedScene } from "../../settings.js";
 import { REVIEW_SYSTEM_PROMPT } from "./prompts/review.js";
-import { resolveModel, getModelOptions } from "./provider.js";
 
 interface ReviewRequest {
   taskDescription: string;
@@ -16,7 +15,7 @@ const reviewSchema = z.object({
   summary: z.string().describe("审查总结，说明通过或不通过的原因"),
 });
 
-export async function handleTaskReview(c: Context, config: AIConfig) {
+export async function handleTaskReview(c: Context, resolved: ResolvedScene) {
   const body = await c.req.json<ReviewRequest>();
 
   if (!body.taskDescription) {
@@ -25,15 +24,6 @@ export async function handleTaskReview(c: Context, config: AIConfig) {
   if (!body.results?.length) {
     return c.json({ error: "results is required" }, 400);
   }
-
-  let model: ReturnType<typeof resolveModel>;
-  try {
-    model = resolveModel(config);
-  } catch (e: unknown) {
-    return c.json({ error: `AI provider error: ${e instanceof Error ? e.message : String(e)}` }, 500);
-  }
-
-  const options = getModelOptions(config);
 
   const resultsText = body.results
     .map((r) => `【${r.from}】:\n${JSON.stringify(r.data, null, 2)}`)
@@ -50,13 +40,13 @@ export async function handleTaskReview(c: Context, config: AIConfig) {
 
   try {
     const result = await generateObject({
-      model,
+      model: resolved.model,
       system: REVIEW_SYSTEM_PROMPT,
       prompt,
       schema: reviewSchema,
       schemaName: "TaskReview",
-      temperature: options.temperature,
-      maxTokens: options.maxTokens,
+      temperature: resolved.temperature,
+      maxTokens: resolved.maxTokens,
     });
 
     return c.json(result.object);
