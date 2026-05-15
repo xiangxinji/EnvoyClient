@@ -25,7 +25,14 @@ async function handleSubmit() {
   dispatchPreview.value = null;
   dispatchAiError.value = "";
 
-  const memberList = members.value.map((m) => ({ id: m.id, responsibilities: m.responsibilities, capabilities: m.capabilities }));
+  const memberList = members.value
+    .filter((m) => m.status === "online")
+    .map((m) => ({ id: m.id, responsibilities: m.responsibilities, capabilities: m.capabilities }));
+  if (memberList.length === 0) {
+    dispatchAiError.value = "暂无在线成员，无法分派任务";
+    dispatchLoading.value = false;
+    return;
+  }
   const result = await aiDispatchTask(content, memberList);
 
   dispatchLoading.value = false;
@@ -36,8 +43,13 @@ async function handleSubmit() {
 
 function handleConfirm() {
   if (!dispatchPreview.value) return;
-  const { subscribe, content } = dispatchPreview.value;
-  dispatchTask(subscribe, content);
+  const onlineIds = new Set(members.value.filter((m) => m.status === "online").map((m) => m.id));
+  const subscribe = dispatchPreview.value.subscribe.filter((id) => onlineIds.has(id));
+  if (subscribe.length === 0) {
+    dispatchAiError.value = "匹配到的成员已全部离线，请稍后重试";
+    return;
+  }
+  dispatchTask(subscribe, dispatchPreview.value.content);
   dispatchPreview.value = null;
   taskContent.value = "";
 }
