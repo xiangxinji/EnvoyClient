@@ -81,7 +81,10 @@
       "Bash(WIX='C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\tauri\\\\WixTools314' npm run tauri build)",
       "Bash(\"/c/Users/Administrator/AppData/Local/tauri/WixTools314/light.exe\" -ext WixUIExtension -ext WixUtilExtension -cultures:en-us main.wixobj -out \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\EnvoyClient\\\\src-tauri\\\\target\\\\release\\\\bundle\\\\msi\\\\EnvoyClient_0.1.0_x64_en-US.msi\")",
       "Bash(/c/Users/Administrator/AppData/Local/tauri/WixTools314/light.exe *)",
-      "Skill(opsx:propose)"
+      "Skill(opsx:propose)",
+      "Skill(opsx:new)",
+      "Bash(identify src/assets/logo.png)",
+      "Bash(identify src-tauri/icons/icon.png)"
     ]
   }
 }
