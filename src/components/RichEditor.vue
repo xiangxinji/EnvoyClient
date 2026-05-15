@@ -100,7 +100,20 @@ function extractText(html: string): string {
   const div = document.createElement("div");
   div.innerHTML = html;
   for (const img of div.querySelectorAll("img")) img.remove();
-  return (div.textContent ?? "").replace(/\n{3,}/g, "\n\n").trim();
+  //innerText on detached elements doesn't preserve newlines, so we convert manually
+  let text = "";
+  function walk(node: Node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      text += node.textContent ?? "";
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      const tag = el.tagName;
+      for (const child of Array.from(el.childNodes)) walk(child);
+      if (tag === "P" || tag === "BR" || tag === "DIV") text += "\n";
+    }
+  }
+  walk(div);
+  return text.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function focus() {

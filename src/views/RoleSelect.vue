@@ -454,6 +454,7 @@ input::placeholder {
   gap: var(--space-sm);
   width: 100%;
   padding: var(--space-md);
+  box-sizing: border-box;
   background: var(--bg-primary);
   border-radius: var(--radius-md);
   border: 1px solid var(--border);

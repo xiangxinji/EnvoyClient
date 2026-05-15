@@ -572,6 +572,8 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
 .header {
   position: relative;
   z-index: 10;
+  height: 52px;
+  box-sizing: border-box;
   padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--glass-border);
   background: var(--glass-bg-heavy);
