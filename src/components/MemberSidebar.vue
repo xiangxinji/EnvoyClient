@@ -138,10 +138,12 @@ function getInitial(name: string): string {
 .sidebar {
   width: 260px;
   min-width: 260px;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
-  background: var(--bg-secondary);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 
 .sidebar-header {
@@ -302,7 +304,7 @@ li.active {
 /* Footer settings */
 .sidebar-footer {
   flex-shrink: 0;
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 .sidebar-divider {

@@ -79,11 +79,14 @@ function close() {
   align-items: center;
   justify-content: center;
   height: 42px;
-  background: var(--titlebar-bg);
-  border-bottom: 1px solid var(--titlebar-border);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-bottom: 1px solid var(--glass-border);
   user-select: none;
   -webkit-user-select: none;
   position: relative;
+  z-index: 100;
 }
 
 .traffic-lights {

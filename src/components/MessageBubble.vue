@@ -89,10 +89,12 @@ function closeFullscreen() {
   max-width: 75%;
   padding: 10px 14px;
   border-radius: 18px;
-  background: var(--bubble-other);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--bubble-other-text);
   align-self: flex-start;
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--glass-border);
 }
 
 .bubble.mine {

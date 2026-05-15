@@ -685,7 +685,9 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
 .ai-suggestion {
   margin-top: var(--space-sm);
   padding: var(--space-md);
-  background: var(--bg-secondary);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);
 }
@@ -866,7 +868,10 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
 /* Input area */
 .input-area {
   padding: var(--space-md) var(--space-lg);
-  background: var(--bg-primary);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-top: 1px solid var(--glass-border);
 }
 
 .task-input {

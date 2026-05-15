@@ -84,6 +84,10 @@ const username = computed(() => instance.value?.myId ?? undefined);
   --md-link-color: #2fb38b;
   --md-blockquote-border: #d2d2d7;
   --md-blockquote-text: #6e6e73;
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-heavy: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-blur: 20px;
 }
 
 html.dark {
@@ -139,6 +143,10 @@ html.dark {
   --md-link-color: #3dd9a5;
   --md-blockquote-border: #3a3a3c;
   --md-blockquote-text: #98989d;
+  --glass-bg: rgba(28, 28, 30, 0.72);
+  --glass-bg-heavy: rgba(28, 28, 30, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 20px;
 }
 
 html, body {

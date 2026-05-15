@@ -249,6 +249,17 @@ onMounted(loadSettings);
   justify-content: center;
   flex: 1;
   background: var(--bg-primary);
+  position: relative;
+}
+
+.role-select::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(47, 179, 139, 0.15), transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(47, 179, 139, 0.1), transparent 50%);
+  pointer-events: none;
 }
 
 .card {
@@ -258,10 +269,14 @@ onMounted(loadSettings);
   gap: var(--space-lg);
   width: 380px;
   padding: var(--space-2xl);
-  background: var(--bg-elevated);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border-radius: var(--radius-xl);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-md);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 1;
 }
 
 .logo {

@@ -349,9 +349,11 @@ function formatToolResult(result: unknown): string {
   max-width: 80%;
   padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-left: 3px solid var(--border);
-  background: var(--task-card-bg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--text-primary);
   align-self: flex-start;
   box-shadow: var(--shadow-sm);
