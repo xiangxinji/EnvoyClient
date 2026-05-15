@@ -73,22 +73,33 @@ async function onDialogExit(remember: boolean) {
   await handleExit();
 }
 
+function preventRefresh(e: KeyboardEvent) {
+  if (e.key === "F5" || (e.ctrlKey && e.key === "r")) {
+    e.preventDefault();
+  }
+}
+
 onMounted(async () => {
-  if (!isTauri) return;
-  try {
-    const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    const unlistenFn = await (getCurrentWindow() as any).listen(
-      "close-requested",
-      () => {
-        handleCloseRequested();
-      }
-    );
-    unlisten = unlistenFn;
-  } catch {}
+  if (isTauri) {
+    window.addEventListener("keydown", preventRefresh);
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      const unlistenFn = await (getCurrentWindow() as any).listen(
+        "close-requested",
+        () => {
+          handleCloseRequested();
+        }
+      );
+      unlisten = unlistenFn;
+    } catch {}
+  }
 });
 
 onUnmounted(() => {
   unlisten?.();
+  if (isTauri) {
+    window.removeEventListener("keydown", preventRefresh);
+  }
 });
 </script>
 

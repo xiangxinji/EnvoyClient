@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
-import { getMemberSettings } from "../composables/teamClientContext";
+import { ref, onMounted, watch, inject } from "vue";
+import { useRouter } from "vue-router";
+import { getMemberSettings, TeamClientKey, setTeamClientInstance } from "../composables/teamClientContext";
 import type { TaskExecutionMode } from "../composables/useMemberSettings";
 import GlassSelect from "./GlassSelect.vue";
 
@@ -9,17 +10,15 @@ const emit = defineEmits<{
 }>();
 
 const { settings, loadSettings, saveSettings } = getMemberSettings();
-
-// Get username from team client context
-import { inject } from "vue";
-import { TeamClientKey } from "../composables/teamClientContext";
-
 const ctx = inject(TeamClientKey)!;
+const router = useRouter();
+
 const username = ctx.myId;
 
 const executionMode = ref<TaskExecutionMode>("auto");
 const workingDirectory = ref("");
 const saving = ref(false);
+const showLogoutConfirm = ref(false);
 
 onMounted(async () => {
   await loadSettings(username);
@@ -47,6 +46,15 @@ async function saveWorkingDirectory() {
     workingDirectory.value = settings.value.working_directory;
   }
   saving.value = false;
+}
+
+async function handleLogout() {
+  showLogoutConfirm.value = false;
+  try {
+    await ctx.disconnect();
+  } catch {}
+  setTeamClientInstance(null);
+  router.replace("/");
 }
 </script>
 
@@ -87,6 +95,45 @@ async function saveWorkingDirectory() {
         <p class="setting-hint">Agent 执行命令的根目录，不填则使用默认路径</p>
       </div>
     </div>
+
+    <div class="settings-footer">
+      <div class="user-card">
+        <div class="user-avatar">{{ username.charAt(0).toUpperCase() }}</div>
+        <div class="user-meta">
+          <span class="user-name">{{ username }}</span>
+          <span class="user-role" :class="ctx.role">{{ ctx.role }}</span>
+        </div>
+        <button class="logout-btn" title="退出登录" @click="showLogoutConfirm = true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <Teleport to="body">
+      <Transition name="overlay">
+        <div v-if="showLogoutConfirm" class="logout-overlay" @click.self="showLogoutConfirm = false">
+          <div class="logout-dialog">
+            <div class="logout-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </div>
+            <h3 class="logout-title">退出登录</h3>
+            <p class="logout-desc">将断开与团队的连接并返回登录页</p>
+            <div class="logout-actions">
+              <button class="btn btn-cancel" @click="showLogoutConfirm = false">取消</button>
+              <button class="btn btn-danger" @click="handleLogout">退出登录</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <div v-if="saving" class="saving-indicator">保存中...</div>
   </div>
@@ -199,5 +246,177 @@ async function saveWorkingDirectory() {
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
+}
+
+.settings-footer {
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--glass-border);
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-sm);
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.8em;
+  flex-shrink: 0;
+}
+
+.user-meta {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 0.88em;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-role {
+  font-size: 0.65em;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.user-role.leader {
+  background: var(--role-leader-bg);
+  color: var(--role-leader-text);
+}
+
+.user-role.member {
+  background: var(--role-member-bg);
+  color: var(--role-member-text);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.logout-btn:hover {
+  background: var(--glass-bg-light);
+  color: var(--error);
+}
+
+.logout-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.logout-dialog {
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl) var(--space-2xl);
+  min-width: 320px;
+  box-shadow: var(--glass-shadow-heavy);
+  text-align: center;
+}
+
+.logout-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--glass-bg-light);
+  color: var(--error);
+  margin-bottom: var(--space-md);
+}
+
+.logout-title {
+  margin: 0 0 var(--space-xs);
+  font-size: 1.05em;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.logout-desc {
+  margin: 0 0 var(--space-lg);
+  font-size: 0.88em;
+  color: var(--text-secondary);
+}
+
+.logout-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.btn {
+  padding: 7px 20px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 0.88em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn:hover {
+  opacity: 0.88;
+}
+
+.btn-cancel {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.btn-danger {
+  background: var(--error);
+  color: #fff;
+}
+
+.overlay-enter-active,
+.overlay-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.overlay-enter-from,
+.overlay-leave-to {
+  opacity: 0;
 }
 </style>
