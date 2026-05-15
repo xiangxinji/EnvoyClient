@@ -39,7 +39,7 @@ const editor = useEditor({
       class: "editor-body",
     },
     handleKeyDown(_view, event) {
-      if (event.key === "Enter" && !event.shiftKey) {
+      if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
         event.preventDefault();
         handleSend();
         return true;
@@ -81,7 +81,7 @@ function insertImageBlob(file: File) {
   if (!editor.value) return;
   const url = URL.createObjectURL(file);
   pendingImages.value.push({ blob: file, objectUrl: url, name: file.name });
-  editor.value.chain().focus().setImage({ src: url }).run();
+  editor.value.chain().focus().setImage({ src: url }).createParagraphNear().run();
 }
 
 function handleSend() {
@@ -116,7 +116,7 @@ function insertImage(file: File) {
   if (!editor.value) return;
   const url = URL.createObjectURL(file);
   pendingImages.value.push({ blob: file, objectUrl: url, name: file.name });
-  editor.value.chain().focus().setImage({ src: url }).run();
+  editor.value.chain().focus().setImage({ src: url }).createParagraphNear().run();
 }
 
 defineExpose({ focus, isEmpty, send: handleSend, insertImage, editor });

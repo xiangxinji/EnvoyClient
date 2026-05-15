@@ -83,7 +83,7 @@ function getInitial(name: string): string {
           </svg>
         </div>
         <div class="member-info">
-          <span class="member-name">分派任务</span>
+          <span class="member-name">任务分派</span>
         </div>
       </li>
 

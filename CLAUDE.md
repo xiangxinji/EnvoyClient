@@ -384,6 +384,21 @@ background: var(--app-gradient);
 4. **禁止纯色背景覆盖渐变** — 面板根容器必须是 `transparent`
 5. **禁止新增组件不遵循玻璃规范** — 所有新 UI 必须按上述分类选择对应层级
 
+### 基础控件封装规范
+
+所有基础表单控件（input、select、checkbox、button 等）必须封装为独立组件（`src/components/Glass*.vue`），不允许在页面中直接使用原生元素或各自定义样式。
+
+**已有组件**：`GlassSelect.vue`、`GlassCheckbox.vue`
+
+**统一尺寸**：
+```css
+height: 36px;
+box-sizing: border-box;
+padding: 0 14px;
+```
+
+**新增控件时**：先在 `src/components/` 下创建 `GlassXxx.vue` 组件，遵循毛玻璃设计系统，页面中引用组件而非原生元素。
+
 ### Theme Toggle
 
 使用 `useTheme()` composable，通过 `html.dark` class 切换。用户偏好保存在 `localStorage` key `envoy-theme`，默认 dark。

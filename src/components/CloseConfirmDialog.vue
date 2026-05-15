@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import GlassCheckbox from "./GlassCheckbox.vue";
 
 const emit = defineEmits<{
   (e: "hide", remember: boolean): void;
@@ -40,10 +41,7 @@ const remember = ref(false);
             </button>
           </div>
 
-          <label class="remember-row">
-            <input v-model="remember" type="checkbox" />
-            <span>记住我的选择，下次不再询问</span>
-          </label>
+          <GlassCheckbox v-model="remember">记住我的选择，下次不再询问</GlassCheckbox>
         </div>
       </div>
     </Transition>
@@ -122,19 +120,9 @@ const remember = ref(false);
   color: #fff;
 }
 
-.remember-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
+.dialog :deep(.glass-checkbox) {
   margin-top: var(--space-lg);
   font-size: 0.82em;
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.remember-row input {
-  accent-color: var(--accent);
 }
 
 .overlay-enter-active,

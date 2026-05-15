@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useTeamClient } from "../composables/useTeamClient";
 import { setTeamClientInstance } from "../composables/teamClientContext";
 import { setManagerUrl, setClientToken } from "../api";
+import GlassSelect from "../components/GlassSelect.vue";
 import logo from "../assets/logo.png";
 const isTauri = "__TAURI_INTERNALS__" in window;
 
@@ -227,11 +228,11 @@ onMounted(loadSettings);
         <div class="fields">
           <div class="field">
             <label>选择团队</label>
-            <select v-model="selectedTeam" :disabled="loading">
+            <GlassSelect v-model="selectedTeam" :disabled="loading">
               <option v-for="t in teams" :key="t.name" :value="t.name">
                 {{ t.name }}
               </option>
-            </select>
+            </GlassSelect>
           </div>
         </div>
 
@@ -426,9 +427,10 @@ h1 {
   color: var(--text-secondary);
 }
 
-input,
-select {
-  padding: 10px 14px;
+input {
+  padding: 0 14px;
+  height: 36px;
+  box-sizing: border-box;
   border-radius: var(--radius-sm);
   border: 1px solid var(--input-border);
   background: var(--bg-input);
@@ -438,17 +440,12 @@ select {
   font-size: 0.9em;
 }
 
-input:focus,
-select:focus {
+input:focus {
   border-color: var(--accent);
 }
 
 input::placeholder {
   color: var(--text-muted);
-}
-
-select {
-  cursor: pointer;
 }
 
 .auth-info {

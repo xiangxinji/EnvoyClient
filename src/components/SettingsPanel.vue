@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from "vue";
 import { getMemberSettings } from "../composables/teamClientContext";
 import type { TaskExecutionMode } from "../composables/useMemberSettings";
+import GlassSelect from "./GlassSelect.vue";
 
 const emit = defineEmits<{
   back: [];
@@ -64,10 +65,10 @@ async function saveWorkingDirectory() {
     <div class="settings-body">
       <div class="setting-group">
         <label class="setting-label">任务执行模式</label>
-        <select v-model="executionMode" class="setting-select">
+        <GlassSelect v-model="executionMode">
           <option value="manual">手动</option>
           <option value="auto">自动接管</option>
-        </select>
+        </GlassSelect>
         <p class="setting-hint">
           {{ executionMode === 'auto' ? 'AI 将自动处理收到的任务' : '收到任务后需手动操作' }}
         </p>
@@ -155,24 +156,10 @@ async function saveWorkingDirectory() {
   color: var(--text-primary);
 }
 
-.setting-select {
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  font-size: 0.9em;
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.setting-select:focus {
-  border-color: var(--accent);
-}
-
 .setting-input {
-  padding: var(--space-sm) var(--space-md);
+  padding: 0 14px;
+  height: 36px;
+  box-sizing: border-box;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
