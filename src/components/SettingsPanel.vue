@@ -53,13 +53,13 @@ async function saveWorkingDirectory() {
 <template>
   <div class="settings-panel">
     <div class="settings-header">
+      <span class="header-title">设置</span>
       <button class="back-btn" @click="emit('back')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15 18 9 12 15 6" />
         </svg>
         返回
       </button>
-      <span class="header-title">设置</span>
     </div>
 
     <div class="settings-body">
@@ -104,7 +104,7 @@ async function saveWorkingDirectory() {
 .settings-header {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  justify-content: space-between;
   padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--glass-border);
   background: var(--glass-bg-heavy);

@@ -67,10 +67,10 @@ function getMatchedMembers() {
 <template>
   <div class="dispatch-panel">
     <div class="dispatch-header">
-      <h2>分派任务</h2>
-      <p class="dispatch-desc">输入任务描述，AI 将根据成员职责自动匹配最合适的人选</p>
+      <span class="header-name">任务分派</span>
     </div>
 
+    <div class="dispatch-body">
     <!-- Online members preview -->
     <div class="section" v-if="members.length > 0">
       <h3 class="section-title">在线成员 ({{ members.length }})</h3>
@@ -149,32 +149,40 @@ function getMatchedMembers() {
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .dispatch-panel {
   flex: 1;
-  overflow-y: auto;
-  padding: var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: transparent;
 }
 
-.dispatch-header {
-  margin-bottom: var(--space-2xl);
+.dispatch-panel .section:last-child {
+  margin-bottom: 0;
 }
 
-.dispatch-header h2 {
-  margin: 0;
-  font-size: 1.3em;
-  font-weight: 700;
+.dispatch-header {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.header-name {
+  font-weight: 600;
   color: var(--text-primary);
 }
 
-.dispatch-desc {
-  margin: var(--space-sm) 0 0;
-  font-size: 0.85em;
-  color: var(--text-muted);
+.dispatch-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg);
 }
 
 .section {

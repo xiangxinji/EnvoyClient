@@ -47,6 +47,17 @@ function getInitial(name: string): string {
   <aside class="sidebar">
     <div class="sidebar-header">
       <h3>成员</h3>
+      <button
+        class="btn-settings"
+        :class="{ active: selectedPeer === '__settings__' }"
+        @click="emit('select', '__settings__')"
+        title="设置"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      </button>
     </div>
     <ul>
       <!-- Task center entry -->
@@ -115,22 +126,6 @@ function getInitial(name: string): string {
         <span>暂无成员</span>
       </li>
     </ul>
-    <div class="sidebar-footer">
-      <div class="sidebar-divider"></div>
-      <div
-        class="settings-entry"
-        :class="{ active: selectedPeer === '__settings__' }"
-        @click="emit('select', '__settings__')"
-      >
-        <div class="avatar settings-avatar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        </div>
-        <span class="settings-label">设置</span>
-      </div>
-    </div>
   </aside>
 </template>
 
@@ -149,6 +144,9 @@ function getInitial(name: string): string {
 .sidebar-header {
   padding: var(--space-lg);
   padding-bottom: var(--space-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 h3 {
@@ -301,52 +299,27 @@ li.active {
   color: var(--warning);
 }
 
-/* Footer settings */
-.sidebar-footer {
-  flex-shrink: 0;
-  background: transparent;
-}
-
-.sidebar-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 0 var(--space-md);
-}
-
-.settings-entry {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: 10px var(--space-md);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: background 0.1s;
-}
-
-.settings-entry:hover {
-  background: var(--sidebar-hover);
-  color: var(--text-primary);
-}
-
-.settings-entry.active {
-  background: var(--sidebar-active);
-  color: var(--text-primary);
-}
-
-.settings-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--bg-tertiary);
+/* Header settings button */
+.btn-settings {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
-.settings-label {
-  font-size: 0.9em;
-  font-weight: 500;
+.btn-settings:hover {
+  background: var(--sidebar-hover);
+  color: var(--text-secondary);
+}
+
+.btn-settings.active {
+  color: var(--accent);
 }
 </style>

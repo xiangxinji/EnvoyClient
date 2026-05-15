@@ -135,8 +135,11 @@ onBeforeUnmount(() => {
 <style scoped>
 .rich-editor {
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--glass-bg-light);
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--glass-shadow);
   transition: border-color 0.15s;
 }
 
@@ -150,9 +153,9 @@ onBeforeUnmount(() => {
 }
 
 .editor-content {
-  max-height: 120px;
+  max-height: 160px;
   overflow-y: auto;
-  padding: 8px 12px;
+  padding: 10px 14px;
 }
 
 .editor-content :deep(.tiptap) {

@@ -492,10 +492,7 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
         </div>
         <div v-if="attachmentError" class="attachment-error">{{ attachmentError }}</div>
 
-        <!-- Rich text editor -->
-        <RichEditor ref="richEditorRef" @send="handleRichSend" />
-
-        <!-- Toolbar (below editor, WeChat style) -->
+        <!-- Toolbar (floating above editor) -->
         <div class="toolbar">
           <div class="toolbar-left">
             <button v-if="role === 'leader'" class="btn-tool" @click="taskInputVisible = !taskInputVisible" title="分派任务">
@@ -519,6 +516,9 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
             发送
           </button>
         </div>
+
+        <!-- Rich text editor -->
+        <RichEditor ref="richEditorRef" @send="handleRichSend" />
       </div>
     </template>
 
@@ -570,6 +570,8 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
 }
 
 .header {
+  position: relative;
+  z-index: 10;
   padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--glass-border);
   background: var(--glass-bg-heavy);
@@ -874,10 +876,7 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
 /* Input area */
 .input-area {
   padding: var(--space-md) var(--space-lg);
-  background: var(--glass-bg-heavy);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border-top: 1px solid var(--glass-border);
+  background: transparent;
 }
 
 .task-input {
@@ -978,7 +977,8 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-xs) 0;
+  padding: var(--space-xs) var(--space-xs);
+  margin-bottom: var(--space-xs);
 }
 
 .toolbar-left {
