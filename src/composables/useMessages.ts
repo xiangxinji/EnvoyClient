@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import type { Message } from "@envoy/core";
-import type { TimelineItem, ChatMessage, TaskMessage, TaskResource } from "../types";
+import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment } from "../types";
 import { managerPost } from "../api";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
@@ -52,14 +52,16 @@ export function useMessages(
 
   function handleIncomingMessage(msg: Message): boolean {
     if (msg.type === "message" && msg.subtype === "chat") {
+      const payload = msg.payload as { text: string; attachments?: MessageAttachment[] };
       const chatMsg: ChatMessage = {
         type: "chat",
         id: msg.id,
         from: msg.from,
         to: msg.to,
-        text: (msg.payload as { text: string }).text,
+        text: payload.text,
         timestamp: msg.timestamp,
         mine: msg.from === myId,
+        attachments: payload.attachments,
       };
       const peerId = msg.from === myId ? msg.to : msg.from;
       addToConversation(peerId, chatMsg);
@@ -113,7 +115,7 @@ export function useMessages(
     }
   }
 
-  function sendChat(targetId: string, text: string) {
+  function sendChat(targetId: string, text: string, attachments?: MessageAttachment[]) {
     const chatMsg: ChatMessage = {
       type: "chat",
       id: `${Date.now()}-local`,
@@ -122,9 +124,12 @@ export function useMessages(
       text,
       timestamp: Date.now(),
       mine: true,
+      attachments: attachments?.length ? attachments : undefined,
     };
     addToConversation(targetId, chatMsg);
-    managerPost("/api/messages", { from: myId, to: targetId, text }, { team: teamName });
+    const body: Record<string, unknown> = { from: myId, to: targetId, text };
+    if (attachments?.length) body.attachments = attachments;
+    managerPost("/api/messages", body, { team: teamName });
   }
 
   async function exportHistory(peerId: string, targetPath: string) {

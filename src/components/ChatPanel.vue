@@ -6,7 +6,9 @@ import MessageBubble from "./MessageBubble.vue";
 import TaskCard from "./TaskCard.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
-import type { TimelineItem, ChatMessage, TaskPlan } from "../types";
+import type { TimelineItem, ChatMessage, TaskPlan, MessageAttachment } from "../types";
+import { compressImage, isImageMime, formatFileSize } from "../utils/imageCompress";
+import { apiUrl } from "../api";
 
 const props = defineProps<{ peerId: string }>();
 
@@ -26,6 +28,17 @@ const menuOpen = ref(false);
 const confirmVisible = ref(false);
 const toastVisible = ref(false);
 const toastMessage = ref("");
+
+// Attachment state
+interface PendingAttachment {
+  file: File;
+  previewUrl?: string;
+  compressed?: Blob;
+}
+
+const pendingAttachments = ref<PendingAttachment[]>([]);
+const uploading = ref(false);
+const attachmentError = ref("");
 
 // AI dispatch preview
 const dispatchPreview = ref<{ subscribe: string[]; content: string } | null>(null);
@@ -123,11 +136,84 @@ watch(
   { flush: 'post', immediate: true }
 );
 
-function handleSend() {
+function handlePickAttachment() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.multiple = true;
+  input.onchange = async () => {
+    const files = Array.from(input.files ?? []);
+    for (const file of files) {
+      let previewUrl: string | undefined;
+      if (file.type.startsWith("image/")) {
+        previewUrl = URL.createObjectURL(file);
+      }
+      pendingAttachments.value.push({ file, previewUrl });
+    }
+  };
+  input.click();
+}
+
+function removeAttachment(index: number) {
+  const att = pendingAttachments.value[index];
+  if (att.previewUrl) URL.revokeObjectURL(att.previewUrl);
+  pendingAttachments.value.splice(index, 1);
+}
+
+async function handleSend() {
   const text = inputText.value.trim();
-  if (!text || !props.peerId) return;
-  sendChat(props.peerId, text);
+  if ((!text && pendingAttachments.value.length === 0) || !props.peerId) return;
+
+  attachmentError.value = "";
+
+  // Upload attachments first
+  let attachments: MessageAttachment[] | undefined;
+  if (pendingAttachments.value.length > 0) {
+    uploading.value = true;
+    try {
+      attachments = [];
+      for (const att of pendingAttachments.value) {
+        // Compress images
+        let blobToSend: Blob = att.file;
+        if (isImageMime(att.file.type)) {
+          const result = await compressImage(att.file);
+          blobToSend = result.blob;
+        }
+
+        // Upload
+        const formData = new FormData();
+        formData.append("file", blobToSend, att.file.name);
+        formData.append("from", myId);
+
+        const res = await fetch(apiUrl("/api/messages/attachments"), {
+          method: "POST",
+          headers: { team: teamName },
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "上传失败" }));
+          throw new Error(err.error ?? "上传失败");
+        }
+
+        const data = await res.json() as MessageAttachment;
+        attachments.push(data);
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      attachmentError.value = `附件上传失败: ${msg}`;
+      uploading.value = false;
+      return;
+    }
+    uploading.value = false;
+  }
+
+  sendChat(props.peerId, text || " ", attachments);
   inputText.value = "";
+  // Clean up previews
+  for (const att of pendingAttachments.value) {
+    if (att.previewUrl) URL.revokeObjectURL(att.previewUrl);
+  }
+  pendingAttachments.value = [];
 }
 
 function handleClearChat() {
@@ -373,11 +459,33 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
         </div>
 
         <!-- Chat input -->
+        <div v-if="pendingAttachments.length > 0" class="attachment-preview">
+          <div v-for="(att, i) in pendingAttachments" :key="i" class="preview-item">
+            <img v-if="att.previewUrl" :src="att.previewUrl" class="preview-thumb" />
+            <div v-else class="preview-file-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+            </div>
+            <div class="preview-info">
+              <span class="preview-name">{{ att.file.name }}</span>
+              <span class="preview-size">{{ formatFileSize(att.file.size) }}</span>
+            </div>
+            <button class="preview-remove" @click="removeAttachment(i)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div v-if="attachmentError" class="attachment-error">{{ attachmentError }}</div>
+
         <div class="chat-input">
           <button v-if="role === 'leader'" class="btn-icon btn-task" @click="taskInputVisible = !taskInputVisible" title="分派任务">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 11l3 3L22 4" />
               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+          </button>
+          <button class="btn-icon btn-attach" @click="handlePickAttachment" title="添加附件">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
             </svg>
           </button>
           <input
@@ -390,7 +498,7 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
             </svg>
           </button>
-          <button class="btn-icon btn-send" @click="handleSend" title="发送">
+          <button class="btn-icon btn-send" @click="handleSend" title="发送" :disabled="uploading">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="22" y1="2" x2="11" y2="13" />
               <polygon points="22 2 15 22 11 13 2 9 22 2" />
@@ -925,9 +1033,101 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
   color: white;
 }
 
-.btn-ai:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.btn-attach {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.btn-attach:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Attachment preview */
+.attachment-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  margin-bottom: var(--space-xs);
+}
+
+.preview-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  max-width: 200px;
+}
+
+.preview-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.preview-file-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.preview-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.preview-name {
+  font-size: 0.75em;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-size {
+  font-size: 0.68em;
+  color: var(--text-muted);
+}
+
+.preview-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.preview-remove:hover {
+  background: var(--task-failed-bg);
+  color: var(--error);
+}
+
+.attachment-error {
+  font-size: 0.8em;
+  color: var(--error);
+  padding: var(--space-xs) 0;
+  margin-bottom: var(--space-xs);
 }
 
 @keyframes spin {

@@ -6,6 +6,14 @@ export interface MemberInfo {
   capabilities?: string;
 }
 
+export interface MessageAttachment {
+  type: "image" | "file";
+  url: string;
+  name: string;
+  size: number;
+  mimeType: string;
+}
+
 export interface ChatMessage {
   type: "chat";
   id: string;
@@ -14,6 +22,7 @@ export interface ChatMessage {
   text: string;
   timestamp: number;
   mine: boolean;
+  attachments?: MessageAttachment[];
 }
 
 export interface ToolCallRecord {
