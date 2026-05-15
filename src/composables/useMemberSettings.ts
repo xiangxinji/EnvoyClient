@@ -8,12 +8,16 @@ export type TaskExecutionMode = "manual" | "auto";
 export interface MemberSettings {
   working_directory: string;
   task_execution_mode: TaskExecutionMode;
+  ai_suggestion_history_count: number;
 }
 
-const _settings = ref<MemberSettings>({
+const DEFAULT_SETTINGS: MemberSettings = {
   working_directory: "",
   task_execution_mode: "auto",
-});
+  ai_suggestion_history_count: 5,
+};
+
+const _settings = ref<MemberSettings>({ ...DEFAULT_SETTINGS });
 
 const _loaded = ref(false);
 
@@ -25,7 +29,7 @@ function safeInvoke(cmd: string, args: Record<string, unknown>) {
 export function useMemberSettings() {
   async function loadSettings(username: string): Promise<MemberSettings> {
     if (!isTauri) {
-      _settings.value = { working_directory: "", task_execution_mode: "auto" };
+      _settings.value = { ...DEFAULT_SETTINGS };
       _loaded.value = true;
       return _settings.value;
     }
@@ -36,11 +40,14 @@ export function useMemberSettings() {
       const userSettings = (users[username] ?? {}) as Record<string, unknown>;
 
       _settings.value = {
-        working_directory: (userSettings.working_directory as string) ?? "",
-        task_execution_mode: (userSettings.task_execution_mode as TaskExecutionMode) ?? "auto",
+        working_directory: (userSettings.working_directory as string) ?? DEFAULT_SETTINGS.working_directory,
+        task_execution_mode: (userSettings.task_execution_mode as TaskExecutionMode) ?? DEFAULT_SETTINGS.task_execution_mode,
+        ai_suggestion_history_count: typeof userSettings.ai_suggestion_history_count === "number"
+          ? userSettings.ai_suggestion_history_count
+          : DEFAULT_SETTINGS.ai_suggestion_history_count,
       };
     } catch {
-      _settings.value = { working_directory: "", task_execution_mode: "auto" };
+      _settings.value = { ...DEFAULT_SETTINGS };
     }
 
     _loaded.value = true;
@@ -62,6 +69,10 @@ export function useMemberSettings() {
     if (updates.task_execution_mode !== undefined) {
       existing.task_execution_mode = updates.task_execution_mode;
       _settings.value.task_execution_mode = updates.task_execution_mode;
+    }
+    if (updates.ai_suggestion_history_count !== undefined) {
+      existing.ai_suggestion_history_count = updates.ai_suggestion_history_count;
+      _settings.value.ai_suggestion_history_count = updates.ai_suggestion_history_count;
     }
 
     users[username] = existing;

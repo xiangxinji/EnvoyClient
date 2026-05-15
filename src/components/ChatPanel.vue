@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { inject, ref, nextTick, watch, computed, onMounted, onBeforeUnmount } from "vue";
-import { TeamClientKey } from "../composables/teamClientContext";
+import { TeamClientKey, getMemberSettings } from "../composables/teamClientContext";
 import { useAI } from "../composables/useAI";
 import MessageBubble from "./MessageBubble.vue";
 import TaskCard from "./TaskCard.vue";
@@ -290,6 +290,8 @@ function handleCancelDispatch() {
   dispatchPreview.value = null;
 }
 
+const { settings: memberSettings } = getMemberSettings();
+
 // AI suggest reply
 function buildChatContext(): string {
   const peer = members.value.find((m) => m.id === props.peerId);
@@ -306,7 +308,9 @@ function handleAISuggest() {
   const chatMsgs = conversation.value.filter(
     (m): m is ChatMessage => m.type === "chat"
   );
-  suggestReply(chatMsgs, buildChatContext());
+  const count = memberSettings.value.ai_suggestion_history_count;
+  const recent = chatMsgs.slice(-count);
+  suggestReply(recent, buildChatContext());
 }
 
 function handleAcceptSuggestion() {

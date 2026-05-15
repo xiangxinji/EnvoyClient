@@ -17,6 +17,7 @@ const username = ctx.myId;
 
 const executionMode = ref<TaskExecutionMode>("auto");
 const workingDirectory = ref("");
+const aiHistoryCount = ref(5);
 const saving = ref(false);
 const showLogoutConfirm = ref(false);
 
@@ -24,6 +25,7 @@ onMounted(async () => {
   await loadSettings(username);
   executionMode.value = settings.value.task_execution_mode;
   workingDirectory.value = settings.value.working_directory;
+  aiHistoryCount.value = settings.value.ai_suggestion_history_count;
 });
 
 watch(executionMode, async (val) => {
@@ -44,6 +46,19 @@ async function saveWorkingDirectory() {
     await saveSettings(username, { working_directory: workingDirectory.value });
   } catch {
     workingDirectory.value = settings.value.working_directory;
+  }
+  saving.value = false;
+}
+
+async function saveAiHistoryCount() {
+  const val = Math.max(1, Math.min(50, Math.floor(aiHistoryCount.value) || 5));
+  aiHistoryCount.value = val;
+  if (val === settings.value.ai_suggestion_history_count) return;
+  saving.value = true;
+  try {
+    await saveSettings(username, { ai_suggestion_history_count: val });
+  } catch {
+    aiHistoryCount.value = settings.value.ai_suggestion_history_count;
   }
   saving.value = false;
 }
@@ -93,6 +108,20 @@ async function handleLogout() {
           @keydown.enter="saveWorkingDirectory"
         />
         <p class="setting-hint">Agent 执行命令的根目录，不填则使用默认路径</p>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">AI 建议历史条数</label>
+        <input
+          v-model.number="aiHistoryCount"
+          type="number"
+          class="setting-input"
+          min="1"
+          max="50"
+          @blur="saveAiHistoryCount"
+          @keydown.enter="saveAiHistoryCount"
+        />
+        <p class="setting-hint">生成 AI 回复建议时读取的最近聊天记录条数，默认 5</p>
       </div>
     </div>
 

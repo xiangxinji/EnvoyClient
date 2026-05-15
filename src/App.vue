@@ -74,7 +74,7 @@ async function onDialogExit(remember: boolean) {
 }
 
 function preventRefresh(e: KeyboardEvent) {
-  if (e.key === "F5" || (e.ctrlKey && e.key === "r")) {
+  if (import.meta.env.PROD && (e.key === "F5" || (e.ctrlKey && e.key === "r"))) {
     e.preventDefault();
   }
 }
@@ -188,6 +188,15 @@ onUnmounted(() => {
   --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   --glass-shadow-heavy: 0 8px 40px rgba(0, 0, 0, 0.12);
   --overlay-bg: rgba(0, 0, 0, 0.3);
+  --image-overlay-bg: rgba(0, 0, 0, 0.65);
+  --image-toolbar-bg: rgba(255, 255, 255, 0.75);
+  --image-toolbar-border: rgba(0, 0, 0, 0.08);
+  --image-toolbar-btn: rgba(0, 0, 0, 0.65);
+  --image-toolbar-btn-hover: rgba(0, 0, 0, 0.06);
+  --image-toolbar-btn-active: #1d1d1f;
+  --image-toolbar-text: rgba(0, 0, 0, 0.45);
+  --image-toolbar-divider: rgba(0, 0, 0, 0.08);
+  --image-toolbar-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
   --app-gradient: #f0f0f3;
   --warning: #ff9f0a;
   --warning-bg: rgba(255, 159, 10, 0.1);
@@ -257,6 +266,15 @@ html.dark {
   --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
   --glass-shadow-heavy: 0 8px 40px rgba(0, 0, 0, 0.4);
   --overlay-bg: rgba(0, 0, 0, 0.55);
+  --image-overlay-bg: rgba(0, 0, 0, 0.85);
+  --image-toolbar-bg: rgba(28, 28, 30, 0.85);
+  --image-toolbar-border: rgba(255, 255, 255, 0.08);
+  --image-toolbar-btn: rgba(255, 255, 255, 0.75);
+  --image-toolbar-btn-hover: rgba(255, 255, 255, 0.1);
+  --image-toolbar-btn-active: #fff;
+  --image-toolbar-text: rgba(255, 255, 255, 0.5);
+  --image-toolbar-divider: rgba(255, 255, 255, 0.1);
+  --image-toolbar-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   --app-gradient: #141416;
   --warning: #ffb340;
   --warning-bg: rgba(255, 179, 64, 0.1);
