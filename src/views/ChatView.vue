@@ -5,6 +5,7 @@ import MemberSidebar from "../components/MemberSidebar.vue";
 import ChatPanel from "../components/ChatPanel.vue";
 import TaskCenterView from "./TaskCenterView.vue";
 import TaskDispatchPanel from "./TaskDispatchPanel.vue";
+import SettingsPanel from "../components/SettingsPanel.vue";
 import { TeamClientKey, getTeamClientInstance } from "../composables/teamClientContext";
 
 const router = useRouter();
@@ -15,9 +16,17 @@ if (!ctx) {
 }
 
 const selectedPeer = ref("__tasks__");
+const previousPeer = ref("__tasks__");
 
 function handleSelectPeer(peerId: string) {
+  if (selectedPeer.value !== "__settings__") {
+    previousPeer.value = selectedPeer.value;
+  }
   selectedPeer.value = peerId;
+}
+
+function handleSettingsBack() {
+  selectedPeer.value = previousPeer.value;
 }
 
 if (ctx) {
@@ -31,7 +40,8 @@ if (ctx) {
       :selected-peer="selectedPeer"
       @select="handleSelectPeer"
     />
-    <TaskDispatchPanel v-if="selectedPeer === '__dispatch__'" />
+    <SettingsPanel v-if="selectedPeer === '__settings__'" @back="handleSettingsBack" />
+    <TaskDispatchPanel v-else-if="selectedPeer === '__dispatch__'" />
     <TaskCenterView v-else-if="selectedPeer === '__tasks__'" />
     <ChatPanel v-else :peer-id="selectedPeer" />
   </div>

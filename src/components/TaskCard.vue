@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
 import type { TaskMessage, TaskResource, AgentStep } from "../types";
-import { apiUrl } from "../api";
+import { apiUrl, managerPost } from "../api";
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -18,6 +18,11 @@ marked.use({ renderer: linkRenderer });
 const props = defineProps<{
   task: TaskMessage;
   teamName?: string;
+  myId?: string;
+}>();
+
+const emit = defineEmits<{
+  statusChanged: [];
 }>();
 
 const statusLabels: Record<TaskMessage["status"], string> = {
@@ -71,6 +76,73 @@ const memberEntries = computed<MemberEntry[]>(() => {
 
   return [];
 });
+
+// ─── Task operations ───
+
+const isAssignedToMe = computed(() => {
+  return props.myId && (props.task.subscribe ?? []).includes(props.myId);
+});
+
+const canStart = computed(() => isAssignedToMe.value && props.task.status === "pending");
+const canComplete = computed(() => isAssignedToMe.value && props.task.status === "running");
+const canUpload = computed(() => isAssignedToMe.value && (props.task.status === "running" || props.task.status === "pending"));
+
+const starting = ref(false);
+const completing = ref(false);
+const uploading = ref(false);
+
+async function handleStart() {
+  if (starting.value) return;
+  starting.value = true;
+  try {
+    const res = await managerPost(`/api/tasks/${props.task.taskId}/start`, { from: props.myId }, { team: props.teamName ?? "" });
+    if (res.ok) emit("statusChanged");
+    else alert("操作失败");
+  } catch {
+    alert("操作失败");
+  }
+  starting.value = false;
+}
+
+async function handleComplete() {
+  if (!confirm("确定要标记此任务为完成吗？")) return;
+  if (completing.value) return;
+  completing.value = true;
+  try {
+    const res = await managerPost(`/api/tasks/${props.task.taskId}/complete`, { from: props.myId }, { team: props.teamName ?? "" });
+    if (res.ok) emit("statusChanged");
+    else alert("操作失败");
+  } catch {
+    alert("操作失败");
+  }
+  completing.value = false;
+}
+
+async function handleUpload() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    uploading.value = true;
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("from", props.myId ?? "");
+      const res = await fetch(apiUrl(`/api/tasks/${props.task.taskId}/resources`), {
+        method: "POST",
+        headers: { team: props.teamName ?? "" },
+        body: formData,
+      });
+      if (!res.ok) throw new Error("上传失败");
+      emit("statusChanged");
+    } catch {
+      alert("文件上传失败");
+    }
+    uploading.value = false;
+  };
+  input.click();
+}
 
 // ─── Summary Markdown rendering ───
 
@@ -248,6 +320,22 @@ function formatToolResult(result: unknown): string {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Operation buttons -->
+    <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="task-actions">
+      <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+        {{ starting ? '执行中...' : '开始执行' }}
+      </button>
+      <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="handleUpload">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        {{ uploading ? '上传中...' : '上传文件' }}
+      </button>
+      <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="handleComplete">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        {{ completing ? '提交中...' : '标记完成' }}
+      </button>
     </div>
 
     <div class="task-meta">
@@ -545,6 +633,55 @@ function formatToolResult(result: unknown): string {
   font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
   max-height: 200px;
   overflow-y: auto;
+}
+
+/* Task actions */
+.task-actions {
+  margin-top: var(--space-md);
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.78em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.action-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-start:hover:not(:disabled) {
+  background: var(--task-running-bg);
+  border-color: var(--task-running-border);
+  color: var(--task-running-text);
+}
+
+.action-complete:hover:not(:disabled) {
+  background: var(--task-completed-bg);
+  border-color: var(--task-completed-border);
+  color: var(--task-completed-text);
+}
+
+.action-upload:hover:not(:disabled) {
+  background: var(--bg-tertiary);
 }
 
 /* Shared */

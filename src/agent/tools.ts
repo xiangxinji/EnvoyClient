@@ -17,8 +17,7 @@ export interface AgentTool extends AgentToolSchema {
 
 // ─── Built-in tools ───
 
-export function createShellTool(username?: string): AgentTool {
-  const workspaceDir = username ? `~/.envoy/workspace/${username}` : undefined;
+export function createShellTool(workingDir?: string): AgentTool {
   return {
     name: "shell",
     description: "执行 shell 命令并返回输出",
@@ -31,12 +30,12 @@ export function createShellTool(username?: string): AgentTool {
     },
     execute: async ({ command }) => {
       if (!isTauri) return { error: "Not in Tauri environment" };
-      return invoke("shell_exec", { command: command as string, workingDir: workspaceDir });
+      return invoke("shell_exec", { command: command as string, workingDir: workingDir || null });
     },
   };
 }
 
-export function createFileReadTool(): AgentTool {
+export function createFileReadTool(workingDir?: string): AgentTool {
   return {
     name: "file_read",
     description: "读取本地文件内容",
@@ -52,12 +51,12 @@ export function createFileReadTool(): AgentTool {
     },
     execute: async ({ path }) => {
       if (!isTauri) return { error: "Not in Tauri environment" };
-      return invoke("file_read", { path: path as string });
+      return invoke("file_read", { path: path as string, workingDir: workingDir || null });
     },
   };
 }
 
-export function createFileWriteTool(): AgentTool {
+export function createFileWriteTool(workingDir?: string): AgentTool {
   return {
     name: "file_write",
     description: "写入内容到本地文件",
@@ -74,7 +73,7 @@ export function createFileWriteTool(): AgentTool {
     },
     execute: async ({ path, content }) => {
       if (!isTauri) return { error: "Not in Tauri environment" };
-      return invoke("file_write", { path: path as string, content: content as string });
+      return invoke("file_write", { path: path as string, content: content as string, workingDir: workingDir || null });
     },
   };
 }
@@ -246,11 +245,11 @@ export function createReadSkillTool(username: string): AgentTool {
 
 // ─── Default tool set ───
 
-export function getDefaultTools(): AgentTool[] {
+export function getDefaultTools(workingDir?: string): AgentTool[] {
   return [
-    createShellTool(),
-    createFileReadTool(),
-    createFileWriteTool(),
+    createShellTool(workingDir),
+    createFileReadTool(workingDir),
+    createFileWriteTool(workingDir),
     createDoneTool(),
   ];
 }

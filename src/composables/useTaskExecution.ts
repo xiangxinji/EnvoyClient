@@ -41,8 +41,25 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
         return await handleLeaderReview(clientTask, taskId, taskContent);
       }
 
+      // Check task_execution_mode: manual mode skips agent execution
+      const executionMode = await getExecutionMode();
+      if (executionMode === "manual") {
+        return { taskId, note: "manual mode: task added to list, awaiting user action" };
+      }
+
       return await handleMemberExecution(taskId, taskContent);
     });
+  }
+
+  async function getExecutionMode(): Promise<"manual" | "auto"> {
+    try {
+      const settings = await invoke("get_settings") as Record<string, unknown> | null;
+      const users = settings?.users as Record<string, unknown> | undefined;
+      const userSettings = users?.[ctx.myId] as Record<string, unknown> | undefined;
+      return (userSettings?.task_execution_mode as "manual" | "auto") ?? "auto";
+    } catch {
+      return "auto";
+    }
   }
 
   async function handleLeaderReview(clientTask: { serverTask: { id: string; content: string; status: string; attempt: number; resources: TaskResource[] } }, taskId: string, taskContent: string) {
@@ -83,8 +100,22 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       const queryResTool = createQueryResourcesTool({ teamName: ctx.teamName });
       const readResTool = createReadResourceTool({ teamName: ctx.teamName });
       const readSkillTool = createReadSkillTool(ctx.myId);
-      const tools = [...getDefaultTools(), uploadTool, queryResTool, readResTool, readSkillTool];
-      const workspacePath = `~/.envoy/workspace/${ctx.myId}`;
+
+      // Resolve workspace: custom working_dir from settings or default
+      let workspacePath = `~/.envoy/workspace/${ctx.myId}`;
+      try {
+        const settings = await invoke("get_settings") as Record<string, unknown> | null;
+        const users = settings?.users as Record<string, unknown> | undefined;
+        const userSettings = users?.[ctx.myId] as Record<string, unknown> | undefined;
+        const customDir = userSettings?.working_directory as string | undefined;
+        if (customDir && customDir.trim()) {
+          workspacePath = customDir.trim();
+        }
+      } catch {
+        // Use default workspace
+      }
+
+      const tools = [...getDefaultTools(workspacePath), uploadTool, queryResTool, readResTool, readSkillTool];
 
       let skillCatalog: string | undefined;
       try {

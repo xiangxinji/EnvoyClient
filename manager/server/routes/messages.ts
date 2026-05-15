@@ -187,4 +187,44 @@ export default function messageRoutes(app: Hono, teams: Map<string, Team>) {
       return c.json({ error: "file not found" }, 404);
     }
   });
+
+  // Manual start: pending → running
+  app.post("/api/tasks/:id/start", async (c) => {
+    const teamName = c.req.header("team");
+    if (!teamName) return c.json({ error: "team header is required" }, 400);
+
+    const team = teams.get(teamName);
+    if (!team) return c.json({ error: "team not found" }, 404);
+
+    const taskId = c.req.param("id");
+    const body = await c.req.json<{ from?: string }>();
+    if (!body.from) return c.json({ error: "from is required" }, 400);
+
+    const task = team.innerServer.getTask(taskId);
+    if (!task) return c.json({ error: "task not found" }, 404);
+    if (task.status !== "pending") return c.json({ error: `task status is '${task.status}', expected 'pending'` }, 400);
+
+    const updated = team.innerServer.startTask(taskId);
+    return c.json({ ok: true, task: updated });
+  });
+
+  // Manual complete: running → completed
+  app.post("/api/tasks/:id/complete", async (c) => {
+    const teamName = c.req.header("team");
+    if (!teamName) return c.json({ error: "team header is required" }, 400);
+
+    const team = teams.get(teamName);
+    if (!team) return c.json({ error: "team not found" }, 404);
+
+    const taskId = c.req.param("id");
+    const body = await c.req.json<{ from?: string; data?: unknown }>();
+    if (!body.from) return c.json({ error: "from is required" }, 400);
+
+    const task = team.innerServer.getTask(taskId);
+    if (!task) return c.json({ error: "task not found" }, 404);
+    if (task.status !== "running") return c.json({ error: `task status is '${task.status}', expected 'running'` }, 400);
+
+    const updated = team.innerServer.manualCompleteTask(taskId, body.from, body.data);
+    return c.json({ ok: true, task: updated });
+  });
 }

@@ -5,7 +5,7 @@ import TaskCard from "../components/TaskCard.vue";
 import type { TaskMessage } from "../types";
 
 const ctx = inject(TeamClientKey)!;
-const { messages, teamName } = ctx;
+const { messages, teamName, myId } = ctx;
 
 // Collect all TaskMessage items from all conversations
 const allTasks = computed<TaskMessage[]>(() => {
@@ -76,7 +76,7 @@ const statusGroups = computed(() => [
           {{ group.label }} ({{ group.tasks.length }})
         </div>
         <div class="group-tasks">
-          <TaskCard v-for="task in group.tasks" :key="task.taskId" :task="task" :team-name="teamName" />
+          <TaskCard v-for="task in group.tasks" :key="task.taskId" :task="task" :team-name="teamName" :my-id="myId" />
         </div>
       </div>
     </div>

@@ -80,10 +80,17 @@ fn resolve_safe_path(path: &str) -> Result<std::path::PathBuf, serde_json::Value
 }
 
 #[tauri::command]
-fn file_read(path: String) -> Result<serde_json::Value, String> {
-    let safe_path = resolve_safe_path(&path).map_err(|v| {
-        serde_json::to_string(&v).unwrap_or_else(|_| r#"{"error":"Unknown error"}"#.to_string())
-    })?;
+fn file_read(path: String, working_dir: Option<String>) -> Result<serde_json::Value, String> {
+    let safe_path = if working_dir.is_some() {
+        // Agent workspace mode: validate against workspace
+        let workspace = resolve_workspace(working_dir)?;
+        validate_workspace_path(&path, &workspace).map_err(|e| e.to_string())?
+    } else {
+        // Default mode: validate against ~/.envoy/
+        resolve_safe_path(&path).map_err(|v| {
+            serde_json::to_string(&v).unwrap_or_else(|_| r#"{"error":"Unknown error"}"#.to_string())
+        })?
+    };
 
     if !safe_path.exists() {
         return Err(
@@ -109,10 +116,17 @@ fn file_read(path: String) -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
-fn file_write(path: String, content: String) -> Result<serde_json::Value, String> {
-    let safe_path = resolve_safe_path(&path).map_err(|v| {
-        serde_json::to_string(&v).unwrap_or_else(|_| r#"{"error":"Unknown error"}"#.to_string())
-    })?;
+fn file_write(path: String, content: String, working_dir: Option<String>) -> Result<serde_json::Value, String> {
+    let safe_path = if working_dir.is_some() {
+        // Agent workspace mode: validate against workspace
+        let workspace = resolve_workspace(working_dir)?;
+        validate_workspace_path(&path, &workspace).map_err(|e| e.to_string())?
+    } else {
+        // Default mode: validate against ~/.envoy/
+        resolve_safe_path(&path).map_err(|v| {
+            serde_json::to_string(&v).unwrap_or_else(|_| r#"{"error":"Unknown error"}"#.to_string())
+        })?
+    };
 
     // Ensure parent directory exists
     if let Some(parent) = safe_path.parent() {
@@ -273,32 +287,175 @@ fn validate_command(command: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Resolve the workspace directory for a given working_dir override and username.
+/// Priority: working_dir param > ENVOY_WORKSPACE env > ~/.envoy/workspace/
+fn resolve_workspace(working_dir: Option<String>) -> Result<std::path::PathBuf, String> {
+    let raw = working_dir
+        .or_else(|| std::env::var("ENVOY_WORKSPACE").ok())
+        .or_else(|| {
+            dirs::home_dir().map(|h| h.join(".envoy").join("workspace").to_string_lossy().to_string())
+        })
+        .ok_or_else(|| "Cannot determine workspace directory".to_string())?;
+
+    let expanded = if raw.starts_with("~/") {
+        dirs::home_dir()
+            .map(|h| h.join(&raw[2..]))
+            .ok_or_else(|| "Cannot determine home directory".to_string())?
+    } else {
+        std::path::PathBuf::from(&raw)
+    };
+
+    // Ensure workspace exists then canonicalize
+    if !expanded.exists() {
+        std::fs::create_dir_all(&expanded).map_err(|e| e.to_string())?;
+    }
+    expanded.canonicalize().map_err(|e| e.to_string())
+}
+
+/// Strip Windows UNC prefix (\\?\) from a path for clean comparison.
+fn clean_path(p: &std::path::Path) -> std::path::PathBuf {
+    let s = p.to_string_lossy();
+    std::path::PathBuf::from(s.strip_prefix(r"\\?\").unwrap_or(&s))
+}
+
+/// Validate that cd targets in a command do not escape the workspace.
+/// Splits command by &&, ||, |, ; and checks each cd target.
+fn validate_cd_paths(command: &str, workspace: &std::path::Path) -> Result<(), String> {
+    let ws_clean = clean_path(workspace);
+
+    // Split by shell operators
+    let segments = command.split(&['&', '|', ';'][..]);
+
+    for seg in segments {
+        let seg = seg.trim();
+        // Match cd with a target (handle quoted and unquoted paths)
+        // Pattern: cd <path> or cd "<path>"
+        let rest = if let Some(s) = seg.strip_prefix("cd ") {
+            s.trim()
+        } else {
+            continue;
+        };
+
+        // Skip cd without args or cd alone (no-op)
+        if rest.is_empty() || rest == "~" {
+            return Err("Command rejected: cd target escapes workspace".to_string());
+        }
+
+        let target_str = if (rest.starts_with('"') && rest.ends_with('"'))
+            || (rest.starts_with('\'') && rest.ends_with('\''))
+        {
+            &rest[1..rest.len() - 1]
+        } else {
+            // Take first token (stop at whitespace for unquoted paths)
+            rest.split_whitespace().next().unwrap_or(rest)
+        };
+
+        // Resolve the cd target
+        let target = if target_str.starts_with("~/") {
+            dirs::home_dir()
+                .map(|h| h.join(&target_str[2..]))
+                .ok_or_else(|| "Cannot resolve home directory".to_string())?
+        } else if target_str == "~" {
+            dirs::home_dir()
+                .ok_or_else(|| "Cannot resolve home directory".to_string())?
+        } else if std::path::Path::new(target_str).is_absolute() {
+            std::path::PathBuf::from(target_str)
+        } else {
+            // Relative path — resolve from workspace
+            workspace.join(target_str)
+        };
+
+        // Canonicalize (target must exist for canonicalize to work)
+        // For non-existent targets, resolve via parent
+        let canonical = if target.exists() {
+            target.canonicalize().map_err(|e| e.to_string())?
+        } else {
+            // For relative paths like "src", resolve against workspace
+            let parent = target.parent();
+            let file_name = target.file_name();
+            match (parent, file_name) {
+                (Some(p), Some(f)) if p.exists() => {
+                    p.canonicalize().map_err(|e| e.to_string())?.join(f)
+                }
+                _ => target.clone(),
+            }
+        };
+
+        let target_clean = clean_path(&canonical);
+        if !target_clean.starts_with(&ws_clean) {
+            return Err(format!(
+                "Command rejected: cd target escapes workspace ({} -> {})",
+                target_str,
+                target_clean.display()
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+/// Validate that a file path is within the workspace.
+fn validate_workspace_path(path: &str, workspace: &std::path::Path) -> Result<std::path::PathBuf, String> {
+    let ws_clean = clean_path(workspace);
+
+    let expanded = if path.starts_with("~/") {
+        dirs::home_dir()
+            .map(|h| h.join(&path[2..]))
+            .ok_or_else(|| "Cannot determine home directory".to_string())?
+    } else if path == "~" {
+        dirs::home_dir()
+            .ok_or_else(|| "Cannot determine home directory".to_string())?
+    } else {
+        std::path::PathBuf::from(path)
+    };
+
+    // Canonicalize: for existing paths do it directly; for new files resolve parent
+    let canonical = if expanded.exists() {
+        expanded.canonicalize().map_err(|e| e.to_string())?
+    } else {
+        let file_name = expanded
+            .file_name()
+            .ok_or_else(|| "Invalid path".to_string())?;
+        let parent = expanded.parent().ok_or_else(|| "Invalid path".to_string())?;
+        if parent.as_os_str().is_empty() {
+            return Err("Path outside workspace".to_string());
+        }
+        let canonical_parent = if parent.exists() {
+            parent.canonicalize().map_err(|e| e.to_string())?
+        } else {
+            return Err("Parent directory does not exist".to_string());
+        };
+        canonical_parent.join(file_name)
+    };
+
+    let canonical_clean = clean_path(&canonical);
+    if !canonical_clean.starts_with(&ws_clean) {
+        return Err(format!("Path outside workspace: {}", canonical_clean.display()));
+    }
+
+    Ok(canonical)
+}
+
 #[tauri::command]
 fn shell_exec(command: String, working_dir: Option<String>) -> Result<serde_json::Value, String> {
     validate_command(&command)?;
 
-    let workspace = working_dir
-        .or_else(|| std::env::var("ENVOY_WORKSPACE").ok())
-        .or_else(|| dirs::home_dir().map(|h| h.join(".envoy").join("workspace").to_string_lossy().to_string()));
+    let workspace = resolve_workspace(working_dir)?;
 
-    // Expand ~ to home directory
-    let workspace = workspace.map(|dir| {
-        if dir.starts_with("~/") {
-            dirs::home_dir().map(|h| h.join(&dir[2..]).to_string_lossy().to_string()).unwrap_or(dir)
-        } else {
-            dir
-        }
-    });
+    // Validate cd targets don't escape workspace
+    validate_cd_paths(&command, &workspace)?;
+
+    let ws_str = workspace.to_string_lossy().to_string();
 
     let output = if cfg!(target_os = "windows") {
+        let full_cmd = format!("cd /d \"{}\" && {}", ws_str, command);
         let mut cmd = Command::new("cmd");
-        cmd.args(["/C", &command]);
-        if let Some(dir) = &workspace { cmd.current_dir(dir); }
+        cmd.args(["/C", &full_cmd]);
         cmd.output()
     } else {
+        let full_cmd = format!("cd \"{}\" && {}", ws_str, command);
         let mut cmd = Command::new("sh");
-        cmd.arg("-c").arg(&command);
-        if let Some(dir) = &workspace { cmd.current_dir(dir); }
+        cmd.arg("-c").arg(&full_cmd);
         cmd.output()
     }
     .map_err(|e| e.to_string())?;
