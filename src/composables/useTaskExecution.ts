@@ -71,7 +71,7 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       postToManager(`/api/tasks/${taskId}/result`, {
         from: ctx.myId,
         success: reviewResult.success,
-        data: { review: reviewResult.summary, ...reviewResult },
+        data: { review: reviewResult.summary, source: "ai", ...reviewResult },
       });
       return reviewResult;
     } catch (e) {
@@ -131,7 +131,7 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       postToManager(`/api/tasks/${taskId}/result`, {
         from: ctx.myId,
         success: true,
-        data: parsed,
+        data: { ...parsed, source: "ai" },
         trace: agentResult.trace,
       });
       return parsed;

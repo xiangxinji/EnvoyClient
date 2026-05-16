@@ -53,6 +53,24 @@ const leaderReviews = computed<TaskResource[]>(() =>
   props.task.resources?.filter((r) => r.type === "leader-review") ?? []
 );
 
+const traceByMember = computed(() => {
+  const map = new Map<string, boolean>();
+  for (const r of traceResources.value) {
+    map.set(r.by, true);
+  }
+  return map;
+});
+
+function isAIExecuted(res: TaskResource): boolean {
+  if ((res.data as any)?.source === "ai") return true;
+  return traceByMember.value.has(res.by);
+}
+
+function isAIReview(review: TaskResource): boolean {
+  if ((review.data as any)?.data?.source === "ai") return true;
+  return false;
+}
+
 // ─── Members ───
 
 interface MemberEntry {
@@ -176,7 +194,7 @@ async function doComplete() {
   if (completing.value) return;
   completing.value = true;
   try {
-    const res = await managerPost(`/api/tasks/${props.task.taskId}/complete`, { from: props.myId, data: { note: "手动标记完成" } }, { team: props.teamName ?? "" });
+    const res = await managerPost(`/api/tasks/${props.task.taskId}/complete`, { from: props.myId, data: { note: "手动标记完成", source: "manual" } }, { team: props.teamName ?? "" });
     if (res.ok) emit("statusChanged");
     else showToast("操作失败", "error");
   } catch {
@@ -196,7 +214,7 @@ async function doApprove() {
     const res = await managerPost(`/api/tasks/${props.task.taskId}/result`, {
       from: props.myId,
       success: true,
-      data: { review: "通过" },
+      data: { review: "通过", source: "manual" },
     }, { team: props.teamName ?? "" });
     if (res.ok) {
       emit("statusChanged");
@@ -380,6 +398,8 @@ function formatToolResult(result: unknown): string {
       </div>
       <div v-for="(res, i) in clientResults" :key="`summary-${i}`" class="summary-item">
         <span class="resource-by">{{ res.by }}</span>
+        <span v-if="isAIExecuted(res)" class="source-badge ai">AI</span>
+        <span v-else class="source-badge manual">手动</span>
         <div
           class="markdown-content"
           v-html="renderMarkdown(getResultText(res.data))"
@@ -398,6 +418,8 @@ function formatToolResult(result: unknown): string {
         <span class="review-status" :class="(review.data as any)?.success ? 'approved' : 'rejected'">
           {{ (review.data as any)?.success ? '通过' : '驳回' }}
         </span>
+        <span v-if="isAIReview(review)" class="source-badge ai">AI</span>
+        <span v-else class="source-badge manual">手动</span>
         <div v-if="(review.data as any)?.data" class="review-data">
           <div class="markdown-content" v-html="renderMarkdown(getResultText((review.data as any).data))" />
         </div>
@@ -674,6 +696,27 @@ function formatToolResult(result: unknown): string {
   margin-top: var(--space-xs);
   font-size: 0.8em;
   color: var(--error);
+}
+
+/* Source badges */
+.source-badge {
+  font-size: 0.65em;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.source-badge.ai {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.source-badge.manual {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
 }
 
 .markdown-content {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { inject, computed } from "vue";
-import { TeamClientKey } from "../composables/teamClientContext";
+import { TeamClientKey, getMemberSettings } from "../composables/teamClientContext";
 
 defineProps<{
   selectedPeer: string;
@@ -11,7 +11,8 @@ const emit = defineEmits<{
 }>();
 
 const ctx = inject(TeamClientKey)!;
-const { members, unreadCounts, markRead, messages } = ctx;
+const { members, unreadCounts, markRead, messages, myId } = ctx;
+const { settings: memberSettings } = getMemberSettings();
 
 // Count all tasks across all conversations
 const taskCount = computed(() => {
@@ -47,17 +48,6 @@ function getInitial(name: string): string {
   <aside class="sidebar">
     <div class="sidebar-header">
       <h3>成员</h3>
-      <button
-        class="btn-settings"
-        :class="{ active: selectedPeer === '__settings__' }"
-        @click="emit('select', '__settings__')"
-        title="设置"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
-      </button>
     </div>
     <ul>
       <!-- Task center entry -->
@@ -126,6 +116,26 @@ function getInitial(name: string): string {
         <span>暂无成员</span>
       </li>
     </ul>
+
+    <div class="sidebar-footer">
+      <div class="user-menu-wrapper">
+        <div class="user-avatar-btn" :title="myId">
+          {{ getInitial(myId) }}
+        </div>
+        <div class="user-menu" @click.stop>
+          <button class="user-menu-item" :class="{ active: selectedPeer === '__settings__' }" @click="emit('select', '__settings__')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+            设置
+          </button>
+        </div>
+      </div>
+      <span class="mode-tag" :class="memberSettings.task_execution_mode">
+        {{ memberSettings.task_execution_mode === 'auto' ? 'AI 托管' : '手动' }}
+      </span>
+    </div>
   </aside>
 </template>
 
@@ -303,27 +313,104 @@ li.active {
   color: var(--warning);
 }
 
-/* Header settings button */
-.btn-settings {
+/* User avatar button */
+.user-avatar-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.75em;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
   transition: all 0.15s;
 }
 
-.btn-settings:hover {
+.user-avatar-btn:hover {
   background: var(--sidebar-hover);
-  color: var(--text-secondary);
 }
 
-.btn-settings.active {
+/* User menu dropdown */
+.user-menu-wrapper {
+  position: relative;
+}
+
+.user-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--glass-shadow);
+  min-width: 120px;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
+}
+
+.user-menu-wrapper:hover .user-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.82em;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.user-menu-item:hover {
+  background: var(--sidebar-hover);
+  color: var(--text-primary);
+}
+
+.user-menu-item.active {
   color: var(--accent);
+}
+
+/* Footer */
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--glass-border);
+}
+
+.mode-tag {
+  font-size: 0.68em;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+}
+
+.mode-tag.auto {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.mode-tag.manual {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
 }
 </style>

@@ -7,7 +7,7 @@ import TaskCard from "./TaskCard.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
 import RichEditor from "./RichEditor.vue";
-import type { TimelineItem, ChatMessage, TaskPlan, MessageAttachment } from "../types";
+import type { TimelineItem, ChatMessage, MessageAttachment } from "../types";
 import { isImageMime, formatFileSize, compressImage } from "../utils/imageCompress";
 import { apiUrl } from "../api";
 
@@ -38,10 +38,6 @@ interface PendingFileAttachment {
 const pendingFiles = ref<PendingFileAttachment[]>([]);
 const uploading = ref(false);
 const attachmentError = ref("");
-
-// AI dispatch preview
-const dispatchPreview = ref<{ subscribe: string[]; content: string } | null>(null);
-const dispatchLoading = ref(false);
 
 const PAGE_SIZE = 50;
 const displayCount = ref(PAGE_SIZE);
@@ -100,14 +96,7 @@ const {
   suggestReply,
   acceptSuggestion,
   clearSuggestion,
-  planTask,
-  dispatchTask: aiDispatchTask,
 } = useAI();
-
-// AI task plan
-const aiPlanVisible = ref(false);
-const aiPlan = ref<TaskPlan | null>(null);
-const aiPlanLoading = ref(false);
 
 watch(
   () => props.peerId,
@@ -116,10 +105,6 @@ watch(
     displayCount.value = PAGE_SIZE;
     taskInputVisible.value = false;
     clearSuggestion();
-    aiPlanVisible.value = false;
-    aiPlan.value = null;
-    dispatchPreview.value = null;
-    dispatchLoading.value = false;
   }
 );
 
@@ -258,36 +243,13 @@ function handleCancelClear() {
   confirmVisible.value = false;
 }
 
-// AI dispatch: submit calls AI to pick members, shows preview
-async function handleDispatchTask() {
+// AI dispatch: directly dispatch to current peer
+function handleDispatchTask() {
   const content = taskContent.value.trim();
   if (!content) return;
-
-  dispatchLoading.value = true;
-  dispatchPreview.value = null;
-
-  const memberList = members.value.map((m) => ({ id: m.id, responsibilities: m.responsibilities }));
-  const result = await aiDispatchTask(content, memberList);
-
-  dispatchLoading.value = false;
-  if (result) {
-    dispatchPreview.value = result;
-  }
-}
-
-// Confirm: actually dispatch using subscribe list from AI result
-function handleConfirmDispatch() {
-  if (!dispatchPreview.value) return;
-  const { subscribe, content } = dispatchPreview.value;
-  dispatchTask(subscribe, content);
-  dispatchPreview.value = null;
+  dispatchTask([props.peerId], content);
   taskContent.value = "";
   taskInputVisible.value = false;
-}
-
-// Cancel: clear preview, keep input
-function handleCancelDispatch() {
-  dispatchPreview.value = null;
 }
 
 const { settings: memberSettings } = getMemberSettings();
@@ -318,37 +280,6 @@ function handleAcceptSuggestion() {
   if (text) {
     sendChat(props.peerId, text);
   }
-}
-
-// AI task generation (Leader only)
-async function handleAITaskGenerate() {
-  if (!taskContent.value.trim()) return;
-  aiPlanLoading.value = true;
-  aiPlanVisible.value = true;
-  aiPlan.value = null;
-
-  const plan = await planTask(taskContent.value.trim(), members.value);
-  aiPlan.value = plan;
-  aiPlanLoading.value = false;
-}
-
-function handleConfirmAIPlan() {
-  if (!aiPlan.value) return;
-
-  for (const assignment of aiPlan.value.assignments) {
-    const commands = assignment.commands.join(" && ");
-    dispatchTask([assignment.memberId], commands);
-  }
-
-  aiPlanVisible.value = false;
-  aiPlan.value = null;
-  taskContent.value = "";
-  taskInputVisible.value = false;
-}
-
-function handleCancelAIPlan() {
-  aiPlanVisible.value = false;
-  aiPlan.value = null;
 }
 
 function closeMenuOnClickOutside(e: MouseEvent) {
@@ -414,80 +345,25 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
       </div>
 
       <div class="input-area">
-        <!-- AI task plan panel (Leader only) -->
-        <div v-if="aiPlanVisible && role === 'leader'" class="ai-plan">
-          <div class="ai-plan-header">
-            <span class="ai-plan-label">AI 任务规划</span>
-          </div>
-          <div v-if="aiPlanLoading" class="ai-plan-loading">
-            <span class="spinner-small"></span> AI 正在分析...
-          </div>
-          <template v-else-if="aiPlan">
-            <div class="ai-plan-summary">{{ aiPlan.summary }}</div>
-            <div v-for="(a, i) in aiPlan.assignments" :key="i" class="ai-plan-assignment">
-              <div class="ai-plan-assignee">{{ a.memberId }}</div>
-              <div class="ai-plan-desc">{{ a.description }}</div>
-              <code v-for="cmd in a.commands" :key="cmd" class="ai-plan-cmd">{{ cmd }}</code>
-            </div>
-            <div class="ai-plan-actions">
-              <button class="btn-ai-accept" @click="handleConfirmAIPlan">确认分派</button>
-              <button class="btn-ai-dismiss" @click="handleCancelAIPlan">取消</button>
-            </div>
-          </template>
-          <div v-if="aiError" class="ai-error">{{ aiError }}</div>
-        </div>
-
         <!-- Task input (Leader only) -->
-        <div v-if="taskInputVisible && role === 'leader' && !aiPlanVisible" class="task-input-wrapper">
+        <div v-if="taskInputVisible && role === 'leader'" class="task-input-wrapper">
           <div class="task-input">
             <input
               v-model="taskContent"
               placeholder="输入任务描述..."
               @keydown.enter="handleDispatchTask"
             />
-            <button class="btn-icon btn-confirm" @click="handleDispatchTask" title="AI 分派" :disabled="!aiAvailable || dispatchLoading">
+            <button class="btn-icon btn-confirm" @click="handleDispatchTask" title="分派任务" :disabled="!taskContent.trim()">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
             </button>
-            <button class="btn-icon btn-ai" @click="handleAITaskGenerate" title="AI 生成命令" :disabled="!aiAvailable">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-              </svg>
-            </button>
-            <button class="btn-icon btn-cancel" @click="taskInputVisible = false; dispatchPreview = null" title="取消">
+            <button class="btn-icon btn-cancel" @click="taskInputVisible = false" title="取消">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
-          </div>
-
-          <!-- AI dispatch preview panel -->
-          <div v-if="dispatchLoading" class="dispatch-preview">
-            <span class="spinner-small"></span> AI 正在匹配成员...
-          </div>
-          <div v-else-if="dispatchPreview" class="dispatch-preview">
-            <div class="dispatch-preview-header">
-              <span class="dispatch-preview-label">AI 分派预览</span>
-            </div>
-            <div class="dispatch-preview-content">
-              {{ dispatchPreview.content }}
-            </div>
-            <div class="dispatch-preview-members">
-              <span class="dispatch-members-label">匹配成员：</span>
-              <div class="dispatch-member-list">
-                <span v-for="memberId in dispatchPreview.subscribe" :key="memberId" class="dispatch-member-chip">
-                  {{ memberId }}
-                </span>
-              </div>
-            </div>
-            <div v-if="aiError" class="ai-error">{{ aiError }}</div>
-            <div class="dispatch-preview-actions">
-              <button class="btn-ai-accept" @click="handleConfirmDispatch">确认分派</button>
-              <button class="btn-ai-dismiss" @click="handleCancelDispatch">取消</button>
-            </div>
           </div>
         </div>
 
