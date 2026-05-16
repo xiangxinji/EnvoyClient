@@ -72,6 +72,41 @@ const remember = ref(false);
   box-shadow: var(--glass-shadow-heavy);
 }
 
+.overlay-enter-active {
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.overlay-enter-active .dialog {
+  transition:
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.overlay-leave-active {
+  transition: opacity 0.18s cubic-bezier(0.4, 0, 1, 1);
+}
+.overlay-leave-active .dialog {
+  transition:
+    transform 0.18s cubic-bezier(0.4, 0, 1, 1),
+    filter 0.18s cubic-bezier(0.4, 0, 1, 1),
+    opacity 0.18s cubic-bezier(0.4, 0, 1, 1);
+}
+.overlay-enter-from {
+  opacity: 0;
+}
+.overlay-enter-from .dialog {
+  transform: scale(0.94);
+  filter: blur(8px);
+  opacity: 0;
+}
+.overlay-leave-to {
+  opacity: 0;
+}
+.overlay-leave-to .dialog {
+  transform: scale(0.97);
+  filter: blur(4px);
+  opacity: 0;
+}
+
 .dialog-title {
   margin: 0 0 var(--space-xs);
   font-size: 1.05em;
@@ -123,15 +158,5 @@ const remember = ref(false);
 .dialog :deep(.glass-checkbox) {
   margin-top: var(--space-lg);
   font-size: 0.82em;
-}
-
-.overlay-enter-active,
-.overlay-leave-active {
-  transition: opacity 0.18s ease;
-}
-
-.overlay-enter-from,
-.overlay-leave-to {
-  opacity: 0;
 }
 </style>

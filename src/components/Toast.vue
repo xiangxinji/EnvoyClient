@@ -21,7 +21,7 @@ watch(() => props.visible, (val) => {
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => {
       show.value = false;
-      setTimeout(() => emit("done"), 200);
+      setTimeout(() => emit("done"), 280);
     }, props.duration ?? 2000);
   } else {
     show.value = false;
@@ -46,7 +46,7 @@ watch(() => props.visible, (val) => {
   position: fixed;
   top: 60px;
   left: 50%;
-  transform: translateX(-50%) translateY(-10px);
+  transform: translateX(-50%) translateY(-16px) scale(0.96);
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -56,7 +56,11 @@ watch(() => props.visible, (val) => {
   font-weight: 500;
   z-index: 1001;
   opacity: 0;
-  transition: all 0.2s ease;
+  filter: blur(4px);
+  transition:
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   background: var(--glass-bg-heavy);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -67,7 +71,8 @@ watch(() => props.visible, (val) => {
 
 .toast.active {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(-50%) translateY(0) scale(1);
+  filter: blur(0);
 }
 
 .toast.success {

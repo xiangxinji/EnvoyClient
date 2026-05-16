@@ -27,12 +27,12 @@ watch(() => props.visible, (val) => {
 
 function handleConfirm() {
   show.value = false;
-  setTimeout(() => emit("confirm"), 150);
+  setTimeout(() => emit("confirm"), 200);
 }
 
 function handleCancel() {
   show.value = false;
-  setTimeout(() => emit("cancel"), 150);
+  setTimeout(() => emit("cancel"), 200);
 }
 
 function handleBackdropClick() {
@@ -43,7 +43,7 @@ function handleBackdropClick() {
 <template>
   <Teleport to="body">
     <div v-if="visible" class="confirm-overlay" :class="{ active: show }" @click="handleBackdropClick">
-      <div class="confirm-dialog" :class="{ active: show }" @click.stop>
+      <div class="confirm-dialog" @click.stop>
         <div class="confirm-title">{{ title ?? "确认" }}</div>
         <div class="confirm-message">{{ message }}</div>
         <div class="confirm-actions">
@@ -67,7 +67,7 @@ function handleBackdropClick() {
   justify-content: center;
   z-index: 1000;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .confirm-overlay.active {
@@ -84,12 +84,19 @@ function handleBackdropClick() {
   min-width: 300px;
   max-width: 400px;
   box-shadow: var(--glass-shadow-heavy);
-  transform: scale(0.95);
-  transition: transform 0.15s ease;
+  transform: scale(0.94);
+  filter: blur(8px);
+  opacity: 0;
+  transition:
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.confirm-dialog.active {
+.confirm-overlay.active .confirm-dialog {
   transform: scale(1);
+  filter: blur(0);
+  opacity: 1;
 }
 
 .confirm-title {

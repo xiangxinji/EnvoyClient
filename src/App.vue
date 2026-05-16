@@ -106,7 +106,11 @@ onUnmounted(() => {
 <template>
   <div class="app-container">
     <TitleBar :username="username" @close-requested="handleCloseRequested" />
-    <router-view />
+    <router-view v-slot="{ Component }">
+      <transition name="page" mode="out-in">
+        <component :is="Component" />
+      </transition>
+    </router-view>
     <CloseConfirmDialog
       v-model="showDialog"
       @hide="onDialogHide"
@@ -337,5 +341,45 @@ input, button, textarea {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+.page-enter-active {
+  transition:
+    opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform, filter;
+}
+
+.page-leave-active {
+  transition:
+    opacity 0.18s cubic-bezier(0.4, 0, 1, 1),
+    transform 0.18s cubic-bezier(0.4, 0, 1, 1),
+    filter 0.18s cubic-bezier(0.4, 0, 1, 1);
+  will-change: opacity, transform, filter;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: scale(0.94);
+  filter: blur(8px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: scale(0.97);
+  filter: blur(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active {
+    transition: opacity 0.1s ease;
+  }
+  .page-enter-from,
+  .page-leave-to {
+    transform: none;
+    filter: none;
+  }
 }
 </style>

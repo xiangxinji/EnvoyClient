@@ -1,6 +1,5 @@
 mod brains;
 mod credentials;
-mod history;
 mod settings;
 
 use std::collections::HashMap;
@@ -138,38 +137,6 @@ fn file_write(path: String, content: String, working_dir: Option<String>) -> Res
     }
     std::fs::write(&safe_path, &content).map_err(|e| e.to_string())?;
     Ok(serde_json::json!({ "success": true }))
-}
-
-#[tauri::command]
-fn save_message(my_id: &str, peer_id: &str, message: serde_json::Value) -> Result<(), String> {
-    history::save_message(my_id, peer_id, message)
-}
-
-#[tauri::command]
-fn load_history(my_id: &str, peer_id: &str) -> Result<Vec<serde_json::Value>, String> {
-    history::load_history(my_id, peer_id)
-}
-
-#[tauri::command]
-fn load_all_history(
-    my_id: &str,
-) -> Result<HashMap<String, Vec<serde_json::Value>>, String> {
-    history::load_all_history(my_id)
-}
-
-#[tauri::command]
-fn export_history(my_id: &str, peer_id: &str, target_path: &str) -> Result<(), String> {
-    history::export_history(my_id, peer_id, target_path)
-}
-
-#[tauri::command]
-fn import_history(my_id: &str, peer_id: &str, source_path: &str) -> Result<(), String> {
-    history::import_history(my_id, peer_id, source_path)
-}
-
-#[tauri::command]
-fn delete_history(my_id: &str, peer_id: &str) -> Result<(), String> {
-    history::delete_history(my_id, peer_id)
 }
 
 #[tauri::command]
@@ -543,12 +510,6 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            save_message,
-            load_history,
-            load_all_history,
-            delete_history,
-            export_history,
-            import_history,
             get_settings,
             save_settings,
             shell_exec,

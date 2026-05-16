@@ -173,7 +173,8 @@ onUnmounted(() => {
 
   <!-- Fullscreen image overlay -->
   <Teleport to="body">
-    <div v-if="fullscreenUrl" class="fullscreen-overlay" @click="closeFullscreen" @mousemove="onDragMove" @mouseup="onDragEnd" @mouseleave="onDragEnd">
+    <Transition name="viewer">
+      <div v-if="fullscreenUrl" class="fullscreen-overlay" @click="closeFullscreen" @mousemove="onDragMove" @mouseup="onDragEnd" @mouseleave="onDragEnd">
       <div class="fullscreen-toolbar" @click.stop>
         <button class="toolbar-btn" @click="zoomOut" title="缩小">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
@@ -212,6 +213,7 @@ onUnmounted(() => {
         @mousedown.prevent="onDragStart"
       />
     </div>
+    </Transition>
   </Teleport>
 </template>
 
@@ -502,5 +504,54 @@ onUnmounted(() => {
 .time {
   font-size: 0.7em;
   color: var(--text-muted);
+}
+
+.viewer-enter-active {
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.viewer-enter-active .fullscreen-image {
+  transition:
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.viewer-enter-active .fullscreen-toolbar {
+  transition:
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.05s,
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.05s;
+}
+.viewer-leave-active {
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+.viewer-leave-active .fullscreen-image {
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 1, 1),
+    opacity 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+.viewer-leave-active .fullscreen-toolbar {
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 1, 1),
+    opacity 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+.viewer-enter-from {
+  opacity: 0;
+}
+.viewer-enter-from .fullscreen-image {
+  transform: scale(0.92);
+  opacity: 0;
+}
+.viewer-enter-from .fullscreen-toolbar {
+  transform: translateX(-50%) translateY(10px);
+  opacity: 0;
+}
+.viewer-leave-to {
+  opacity: 0;
+}
+.viewer-leave-to .fullscreen-image {
+  transform: scale(0.96);
+  opacity: 0;
+}
+.viewer-leave-to .fullscreen-toolbar {
+  transform: translateX(-50%) translateY(6px);
+  opacity: 0;
 }
 </style>

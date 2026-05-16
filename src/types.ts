@@ -17,6 +17,7 @@ export interface MessageAttachment {
 export interface ChatMessage {
   type: "chat";
   id: string;
+  seq: number;
   from: string;
   to: string;
   text: string;
@@ -62,6 +63,7 @@ export type TaskResourceData = ClientResultData | FileResourceData | ExecutionTr
 export interface TaskMessage {
   type: "task";
   id: string;
+  seq: number;
   taskId: string;
   from: string;
   content: string;

@@ -143,7 +143,7 @@ async function handleLogout() {
     </div>
 
     <Teleport to="body">
-      <Transition name="overlay">
+      <Transition name="logout">
         <div v-if="showLogoutConfirm" class="logout-overlay" @click.self="showLogoutConfirm = false">
           <div class="logout-dialog">
             <div class="logout-icon">
@@ -439,13 +439,38 @@ async function handleLogout() {
   color: #fff;
 }
 
-.overlay-enter-active,
-.overlay-leave-active {
-  transition: opacity 0.18s ease;
+.logout-enter-active {
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
-.overlay-enter-from,
-.overlay-leave-to {
+.logout-enter-active .logout-dialog {
+  transition:
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.logout-leave-active {
+  transition: opacity 0.18s cubic-bezier(0.4, 0, 1, 1);
+}
+.logout-leave-active .logout-dialog {
+  transition:
+    transform 0.18s cubic-bezier(0.4, 0, 1, 1),
+    filter 0.18s cubic-bezier(0.4, 0, 1, 1),
+    opacity 0.18s cubic-bezier(0.4, 0, 1, 1);
+}
+.logout-enter-from {
+  opacity: 0;
+}
+.logout-enter-from .logout-dialog {
+  transform: scale(0.94);
+  filter: blur(8px);
+  opacity: 0;
+}
+.logout-leave-to {
+  opacity: 0;
+}
+.logout-leave-to .logout-dialog {
+  transform: scale(0.97);
+  filter: blur(4px);
   opacity: 0;
 }
 </style>

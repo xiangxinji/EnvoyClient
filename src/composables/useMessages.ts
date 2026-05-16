@@ -1,14 +1,24 @@
 import { ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
 import type { Message } from "@envoy/core";
 import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment } from "../types";
-import { managerPost, apiUrl } from "../api";
+import { managerPost, managerFetch, apiUrl } from "../api";
 
-const isTauri = "__TAURI_INTERNALS__" in window;
+interface SyncResponse {
+  messages: SyncMessage[];
+  has_more: boolean;
+  last_seq: number;
+}
 
-function safeInvoke(cmd: string, args: Record<string, unknown>) {
-  if (!isTauri) return Promise.resolve();
-  return invoke(cmd, args);
+interface SyncMessage {
+  seq: number;
+  id: string;
+  type: string;
+  subtype: string | null;
+  from_user: string;
+  to_user: string;
+  content: string;
+  extra: string | null;
+  created_at: number;
 }
 
 export function useMessages(
@@ -26,7 +36,6 @@ export function useMessages(
     const conv = messages.value.get(peerId) ?? [];
     conv.push(item);
     messages.value.set(peerId, conv);
-    safeInvoke("save_message", { myId, peerId, message: item });
   }
 
   function incrementUnread(peerId: string) {
@@ -37,22 +46,66 @@ export function useMessages(
     unreadCounts.value.set(peerId, 0);
   }
 
+  function syncMessageToTimeline(msg: SyncMessage): TimelineItem {
+    if (msg.type === "task") {
+      const extra = msg.extra ? JSON.parse(msg.extra) as Record<string, unknown> : {};
+      return {
+        type: "task",
+        id: `task-${extra.taskId ?? msg.id}`,
+        seq: msg.seq,
+        taskId: extra.taskId as string ?? msg.id,
+        from: msg.from_user,
+        content: msg.content,
+        status: (extra.status as TaskMessage["status"]) ?? "pending",
+        resources: (extra.resources as TaskResource[]) ?? [],
+        subscribe: extra.subscribe as string[] | undefined,
+        timestamp: msg.created_at,
+      } satisfies TaskMessage;
+    }
+
+    const extra = msg.extra ? JSON.parse(msg.extra) as Record<string, unknown> : {};
+    return {
+      type: "chat",
+      id: msg.id,
+      seq: msg.seq,
+      from: msg.from_user,
+      to: msg.to_user,
+      text: msg.content,
+      timestamp: msg.created_at,
+      mine: msg.from_user === myId,
+      attachments: extra.attachments as MessageAttachment[] | undefined,
+    } satisfies ChatMessage;
+  }
+
   async function loadHistory() {
     try {
-      const all = await safeInvoke("load_all_history", { myId }) as Record<string, TimelineItem[]> | undefined;
-      if (all) {
-        for (const [peerId, items] of Object.entries(all)) {
-          messages.value.set(peerId, items);
+      let afterSeq = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const res = await managerFetch(
+          `/api/messages/sync?user=${encodeURIComponent(myId)}&after_seq=${afterSeq}&limit=200`,
+          { headers: { team: teamName } },
+        );
+        const data = await res.json() as SyncResponse;
+
+        for (const msg of data.messages) {
+          const item = syncMessageToTimeline(msg);
+          const peerId = msg.from_user === myId ? msg.to_user : msg.from_user;
+          addToConversation(peerId, item);
         }
+
+        hasMore = data.has_more;
+        afterSeq = data.last_seq;
       }
     } catch {
-      // no history files yet
+      // no history or server unreachable
     }
   }
 
   function handleIncomingMessage(msg: Message): boolean {
     if (msg.type === "message" && msg.subtype === "chat") {
-      const payload = msg.payload as { text: string; attachments?: MessageAttachment[] };
+      const payload = msg.payload as { text: string; id?: string; seq?: number; attachments?: MessageAttachment[] };
       if (payload.attachments) {
         for (const att of payload.attachments) {
           if (att.url.startsWith("/")) att.url = apiUrl(att.url);
@@ -60,7 +113,8 @@ export function useMessages(
       }
       const chatMsg: ChatMessage = {
         type: "chat",
-        id: msg.id,
+        id: payload.id ?? msg.id,
+        seq: payload.seq ?? 0,
         from: msg.from,
         to: msg.to,
         text: payload.text,
@@ -89,6 +143,7 @@ export function useMessages(
     const taskMsg: TaskMessage = {
       type: "task",
       id: `task-${task.id}`,
+      seq: 0,
       taskId: task.id,
       from: task.createBy,
       content: task.content,
@@ -104,7 +159,6 @@ export function useMessages(
       if (idx >= 0) {
         items[idx] = taskMsg;
         messages.value.set(peerId, [...items]);
-        safeInvoke("save_message", { myId, peerId, message: taskMsg });
         updated = true;
       }
     }
@@ -120,36 +174,44 @@ export function useMessages(
     }
   }
 
-  function sendChat(targetId: string, text: string, attachments?: MessageAttachment[]) {
-    const chatMsg: ChatMessage = {
-      type: "chat",
-      id: `${Date.now()}-local`,
-      from: myId,
-      to: targetId,
-      text,
-      timestamp: Date.now(),
-      mine: true,
-      attachments: attachments?.length ? attachments : undefined,
-    };
-    addToConversation(targetId, chatMsg);
+  async function sendChat(targetId: string, text: string, attachments?: MessageAttachment[]) {
     const body: Record<string, unknown> = { from: myId, to: targetId, text };
     if (attachments?.length) body.attachments = attachments;
-    managerPost("/api/messages", body, { team: teamName });
-  }
 
-  async function exportHistory(peerId: string, targetPath: string) {
-    await safeInvoke("export_history", { myId, peerId, targetPath });
-  }
+    try {
+      const res = await managerPost("/api/messages", body, { team: teamName });
+      const data = await res.json() as { ok: boolean; id: string; seq: number };
 
-  async function importHistory(peerId: string, sourcePath: string) {
-    await safeInvoke("import_history", { myId, peerId, sourcePath });
-    const items = await safeInvoke("load_history", { myId, peerId }) as TimelineItem[] | undefined;
-    if (items) {
-      messages.value.set(peerId, items);
+      const chatMsg: ChatMessage = {
+        type: "chat",
+        id: data.id,
+        seq: data.seq,
+        from: myId,
+        to: targetId,
+        text,
+        timestamp: Date.now(),
+        mine: true,
+        attachments: attachments?.length ? attachments : undefined,
+      };
+      addToConversation(targetId, chatMsg);
+    } catch {
+      // Fallback: show message optimistically with temp ID
+      const chatMsg: ChatMessage = {
+        type: "chat",
+        id: `${Date.now()}-local`,
+        seq: 0,
+        from: myId,
+        to: targetId,
+        text,
+        timestamp: Date.now(),
+        mine: true,
+        attachments: attachments?.length ? attachments : undefined,
+      };
+      addToConversation(targetId, chatMsg);
     }
   }
 
-  async function clearConversation(peerId: string) {
+  function clearConversation(peerId: string) {
     const newMessages = new Map(messages.value);
     newMessages.delete(peerId);
     messages.value = newMessages;
@@ -157,8 +219,6 @@ export function useMessages(
     const newUnread = new Map(unreadCounts.value);
     newUnread.delete(peerId);
     unreadCounts.value = newUnread;
-
-    await safeInvoke("delete_history", { myId, peerId });
   }
 
   return {
@@ -172,8 +232,6 @@ export function useMessages(
     handleIncomingMessage,
     handleTaskUpdate,
     sendChat,
-    exportHistory,
-    importHistory,
     clearConversation,
   };
 }

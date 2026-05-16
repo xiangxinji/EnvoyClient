@@ -80,7 +80,5 @@ export function useTeamClient(
     incrementUnread: msg.incrementUnread,
     markRead: msg.markRead,
     clearConversation: msg.clearConversation,
-    exportHistory: msg.exportHistory,
-    importHistory: msg.importHistory,
   };
 }
