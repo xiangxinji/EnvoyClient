@@ -1,7 +1,3 @@
-[submodule "Envoy"]
-	path = envoy
-	url = https://github.com/xiangxinji/Envoy.git
-	branch = main
 [submodule "envoy"]
 	path = envoy
 	url = https://github.com/xiangxinji/Envoy.git
