@@ -395,7 +395,7 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
         <div v-else-if="hasMoreHistory" class="load-hint">↑ 向上滚动加载更多</div>
         <template v-for="item in visibleMessages" :key="item.id">
           <MessageBubble v-if="item.type === 'chat'" :message="item" :my-id="myId" />
-          <TaskCard v-else :task="item" :team-name="teamName" />
+          <TaskCard v-else :task="item" :team-name="teamName" :my-id="myId" />
         </template>
 
         <!-- AI suggestion overlay -->

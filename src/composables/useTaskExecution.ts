@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { SKIP_RESULT } from "../../envoy/packages/client/client.js";
 import { useAgent } from "./useAgent";
 import { useAI } from "./useAI";
 import {
@@ -38,13 +39,17 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       const taskStatus = clientTask.serverTask.status;
 
       if (ctx.role === "leader" && taskStatus === "reviewing") {
+        const executionMode = await getExecutionMode();
+        if (executionMode === "manual") {
+          return SKIP_RESULT;
+        }
         return await handleLeaderReview(clientTask, taskId, taskContent);
       }
 
       // Check task_execution_mode: manual mode skips agent execution
       const executionMode = await getExecutionMode();
       if (executionMode === "manual") {
-        return { taskId, note: "manual mode: task added to list, awaiting user action" };
+        return SKIP_RESULT;
       }
 
       return await handleMemberExecution(taskId, taskContent);
@@ -89,6 +94,9 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
   }
 
   async function handleMemberExecution(taskId: string, taskContent: string) {
+    // Transition server-side task status: pending → running
+    postToManager(`/api/tasks/${taskId}/start`, { from: ctx.myId });
+
     if (!isTauri) {
       const result = { taskId, note: "browser mode, no agent tools" };
       postToManager(`/api/tasks/${taskId}/result`, { from: ctx.myId, success: true, data: result });

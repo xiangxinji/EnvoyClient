@@ -83,13 +83,28 @@ const isAssignedToMe = computed(() => {
   return props.myId && (props.task.subscribe ?? []).includes(props.myId);
 });
 
+const isCreatedByMe = computed(() => {
+  return props.myId && props.task.from === props.myId;
+});
+
 const canStart = computed(() => isAssignedToMe.value && props.task.status === "pending");
 const canComplete = computed(() => isAssignedToMe.value && props.task.status === "running");
 const canUpload = computed(() => isAssignedToMe.value && (props.task.status === "running" || props.task.status === "pending"));
+const canReview = computed(() => isCreatedByMe.value && props.task.status === "reviewing");
+function getMemberStatusClass(entry: MemberEntry): string {
+  if (entry.hasResult) return "completed";
+  return (props.task.status === "completed" || props.task.status === "failed") ? props.task.status : "pending";
+}
+
+function getMemberStatusLabel(entry: MemberEntry): string {
+  if (entry.hasResult) return statusLabels["completed"];
+  return (props.task.status === "completed" || props.task.status === "failed") ? statusLabels[props.task.status] : "等待中";
+}
 
 const starting = ref(false);
 const completing = ref(false);
 const uploading = ref(false);
+const reviewing = ref(false);
 
 async function handleStart() {
   if (starting.value) return;
@@ -109,13 +124,49 @@ async function handleComplete() {
   if (completing.value) return;
   completing.value = true;
   try {
-    const res = await managerPost(`/api/tasks/${props.task.taskId}/complete`, { from: props.myId }, { team: props.teamName ?? "" });
+    const res = await managerPost(`/api/tasks/${props.task.taskId}/complete`, { from: props.myId, data: { note: "手动标记完成" } }, { team: props.teamName ?? "" });
     if (res.ok) emit("statusChanged");
     else alert("操作失败");
   } catch {
     alert("操作失败");
   }
   completing.value = false;
+}
+
+async function handleApprove() {
+  if (reviewing.value) return;
+  reviewing.value = true;
+  try {
+    const res = await managerPost(`/api/tasks/${props.task.taskId}/result`, {
+      from: props.myId,
+      success: true,
+      data: { review: "通过" },
+    }, { team: props.teamName ?? "" });
+    if (res.ok) emit("statusChanged");
+    else alert("操作失败");
+  } catch {
+    alert("操作失败");
+  }
+  reviewing.value = false;
+}
+
+async function handleReject() {
+  const reason = prompt("请输入驳回原因：");
+  if (reason === null) return;
+  if (reviewing.value) return;
+  reviewing.value = true;
+  try {
+    const res = await managerPost(`/api/tasks/${props.task.taskId}/result`, {
+      from: props.myId,
+      success: false,
+      error: reason || "未通过审查",
+    }, { team: props.teamName ?? "" });
+    if (res.ok) emit("statusChanged");
+    else alert("操作失败");
+  } catch {
+    alert("操作失败");
+  }
+  reviewing.value = false;
 }
 
 async function handleUpload() {
@@ -249,8 +300,8 @@ function formatToolResult(result: unknown): string {
     <div v-if="memberEntries.length > 0" class="task-members">
       <div v-for="entry in memberEntries" :key="entry.id" class="task-member-row">
         <span class="task-member-id">{{ entry.id }}</span>
-        <span class="task-member-status" :class="entry.hasResult ? task.status : 'pending'">
-          {{ entry.hasResult ? statusLabels[task.status] : "等待中" }}
+        <span class="task-member-status" :class="getMemberStatusClass(entry)">
+          {{ getMemberStatusLabel(entry) }}
         </span>
       </div>
     </div>
@@ -335,6 +386,18 @@ function formatToolResult(result: unknown): string {
       <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="handleComplete">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
         {{ completing ? '提交中...' : '标记完成' }}
+      </button>
+    </div>
+
+    <!-- Leader review buttons -->
+    <div v-if="canReview" class="task-actions">
+      <button class="action-btn action-approve" :disabled="reviewing" @click="handleApprove">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        {{ reviewing ? '处理中...' : '通过' }}
+      </button>
+      <button class="action-btn action-reject" :disabled="reviewing" @click="handleReject">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        驳回
       </button>
     </div>
 
@@ -684,6 +747,18 @@ function formatToolResult(result: unknown): string {
 
 .action-upload:hover:not(:disabled) {
   background: var(--bg-tertiary);
+}
+
+.action-approve:hover:not(:disabled) {
+  background: var(--task-completed-bg);
+  border-color: var(--task-completed-border);
+  color: var(--task-completed-text);
+}
+
+.action-reject:hover:not(:disabled) {
+  background: var(--task-failed-bg);
+  border-color: var(--task-failed-border);
+  color: var(--task-failed-text);
 }
 
 /* Shared */

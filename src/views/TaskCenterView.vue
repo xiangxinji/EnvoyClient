@@ -25,6 +25,7 @@ const allTasks = computed<TaskMessage[]>(() => {
 const groupedTasks = computed(() => {
   const running: TaskMessage[] = [];
   const pending: TaskMessage[] = [];
+  const reviewing: TaskMessage[] = [];
   const completed: TaskMessage[] = [];
   const failed: TaskMessage[] = [];
 
@@ -36,6 +37,9 @@ const groupedTasks = computed(() => {
       case "pending":
         pending.push(task);
         break;
+      case "reviewing":
+        reviewing.push(task);
+        break;
       case "completed":
         completed.push(task);
         break;
@@ -45,12 +49,13 @@ const groupedTasks = computed(() => {
     }
   }
 
-  return { running, pending, completed, failed };
+  return { running, pending, reviewing, completed, failed };
 });
 
 const statusGroups = computed(() => [
   { key: "running", label: "执行中", tasks: groupedTasks.value.running },
   { key: "pending", label: "等待中", tasks: groupedTasks.value.pending },
+  { key: "reviewing", label: "审查中", tasks: groupedTasks.value.reviewing },
   { key: "completed", label: "已完成", tasks: groupedTasks.value.completed },
   { key: "failed", label: "失败", tasks: groupedTasks.value.failed },
 ]);
