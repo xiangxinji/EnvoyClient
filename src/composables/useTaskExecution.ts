@@ -10,6 +10,7 @@ import {
   createReadSkillTool,
 } from "../agent/tools";
 import { managerPost } from "../api";
+import { getMemberSettings } from "./teamClientContext";
 import type { TaskResource, SkillCatalogResponse } from "../types";
 
 const isTauri = "__TAURI_INTERNALS__" in window;
@@ -27,6 +28,7 @@ interface TaskExecutionContext {
 
 export function useTaskExecution(ctx: TaskExecutionContext) {
   const agent = useAgent();
+  const { settings, loadSettings } = getMemberSettings();
 
   function postToManager(path: string, body: Record<string, unknown>) {
     return managerPost(path, body, { team: ctx.teamName });
@@ -38,33 +40,22 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       const taskContent = clientTask.serverTask.content;
       const taskStatus = clientTask.serverTask.status;
 
+      // Ensure settings are loaded before checking mode
+      await loadSettings(ctx.myId);
+
       if (ctx.role === "leader" && taskStatus === "reviewing") {
-        const executionMode = await getExecutionMode();
-        if (executionMode === "manual") {
+        if (settings.value.task_execution_mode === "manual") {
           return SKIP_RESULT;
         }
         return await handleLeaderReview(clientTask, taskId, taskContent);
       }
 
-      // Check task_execution_mode: manual mode skips agent execution
-      const executionMode = await getExecutionMode();
-      if (executionMode === "manual") {
+      if (settings.value.task_execution_mode === "manual") {
         return SKIP_RESULT;
       }
 
       return await handleMemberExecution(taskId, taskContent);
     });
-  }
-
-  async function getExecutionMode(): Promise<"manual" | "auto"> {
-    try {
-      const settings = await invoke("get_settings") as Record<string, unknown> | null;
-      const users = settings?.users as Record<string, unknown> | undefined;
-      const userSettings = users?.[ctx.myId] as Record<string, unknown> | undefined;
-      return (userSettings?.task_execution_mode as "manual" | "auto") ?? "auto";
-    } catch {
-      return "auto";
-    }
   }
 
   async function handleLeaderReview(clientTask: { serverTask: { id: string; content: string; status: string; attempt: number; resources: TaskResource[] } }, taskId: string, taskContent: string) {
@@ -110,18 +101,8 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       const readSkillTool = createReadSkillTool(ctx.myId);
 
       // Resolve workspace: custom working_dir from settings or default
-      let workspacePath = `~/.envoy/workspace/${ctx.myId}`;
-      try {
-        const settings = await invoke("get_settings") as Record<string, unknown> | null;
-        const users = settings?.users as Record<string, unknown> | undefined;
-        const userSettings = users?.[ctx.myId] as Record<string, unknown> | undefined;
-        const customDir = userSettings?.working_directory as string | undefined;
-        if (customDir && customDir.trim()) {
-          workspacePath = customDir.trim();
-        }
-      } catch {
-        // Use default workspace
-      }
+      const customDir = settings.value.working_directory;
+      const workspacePath = (customDir && customDir.trim()) || `~/.envoy/workspace/${ctx.myId}`;
 
       const tools = [...getDefaultTools(workspacePath), uploadTool, queryResTool, readResTool, readSkillTool];
 

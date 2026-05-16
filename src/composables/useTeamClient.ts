@@ -70,6 +70,7 @@ export function useTeamClient(
     teamName: conn.teamName,
     status: conn.status,
     members: conn.members,
+    client: conn.client,
     messages: msg.messages,
     unreadCounts: msg.unreadCounts,
     connect: conn.connect,

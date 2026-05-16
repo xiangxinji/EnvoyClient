@@ -1,25 +1,88 @@
 <script setup lang="ts">
-import { inject, computed } from "vue";
+import { inject, computed, ref, onMounted, onUnmounted } from "vue";
 import { TeamClientKey } from "../composables/teamClientContext";
+import { managerFetch } from "../api";
 import TaskCard from "../components/TaskCard.vue";
-import type { TaskMessage } from "../types";
+import type { TaskMessage, TaskResource } from "../types";
+import type { Task } from "../../envoy/packages/core/task.js";
 
 const ctx = inject(TeamClientKey)!;
-const { messages, teamName, myId } = ctx;
+const { teamName, myId, role } = ctx;
 
-// Collect all TaskMessage items from all conversations
-const allTasks = computed<TaskMessage[]>(() => {
-  const tasks: TaskMessage[] = [];
-  const seen = new Set<string>();
-  for (const items of messages.value.values()) {
-    for (const item of items) {
-      if (item.type === "task" && !seen.has(item.taskId)) {
-        seen.add(item.taskId);
-        tasks.push(item);
-      }
-    }
+interface ApiTask {
+  id: string;
+  createBy: string;
+  subscribe: string[];
+  content: string;
+  mode: string;
+  status: string;
+  resources: TaskResource[];
+  createdAt: number;
+  attempt: number;
+}
+
+function apiTaskToTaskMessage(t: ApiTask): TaskMessage {
+  return {
+    type: "task",
+    id: `task-${t.id}`,
+    seq: 0,
+    taskId: t.id,
+    from: t.createBy,
+    content: t.content,
+    status: t.status as TaskMessage["status"],
+    resources: t.resources,
+    subscribe: t.subscribe,
+    timestamp: t.createdAt,
+  };
+}
+
+const tasks = ref<TaskMessage[]>([]);
+let loading = false;
+
+async function fetchTasks() {
+  if (loading) return;
+  loading = true;
+  try {
+    const res = await managerFetch(`/api/teams/${encodeURIComponent(teamName)}/tasks`);
+    const data = await res.json() as ApiTask[];
+    tasks.value = data.map(apiTaskToTaskMessage);
+  } catch {
+    // server unreachable, keep existing data
+  } finally {
+    loading = false;
   }
-  return tasks;
+}
+
+function onTaskUpdate(task: Task) {
+  const taskMsg = apiTaskToTaskMessage({
+    id: task.id,
+    createBy: task.createBy,
+    subscribe: task.subscribe,
+    content: task.content,
+    mode: task.mode,
+    status: task.status,
+    resources: task.resources,
+    createdAt: task.createdAt,
+    attempt: task.attempt,
+  });
+
+  const idx = tasks.value.findIndex((t) => t.taskId === task.id);
+  if (idx >= 0) {
+    tasks.value[idx] = taskMsg;
+  } else {
+    tasks.value.unshift(taskMsg);
+  }
+  // Trigger reactivity
+  tasks.value = [...tasks.value];
+}
+
+const allTasks = computed<TaskMessage[]>(() => {
+  if (role === "leader") {
+    return [...tasks.value].sort((a, b) => b.timestamp - a.timestamp);
+  }
+  return tasks.value
+    .filter((t) => t.from === myId || t.subscribe?.includes(myId))
+    .sort((a, b) => b.timestamp - a.timestamp);
 });
 
 const groupedTasks = computed(() => {
@@ -59,6 +122,20 @@ const statusGroups = computed(() => [
   { key: "completed", label: "已完成", tasks: groupedTasks.value.completed },
   { key: "failed", label: "失败", tasks: groupedTasks.value.failed },
 ]);
+
+let refreshTimer: ReturnType<typeof setInterval> | undefined;
+
+onMounted(async () => {
+  await fetchTasks();
+  ctx.client?.on("task", onTaskUpdate);
+  // Periodic refresh as fallback
+  refreshTimer = setInterval(fetchTasks, 30000);
+});
+
+onUnmounted(() => {
+  ctx.client?.off("task", onTaskUpdate);
+  if (refreshTimer) clearInterval(refreshTimer);
+});
 </script>
 
 <template>

@@ -4,6 +4,8 @@ import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
 import type { TaskMessage, TaskResource, AgentStep } from "../types";
 import { apiUrl, managerPost } from "../api";
+import ConfirmDialog from "./ConfirmDialog.vue";
+import Toast from "./Toast.vue";
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -45,6 +47,10 @@ const fileResources = computed<TaskResource[]>(() =>
 
 const traceResources = computed<TaskResource[]>(() =>
   props.task.resources?.filter((r) => r.type === "execution-trace") ?? []
+);
+
+const leaderReviews = computed<TaskResource[]>(() =>
+  props.task.resources?.filter((r) => r.type === "leader-review") ?? []
 );
 
 // ─── Members ───
@@ -106,34 +112,84 @@ const completing = ref(false);
 const uploading = ref(false);
 const reviewing = ref(false);
 
+// ─── ConfirmDialog state ───
+const confirmVisible = ref(false);
+const confirmTitle = ref("确认");
+const confirmMessage = ref("");
+const confirmDanger = ref(false);
+const pendingAction = ref<(() => void) | null>(null);
+
+function showConfirm(title: string, message: string, action: () => void, danger = false) {
+  confirmTitle.value = title;
+  confirmMessage.value = message;
+  confirmDanger.value = danger;
+  pendingAction.value = action;
+  confirmVisible.value = true;
+}
+
+function onConfirm() {
+  confirmVisible.value = false;
+  pendingAction.value?.();
+  pendingAction.value = null;
+}
+
+function onCancel() {
+  confirmVisible.value = false;
+  pendingAction.value = null;
+}
+
+// ─── Toast state ───
+const toastVisible = ref(false);
+const toastMessage = ref("");
+const toastType = ref<"success" | "error" | "info">("info");
+
+function showToast(message: string, type: "success" | "error" | "info" = "info") {
+  toastMessage.value = message;
+  toastType.value = type;
+  toastVisible.value = true;
+}
+
+function onToastDone() {
+  toastVisible.value = false;
+}
+
+// ─── Task operations ───
+
 async function handleStart() {
   if (starting.value) return;
   starting.value = true;
   try {
     const res = await managerPost(`/api/tasks/${props.task.taskId}/start`, { from: props.myId }, { team: props.teamName ?? "" });
     if (res.ok) emit("statusChanged");
-    else alert("操作失败");
+    else showToast("操作失败", "error");
   } catch {
-    alert("操作失败");
+    showToast("操作失败", "error");
   }
   starting.value = false;
 }
 
-async function handleComplete() {
-  if (!confirm("确定要标记此任务为完成吗？")) return;
+function requestComplete() {
+  showConfirm("确认完成", "确定要标记此任务为完成吗？", doComplete);
+}
+
+async function doComplete() {
   if (completing.value) return;
   completing.value = true;
   try {
     const res = await managerPost(`/api/tasks/${props.task.taskId}/complete`, { from: props.myId, data: { note: "手动标记完成" } }, { team: props.teamName ?? "" });
     if (res.ok) emit("statusChanged");
-    else alert("操作失败");
+    else showToast("操作失败", "error");
   } catch {
-    alert("操作失败");
+    showToast("操作失败", "error");
   }
   completing.value = false;
 }
 
-async function handleApprove() {
+function requestApprove() {
+  showConfirm("确认通过", "确定要通过此任务的审查吗？", doApprove);
+}
+
+async function doApprove() {
   if (reviewing.value) return;
   reviewing.value = true;
   try {
@@ -142,29 +198,39 @@ async function handleApprove() {
       success: true,
       data: { review: "通过" },
     }, { team: props.teamName ?? "" });
-    if (res.ok) emit("statusChanged");
-    else alert("操作失败");
+    if (res.ok) {
+      emit("statusChanged");
+      showToast("审查已通过", "success");
+    } else {
+      showToast("操作失败", "error");
+    }
   } catch {
-    alert("操作失败");
+    showToast("操作失败", "error");
   }
   reviewing.value = false;
 }
 
-async function handleReject() {
-  const reason = prompt("请输入驳回原因：");
-  if (reason === null) return;
+function requestReject() {
+  showConfirm("确认驳回", "确定要驳回此任务吗？驳回后任务将重新分派给所有成员。", doReject, true);
+}
+
+async function doReject() {
   if (reviewing.value) return;
   reviewing.value = true;
   try {
     const res = await managerPost(`/api/tasks/${props.task.taskId}/result`, {
       from: props.myId,
       success: false,
-      error: reason || "未通过审查",
+      error: "未通过审查",
     }, { team: props.teamName ?? "" });
-    if (res.ok) emit("statusChanged");
-    else alert("操作失败");
+    if (res.ok) {
+      emit("statusChanged");
+      showToast("任务已驳回，将重新分派", "info");
+    } else {
+      showToast("操作失败", "error");
+    }
   } catch {
-    alert("操作失败");
+    showToast("操作失败", "error");
   }
   reviewing.value = false;
 }
@@ -188,7 +254,7 @@ async function handleUpload() {
       if (!res.ok) throw new Error("上传失败");
       emit("statusChanged");
     } catch {
-      alert("文件上传失败");
+      showToast("文件上传失败", "error");
     }
     uploading.value = false;
   };
@@ -239,7 +305,7 @@ async function downloadFile(filename: string) {
     a.click();
     URL.revokeObjectURL(a.href);
   } catch {
-    alert("文件下载失败，可能已被删除");
+    showToast("文件下载失败，可能已被删除", "error");
   }
 }
 
@@ -321,6 +387,24 @@ function formatToolResult(result: unknown): string {
       </div>
     </div>
 
+    <!-- Leader review section -->
+    <div v-if="leaderReviews.length > 0" class="task-section">
+      <div class="section-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        审查记录
+      </div>
+      <div v-for="(review, i) in leaderReviews" :key="`review-${i}`" class="review-item" :class="(review.data as any)?.success ? 'approved' : 'rejected'">
+        <span class="resource-by">{{ review.by }}</span>
+        <span class="review-status" :class="(review.data as any)?.success ? 'approved' : 'rejected'">
+          {{ (review.data as any)?.success ? '通过' : '驳回' }}
+        </span>
+        <div v-if="(review.data as any)?.data" class="review-data">
+          <div class="markdown-content" v-html="renderMarkdown(getResultText((review.data as any).data))" />
+        </div>
+        <div v-if="(review.data as any)?.error" class="review-error">{{ (review.data as any).error }}</div>
+      </div>
+    </div>
+
     <!-- Resources section -->
     <div v-if="fileResources.length > 0" class="task-section">
       <div class="section-label">
@@ -383,7 +467,7 @@ function formatToolResult(result: unknown): string {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         {{ uploading ? '上传中...' : '上传文件' }}
       </button>
-      <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="handleComplete">
+      <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="requestComplete">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
         {{ completing ? '提交中...' : '标记完成' }}
       </button>
@@ -391,15 +475,30 @@ function formatToolResult(result: unknown): string {
 
     <!-- Leader review buttons -->
     <div v-if="canReview" class="task-actions">
-      <button class="action-btn action-approve" :disabled="reviewing" @click="handleApprove">
+      <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
         {{ reviewing ? '处理中...' : '通过' }}
       </button>
-      <button class="action-btn action-reject" :disabled="reviewing" @click="handleReject">
+      <button class="action-btn action-reject" :disabled="reviewing" @click="requestReject">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         驳回
       </button>
     </div>
+
+    <ConfirmDialog
+      :visible="confirmVisible"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :danger="confirmDanger"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
+    <Toast
+      :visible="toastVisible"
+      :message="toastMessage"
+      :type="toastType"
+      @done="onToastDone"
+    />
 
     <div class="task-meta">
       <span>来自 {{ task.from }}</span>
@@ -533,6 +632,48 @@ function formatToolResult(result: unknown): string {
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--border);
   margin-bottom: var(--space-xs);
+}
+
+/* Leader review */
+.review-item {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  margin-bottom: var(--space-xs);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xs);
+}
+
+.review-status {
+  font-size: 0.72em;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.review-status.approved {
+  background: var(--task-completed-bg);
+  color: var(--task-completed-text);
+}
+
+.review-status.rejected {
+  background: var(--task-failed-bg);
+  color: var(--task-failed-text);
+}
+
+.review-data {
+  width: 100%;
+  margin-top: var(--space-xs);
+}
+
+.review-error {
+  width: 100%;
+  margin-top: var(--space-xs);
+  font-size: 0.8em;
+  color: var(--error);
 }
 
 .markdown-content {

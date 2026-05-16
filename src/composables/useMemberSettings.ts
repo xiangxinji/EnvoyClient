@@ -46,7 +46,8 @@ export function useMemberSettings() {
           ? userSettings.ai_suggestion_history_count
           : DEFAULT_SETTINGS.ai_suggestion_history_count,
       };
-    } catch {
+    } catch (e) {
+      console.error(`[settings] loadSettings failed for ${username}:`, e);
       _settings.value = { ...DEFAULT_SETTINGS };
     }
 
