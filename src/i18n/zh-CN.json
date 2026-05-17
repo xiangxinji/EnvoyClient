@@ -49,6 +49,7 @@
     "pin": "固定窗口"
   },
   "sidebar": {
+    "tools": "工具",
     "members": "成员",
     "cloudResources": "云资源",
     "taskCenter": "任务中心",

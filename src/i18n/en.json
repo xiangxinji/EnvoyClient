@@ -49,6 +49,7 @@
     "pin": "Pin Window"
   },
   "sidebar": {
+    "tools": "Tools",
     "members": "Members",
     "cloudResources": "Cloud",
     "taskCenter": "Task Center",

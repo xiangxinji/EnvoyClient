@@ -8,9 +8,21 @@ import {
 } from "../api";
 import { downloadFileWithDialog } from "../utils/notification";
 import FileIcon from "./FileIcon.vue";
+import Toast from "./Toast.vue";
 
 const { t } = useI18n();
 const ctx = inject(TeamClientKey)!;
+
+const toastVisible = ref(false);
+const toastMessage = ref("");
+const toastType = ref<"success" | "error">("error");
+
+function showError(msg: string) {
+  toastMessage.value = msg;
+  toastType.value = "error";
+  toastVisible.value = false;
+  requestAnimationFrame(() => { toastVisible.value = true; });
+}
 
 const currentPath = ref("");
 const items = ref<CloudFileItem[]>([]);
@@ -100,7 +112,7 @@ async function handleUpload() {
     try {
       await uploadCloudFile(ctx.teamName, file, currentPath.value, ctx.myId, pct => { uploadProgress.value = pct; });
       await loadFiles();
-    } catch (e: unknown) { alert(e instanceof Error ? e.message : t("common.uploadFailed")); }
+    } catch (e: unknown) { showError(e instanceof Error ? e.message : t("common.uploadFailed")); }
     finally { uploadProgress.value = null; }
   };
   input.click();
@@ -113,7 +125,7 @@ async function confirmNewDir() {
   try {
     await createCloudDirectory(ctx.teamName, name, currentPath.value, ctx.myId);
     await loadFiles();
-  } catch (e: unknown) { alert(e instanceof Error ? e.message : t("common.operationFailed")); }
+  } catch (e: unknown) { showError(e instanceof Error ? e.message : t("common.operationFailed")); }
 }
 
 function requestDeleteSingle(item: CloudFileItem) {
@@ -135,7 +147,7 @@ async function confirmDelete() {
   for (const item of targets) {
     const filePath = item.type === "directory" ? currentPath.value + item.name + "/" : currentPath.value + item.name;
     try { await deleteCloudFile(ctx.teamName, filePath, ctx.myId); }
-    catch (e: unknown) { alert(e instanceof Error ? e.message : t("common.operationFailed")); break; }
+    catch (e: unknown) { showError(e instanceof Error ? e.message : t("common.operationFailed")); break; }
   }
   exitSelectMode();
   await loadFiles();
@@ -145,7 +157,7 @@ async function handleDownload(item: CloudFileItem) {
   try {
     const url = cloudDownloadUrl(ctx.teamName, currentPath.value + item.name);
     await downloadFileWithDialog(url, item.name, { team: ctx.teamName });
-  } catch (e: unknown) { alert(e instanceof Error ? e.message : t("common.fileDownloadFailed")); }
+  } catch (e: unknown) { showError(e instanceof Error ? e.message : t("common.fileDownloadFailed")); }
 }
 
 function formatSize(bytes: number): string {
@@ -282,6 +294,8 @@ onMounted(loadFiles);
         </div>
       </div>
     </div>
+
+    <Toast :visible="toastVisible" :message="toastMessage" :type="toastType" @done="toastVisible = false" />
   </div>
 </template>
 

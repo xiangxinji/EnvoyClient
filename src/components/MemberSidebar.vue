@@ -102,9 +102,9 @@ function getInitial(name: string): string {
 <template>
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h3>{{ t('sidebar.members') }}</h3>
+      <h3>{{ t('sidebar.tools') }}</h3>
     </div>
-    <ul>
+    <ul class="nav-group">
       <!-- Cloud resources entry -->
       <li
         class="task-center-entry"
@@ -158,7 +158,12 @@ function getInitial(name: string): string {
           <span class="member-name">{{ t('sidebar.taskDispatch') }}</span>
         </div>
       </li>
+    </ul>
 
+    <div class="sidebar-header">
+      <h3>{{ t('sidebar.members') }}</h3>
+    </div>
+    <ul class="nav-group">
       <li
         v-for="m in members"
         :key="m.id"
@@ -256,6 +261,10 @@ function getInitial(name: string): string {
   justify-content: space-between;
 }
 
+.sidebar-header:not(:first-child) {
+  padding-top: var(--space-sm);
+}
+
 h3 {
   margin: 0;
   font-size: 0.8em;
@@ -265,12 +274,20 @@ h3 {
   letter-spacing: 0.5px;
 }
 
-ul {
+.nav-group {
   list-style: none;
   margin: 0;
-  padding: var(--space-xs);
-  overflow-y: auto;
+  padding: 0 var(--space-xs);
+}
+
+.nav-group:first-of-type {
+  flex: 0;
+}
+
+.nav-group:last-of-type {
   flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 li {
