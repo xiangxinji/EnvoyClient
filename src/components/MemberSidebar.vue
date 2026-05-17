@@ -391,8 +391,8 @@ li.active {
 }
 
 .task-center-avatar {
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
+  background: var(--accent-light);
+  color: var(--accent);
 }
 
 .task-center-avatar svg,
@@ -407,8 +407,8 @@ li.active {
 }
 
 .dispatch-avatar {
-  background: var(--warning-bg);
-  color: var(--warning);
+  background: var(--accent-light);
+  color: var(--accent);
 }
 
 .cloud-avatar {
