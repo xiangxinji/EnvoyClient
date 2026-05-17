@@ -9,7 +9,7 @@
       @keydown.up.prevent="openList(options.length - 1)"
       @keydown.escape="close"
     >
-      <span class="glass-select-value">{{ currentLabel || placeholder }}</span>
+      <span class="glass-select-value">{{ currentLabel || props.placeholder }}</span>
       <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="6 9 12 15 18 9" />
       </svg>
@@ -40,7 +40,7 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
   placeholder?: string
 }>(), {
-  placeholder: '请选择',
+  placeholder: '',
 })
 
 const emit = defineEmits<{

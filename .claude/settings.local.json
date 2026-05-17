@@ -92,7 +92,8 @@
       "Bash(openspec complete *)",
       "Bash(openspec done *)",
       "Bash(openspec --help)",
-      "Bash(openspec change *)"
+      "Bash(openspec change *)",
+      "Skill(opsx:continue)"
     ]
   },
   "enabledPlugins": {

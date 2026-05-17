@@ -1,11 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { useLocale, type Locale } from "../i18n";
 import { useTeamClient } from "../composables/useTeamClient";
 import { setTeamClientInstance } from "../composables/teamClientContext";
 import { setManagerUrl, setClientToken } from "../api";
 import GlassSelect from "../components/GlassSelect.vue";
 import logo from "../assets/logo.png";
+const { t } = useI18n();
+const { locale, switchLocale, loadFromSettings } = useLocale();
+const currentLocale = ref(locale.value as Locale);
+
+function handleLangChange(val: string) {
+  currentLocale.value = val as Locale;
+  switchLocale(val as Locale);
+}
+
 const isTauri = "__TAURI_INTERNALS__" in window;
 
 const router = useRouter();
@@ -21,6 +32,8 @@ const selectedTeam = ref("");
 const authenticated = ref(false);
 
 async function loadSettings() {
+  await loadFromSettings();
+  currentLocale.value = locale.value as Locale;
   if (!isTauri) {
     // Browser mode: just use default
     return;
@@ -65,7 +78,7 @@ async function handleLogin() {
   const user = username.value.trim();
   const pass = password.value;
   if (!user || !pass) {
-    error.value = "请输入用户名和密码";
+    error.value = t("role.enterUserAndPass");
     return;
   }
 
@@ -77,7 +90,7 @@ async function handleLogin() {
 
     // Fetch server public key and encrypt password
     const keyRes = await fetch(`${base}/api/public-key`);
-    if (!keyRes.ok) throw new Error("获取公钥失败");
+    if (!keyRes.ok) throw new Error(t("role.fetchKeyFailed"));
     const { key: pubKey } = await keyRes.json();
     const encrypted = await rsaEncrypt(pubKey, pass);
 
@@ -88,8 +101,8 @@ async function handleLogin() {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: "认证失败" }));
-      throw new Error(err.error || "认证失败");
+      const err = await res.json().catch(() => ({ error: t("role.authFailed") }));
+      throw new Error(err.error || t("role.authFailed"));
     }
 
     const data = await res.json();
@@ -119,7 +132,7 @@ async function handleLogin() {
     teams.value = teamsData.map((t: { name: string; port: number }) => ({ name: t.name, port: t.port }));
 
     if (teams.value.length === 0) {
-      error.value = "暂无可用的团队，请先在 Manager 中创建";
+      error.value = t("role.noTeams");
       loading.value = false;
       return;
     }
@@ -170,7 +183,7 @@ async function handleConnect() {
 
     router.push("/chat");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "连接失败";
+    error.value = e instanceof Error ? e.message : t("role.connectFailed");
     loading.value = false;
   }
 }
@@ -191,30 +204,34 @@ onMounted(loadSettings);
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
+    <select class="locale-switch" :value="currentLocale" @change="handleLangChange(($event.target as HTMLSelectElement).value)">
+      <option value="zh-CN">简体中文</option>
+      <option value="en">English</option>
+    </select>
     <div class="card">
       <img :src="logo" class="logo" alt="Envoy" />
       <h1>Envoy</h1>
-      <p class="subtitle">团队协作客户端</p>
+      <p class="subtitle">{{ $t('role.subtitle') }}</p>
 
       <!-- Step 1: Login -->
       <template v-if="!authenticated">
         <div class="fields">
           <div class="field">
-            <label for="username">用户名</label>
-            <input id="username" v-model="username" placeholder="输入用户名" :disabled="loading" @keydown.enter="handleLogin" />
+            <label for="username">{{ $t('role.username') }}</label>
+            <input id="username" v-model="username" :placeholder="$t('role.enterUsername')" :disabled="loading" @keydown.enter="handleLogin" />
           </div>
           <div class="field">
-            <label for="password">密码</label>
-            <input id="password" v-model="password" type="password" placeholder="输入密码" :disabled="loading" @keydown.enter="handleLogin" />
+            <label for="password">{{ $t('role.password') }}</label>
+            <input id="password" v-model="password" type="password" :placeholder="$t('role.enterPassword')" :disabled="loading" @keydown.enter="handleLogin" />
           </div>
         </div>
 
         <button class="connect-btn" @click="handleLogin" :disabled="loading">
           <span v-if="loading" class="spinner"></span>
-          <span>{{ loading ? "登录中..." : "登录" }}</span>
+          <span>{{ loading ? $t("role.loggingIn") : $t("role.login") }}</span>
         </button>
 
-        <button class="btn-settings" @click="router.push('/settings')">设置</button>
+        <button class="btn-settings" @click="router.push('/settings')">{{ $t('common.settings') }}</button>
       </template>
 
       <!-- Step 2: Select team -->
@@ -222,12 +239,12 @@ onMounted(loadSettings);
         <div class="auth-info">
           <span class="auth-user">{{ username }}</span>
           <span class="role-badge" :class="role">{{ role }}</span>
-          <button class="btn-logout" @click="handleLogout">退出</button>
+          <button class="btn-logout" @click="handleLogout">{{ $t('role.logout') }}</button>
         </div>
 
         <div class="fields">
           <div class="field">
-            <label>选择团队</label>
+            <label>{{ $t('role.selectTeam') }}</label>
             <GlassSelect v-model="selectedTeam" :disabled="loading">
               <option v-for="t in teams" :key="t.name" :value="t.name">
                 {{ t.name }}
@@ -238,7 +255,7 @@ onMounted(loadSettings);
 
         <button class="connect-btn" @click="handleConnect" :disabled="loading">
           <span v-if="loading" class="spinner"></span>
-          <span>{{ loading ? "连接中..." : "连接" }}</span>
+          <span>{{ loading ? $t("role.connecting") : $t("role.connect") }}</span>
         </button>
       </template>
 
@@ -555,5 +572,28 @@ input::placeholder {
 
 .btn-settings:hover {
   color: var(--text-secondary);
+}
+
+.locale-switch {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 2;
+  padding: 4px 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  color: var(--text-muted);
+  font-size: 0.75em;
+  outline: none;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.locale-switch:hover {
+  opacity: 1;
 }
 </style>

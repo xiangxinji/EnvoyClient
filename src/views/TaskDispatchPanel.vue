@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { inject, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { TeamClientKey } from "../composables/teamClientContext";
 import { useAI } from "../composables/useAI";
 
 const ctx = inject(TeamClientKey)!;
 const { members, dispatchTask } = ctx;
+const { t } = useI18n();
 
 const { dispatchTask: aiDispatchTask, aiAvailable, aiError: dispatchAiError } = useAI();
 
@@ -17,7 +19,7 @@ async function handleSubmit() {
   if (!content) return;
 
   if (members.value.length === 0) {
-    dispatchAiError.value = "暂无成员在线，无法分派任务";
+    dispatchAiError.value = t('task.dispatch.noMembersOnline');
     return;
   }
 
@@ -29,7 +31,7 @@ async function handleSubmit() {
     .filter((m) => m.status === "online")
     .map((m) => ({ id: m.id, responsibilities: m.responsibilities, capabilities: m.capabilities }));
   if (memberList.length === 0) {
-    dispatchAiError.value = "暂无在线成员，无法分派任务";
+    dispatchAiError.value = t('task.dispatch.noOnlineMembers');
     dispatchLoading.value = false;
     return;
   }
@@ -46,7 +48,7 @@ function handleConfirm() {
   const onlineIds = new Set(members.value.filter((m) => m.status === "online").map((m) => m.id));
   const subscribe = dispatchPreview.value.subscribe.filter((id) => onlineIds.has(id));
   if (subscribe.length === 0) {
-    dispatchAiError.value = "匹配到的成员已全部离线，请稍后重试";
+    dispatchAiError.value = t('task.dispatch.allOffline');
     return;
   }
   dispatchTask(subscribe, dispatchPreview.value.content);
@@ -67,46 +69,46 @@ function getMatchedMembers() {
 <template>
   <div class="dispatch-panel">
     <div class="dispatch-header">
-      <span class="header-name">任务分派</span>
+      <span class="header-name">{{ $t('task.dispatch.title') }}</span>
     </div>
 
     <div class="dispatch-body">
     <!-- Online members preview -->
     <div class="section" v-if="members.length > 0">
-      <h3 class="section-title">在线成员 ({{ members.length }})</h3>
+      <h3 class="section-title">{{ $t('task.dispatch.onlineMembers', { count: members.length }) }}</h3>
       <div class="member-chips">
         <div v-for="m in members" :key="m.id" class="member-chip">
           <span class="chip-name">{{ m.id }}</span>
           <div class="chip-info">
-            <span v-if="m.responsibilities" class="chip-desc">职责: {{ m.responsibilities }}</span>
-            <span v-if="m.capabilities" class="chip-cap">能力: {{ m.capabilities }}</span>
-            <span v-if="!m.responsibilities && !m.capabilities" class="chip-desc">无描述</span>
+            <span v-if="m.responsibilities" class="chip-desc">{{ $t('task.dispatch.responsibilities', { text: m.responsibilities }) }}</span>
+            <span v-if="m.capabilities" class="chip-cap">{{ $t('task.dispatch.capabilities', { text: m.capabilities }) }}</span>
+            <span v-if="!m.responsibilities && !m.capabilities" class="chip-desc">{{ $t('task.dispatch.noDesc') }}</span>
           </div>
         </div>
       </div>
     </div>
     <div v-else class="empty-members">
-      暂无成员在线，无法分派任务
+      {{ $t('task.dispatch.noMembersOnline') }}
     </div>
 
     <!-- AI unavailable notice -->
     <div v-if="!aiAvailable" class="section">
       <div class="notice notice-warn">
-        AI 服务未就绪，请检查 Manager 是否运行且已配置 AI API Key
+        {{ $t('task.dispatch.aiNotReady') }}
       </div>
     </div>
 
     <!-- Task input -->
     <div class="section">
-      <h3 class="section-title">任务描述</h3>
+      <h3 class="section-title">{{ $t('task.dispatch.taskDescription') }}</h3>
       <textarea
         v-model="taskContent"
-        placeholder="描述你要分派的任务，AI 会自动匹配合适的成员..."
+        :placeholder="$t('task.dispatch.taskPlaceholder')"
         rows="4"
         :disabled="dispatchLoading"
         @keydown.ctrl.enter="handleSubmit"
       />
-      <div class="input-hint">Ctrl + Enter 提交</div>
+      <div class="input-hint">{{ $t('task.dispatch.submitHint') }}</div>
 
       <!-- Error display -->
       <div v-if="dispatchAiError" class="notice notice-error">{{ dispatchAiError }}</div>
@@ -117,17 +119,17 @@ function getMatchedMembers() {
         @click="handleSubmit"
       >
         <span v-if="dispatchLoading" class="spinner-small"></span>
-        <span>{{ dispatchLoading ? 'AI 分析中...' : 'AI 智能分派' }}</span>
+        <span>{{ dispatchLoading ? $t('task.dispatch.aiAnalyzing') : $t('task.dispatch.aiSmartDispatch') }}</span>
       </button>
     </div>
 
     <!-- Preview -->
     <div v-if="dispatchPreview" class="section">
-      <h3 class="section-title">匹配结果</h3>
+      <h3 class="section-title">{{ $t('task.dispatch.matchResult') }}</h3>
       <div class="preview-card">
         <div class="preview-content">{{ dispatchPreview.content }}</div>
         <div class="preview-members">
-          <span class="preview-label">分派给：</span>
+          <span class="preview-label">{{ $t('task.dispatch.assignTo') }}</span>
           <div class="matched-list">
             <div v-for="m in getMatchedMembers()" :key="m.id" class="matched-member">
               <span class="matched-name">{{ m.id }}</span>
@@ -137,15 +139,15 @@ function getMatchedMembers() {
               </div>
             </div>
             <div v-if="dispatchPreview.subscribe.length === 0" class="no-match">
-              无匹配成员，请调整任务描述或添加更多成员
+              {{ $t('task.dispatch.noMatch') }}
             </div>
           </div>
         </div>
         <div class="preview-actions">
           <button class="btn-confirm" @click="handleConfirm" :disabled="dispatchPreview.subscribe.length === 0">
-            确认分派
+            {{ $t('task.dispatch.confirmDispatch') }}
           </button>
-          <button class="btn-cancel" @click="handleCancel">取消</button>
+          <button class="btn-cancel" @click="handleCancel">{{ $t('common.cancel') }}</button>
         </div>
       </div>
     </div>

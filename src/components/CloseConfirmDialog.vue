@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 import GlassCheckbox from "./GlassCheckbox.vue";
+
+useI18n();
 
 const emit = defineEmits<{
   (e: "hide", remember: boolean): void;
@@ -16,11 +19,11 @@ const remember = ref(false);
     <Transition name="overlay">
       <div v-if="visible" class="overlay" @click.self="visible = false">
         <div class="dialog">
-          <h3 class="dialog-title">关闭确认</h3>
-          <p class="dialog-desc">你想要如何处理？</p>
+	          <h3 class="dialog-title">{{ $t('dialog.closeConfirm') }}</h3>
+	          <p class="dialog-desc">{{ $t('dialog.closeConfirmDesc') }}</p>
 
           <div class="dialog-actions">
-            <button class="btn btn-secondary" @click="visible = false">取消</button>
+            <button class="btn btn-secondary" @click="visible = false">{{ $t('common.cancel') }}</button>
             <button
               class="btn btn-primary"
               @click="
@@ -28,7 +31,7 @@ const remember = ref(false);
                 emit('hide', remember);
               "
             >
-              隐藏到托盘
+              {{ $t('dialog.hideToTray') }}
             </button>
             <button
               class="btn btn-danger"
@@ -37,11 +40,11 @@ const remember = ref(false);
                 emit('exit', remember);
               "
             >
-              退出应用
+              {{ $t('dialog.quitApp') }}
             </button>
           </div>
 
-          <GlassCheckbox v-model="remember">记住我的选择，下次不再询问</GlassCheckbox>
+          <GlassCheckbox v-model="remember">{{ $t('dialog.rememberChoice') }}</GlassCheckbox>
         </div>
       </div>
     </Transition>

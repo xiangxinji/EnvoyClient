@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { inject, computed, ref, onMounted, onUnmounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { TeamClientKey } from "../composables/teamClientContext";
 import { managerFetch } from "../api";
 import TaskCard from "../components/TaskCard.vue";
 import type { TaskMessage, TaskResource } from "../types";
 import type { Task } from "../../envoy/packages/core/task.js";
+
+const { t } = useI18n();
 
 const ctx = inject(TeamClientKey)!;
 const { teamName, myId, role } = ctx;
@@ -120,11 +123,11 @@ const groupedTasks = computed(() => {
 });
 
 const statusGroups = computed(() => [
-  { key: "running", label: "执行中", tasks: groupedTasks.value.running },
-  { key: "pending", label: "等待中", tasks: groupedTasks.value.pending },
-  { key: "reviewing", label: "审查中", tasks: groupedTasks.value.reviewing },
-  { key: "completed", label: "已完成", tasks: groupedTasks.value.completed },
-  { key: "failed", label: "失败", tasks: groupedTasks.value.failed },
+  { key: "running", label: t('task.status.running'), tasks: groupedTasks.value.running },
+  { key: "pending", label: t('task.status.pending'), tasks: groupedTasks.value.pending },
+  { key: "reviewing", label: t('task.status.reviewing'), tasks: groupedTasks.value.reviewing },
+  { key: "completed", label: t('task.status.completed'), tasks: groupedTasks.value.completed },
+  { key: "failed", label: t('task.status.failed'), tasks: groupedTasks.value.failed },
 ]);
 
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
@@ -144,7 +147,7 @@ onUnmounted(() => {
 <template>
   <div class="task-center">
     <div class="task-center-header">
-      <span class="header-name">任务中心</span>
+      <span class="header-name">{{ $t('task.taskCenter') }}</span>
     </div>
 
     <div v-if="allTasks.length === 0" class="empty-state">
@@ -152,7 +155,7 @@ onUnmounted(() => {
         <path d="M9 11l3 3L22 4" />
         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
       </svg>
-      <p>暂无任务</p>
+      <p>{{ $t('task.noTasks') }}</p>
     </div>
 
     <div v-else class="task-groups">

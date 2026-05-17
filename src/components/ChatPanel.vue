@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { inject, ref, nextTick, watch, computed, onMounted, onBeforeUnmount } from "vue";
+import { useI18n } from "vue-i18n";
 import { TeamClientKey, getMemberSettings } from "../composables/teamClientContext";
 import { useAI } from "../composables/useAI";
 import MessageBubble from "./MessageBubble.vue";
@@ -10,6 +11,8 @@ import RichEditor from "./RichEditor.vue";
 import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage } from "../types";
 import { isImageMime, formatFileSize, compressImage } from "../utils/imageCompress";
 import { apiUrl } from "../api";
+
+const { t } = useI18n();
 
 const props = defineProps<{ peerId: string }>();
 
@@ -175,8 +178,8 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
         });
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: "上传失败" }));
-          throw new Error(err.error ?? "上传失败");
+          const err = await res.json().catch(() => ({ error: t('common.uploadFailed') }));
+          throw new Error(err.error ?? t('common.uploadFailed'));
         }
 
         const data = await res.json() as MessageAttachment;
@@ -185,7 +188,7 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      attachmentError.value = `图片上传失败: ${msg}`;
+      attachmentError.value = t('chat.imgUploadFailed', { msg });
       uploading.value = false;
       return;
     }
@@ -208,8 +211,8 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
         });
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: "上传失败" }));
-          throw new Error(err.error ?? "上传失败");
+          const err = await res.json().catch(() => ({ error: t('common.uploadFailed') }));
+          throw new Error(err.error ?? t('common.uploadFailed'));
         }
 
         const data = await res.json() as MessageAttachment;
@@ -218,7 +221,7 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      attachmentError.value = `附件上传失败: ${msg}`;
+      attachmentError.value = t('chat.attUploadFailed', { msg });
       uploading.value = false;
       return;
     }
@@ -239,7 +242,7 @@ function handleConfirmClear() {
   confirmVisible.value = false;
   if (!props.peerId) return;
   clearConversation(props.peerId);
-  toastMessage.value = `已清除与 ${props.peerId} 的聊天记录`;
+  toastMessage.value = t('chat.cleared', { peer: props.peerId });
   toastVisible.value = true;
 }
 
@@ -317,10 +320,10 @@ async function handleRevoke() {
   if (!contextMenuMsg.value || !props.peerId) return;
   const ok = await revokeMessage(props.peerId, contextMenuMsg.value.id);
   if (ok) {
-    toastMessage.value = "消息已撤回";
+    toastMessage.value = t('chat.revokeSuccess');
     toastType.value = "success";
   } else {
-    toastMessage.value = "撤回失败";
+    toastMessage.value = t('chat.revokeFailed');
     toastType.value = "error";
   }
   toastVisible.value = true;
@@ -350,21 +353,21 @@ onBeforeUnmount(() => {
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       </svg>
-      <p>选择一位成员开始聊天</p>
+      <p>{{ $t('chat.selectPeer') }}</p>
     </div>
 
     <template v-else>
       <div class="header">
         <span class="header-name">{{ peerId }}</span>
-        <span v-if="peerStatus === 'offline'" class="header-status offline">离线</span>
+        <span v-if="peerStatus === 'offline'" class="header-status offline">{{ $t('chat.offline') }}</span>
         <div class="header-actions">
-          <button class="btn-menu" @click="menuOpen = !menuOpen" title="操作">
+          <button class="btn-menu" @click="menuOpen = !menuOpen" :title="$t('chat.actions')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
           </button>
           <div v-if="menuOpen" class="dropdown" @click.stop>
             <button class="dropdown-item danger" @click="handleClearChat">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              清除聊天记录
+              {{ $t('chat.clearHistory') }}
             </button>
           </div>
         </div>
@@ -372,12 +375,12 @@ onBeforeUnmount(() => {
 
       <div ref="messageList" class="messages" @scroll="handleScroll">
         <div v-if="loadingMore" class="loading-more">
-          <span class="spinner-small"></span> 加载中...
+          <span class="spinner-small"></span> {{ $t('common.loading') }}
         </div>
-        <div v-else-if="hasMoreHistory" class="load-hint">↑ 向上滚动加载更多</div>
+        <div v-else-if="hasMoreHistory" class="load-hint">{{ $t('chat.loadMore') }}</div>
         <template v-for="item in visibleMessages" :key="item.id">
           <div v-if="item.type === 'revoked'" class="revoked-notice">
-            {{ item.from }} 撤回了一条消息
+            {{ $t('chat.revokedNotice', { from: item.from }) }}
           </div>
           <MessageBubble v-else-if="item.type === 'chat'" :message="item" :my-id="myId" @contextmenu="handleMessageContextmenu" />
           <TaskCard v-else :task="item" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
@@ -385,15 +388,15 @@ onBeforeUnmount(() => {
 
         <!-- AI suggestion overlay -->
         <div v-if="suggestion || isStreaming || aiError" class="ai-suggestion">
-          <div class="ai-suggestion-label">AI 建议</div>
+          <div class="ai-suggestion-label">{{ $t('chat.aiSuggestion') }}</div>
           <div class="ai-suggestion-text">
             {{ suggestion }}<span v-if="isStreaming" class="ai-cursor"></span>
           </div>
           <div v-if="aiError" class="ai-error-inline">{{ aiError }}</div>
           <div v-if="!isStreaming && (suggestion || aiError)" class="ai-suggestion-actions">
-            <button v-if="suggestion" class="btn-ai-accept" @click="handleAcceptSuggestion">采纳</button>
-            <button class="btn-ai-retry" @click="handleAISuggest">重新生成</button>
-            <button class="btn-ai-dismiss" @click="clearSuggestion">忽略</button>
+            <button v-if="suggestion" class="btn-ai-accept" @click="handleAcceptSuggestion">{{ $t('chat.accept') }}</button>
+            <button class="btn-ai-retry" @click="handleAISuggest">{{ $t('chat.retry') }}</button>
+            <button class="btn-ai-dismiss" @click="clearSuggestion">{{ $t('chat.dismiss') }}</button>
           </div>
         </div>
       </div>
@@ -404,15 +407,15 @@ onBeforeUnmount(() => {
           <div class="task-input">
             <input
               v-model="taskContent"
-              placeholder="输入任务描述..."
+              :placeholder="$t('chat.enterTask')"
               @keydown.enter="handleDispatchTask"
             />
-            <button class="btn-icon btn-confirm" @click="handleDispatchTask" title="分派任务" :disabled="!taskContent.trim()">
+            <button class="btn-icon btn-confirm" @click="handleDispatchTask" :title="$t('chat.dispatchTask')" :disabled="!taskContent.trim()">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
             </button>
-            <button class="btn-icon btn-cancel" @click="taskInputVisible = false" title="取消">
+            <button class="btn-icon btn-cancel" @click="taskInputVisible = false" :title="$t('common.cancel')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
@@ -441,25 +444,25 @@ onBeforeUnmount(() => {
         <!-- Toolbar (floating above editor) -->
         <div class="toolbar">
           <div class="toolbar-left">
-            <button v-if="role === 'leader'" class="btn-tool" @click="taskInputVisible = !taskInputVisible" title="分派任务">
+            <button v-if="role === 'leader'" class="btn-tool" @click="taskInputVisible = !taskInputVisible" :title="$t('chat.dispatchTask')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 11l3 3L22 4" />
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
               </svg>
             </button>
-            <button class="btn-tool" @click="handlePickAttachment" title="添加附件">
+            <button class="btn-tool" @click="handlePickAttachment" :title="$t('chat.addAttachment')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
               </svg>
             </button>
-            <button class="btn-tool" @click="handleAISuggest" title="AI 建议回复" :disabled="!aiAvailable || isStreaming">
+            <button class="btn-tool" @click="handleAISuggest" :title="$t('chat.aiSuggestReply')" :disabled="!aiAvailable || isStreaming">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
             </button>
           </div>
-          <button class="btn-send-toolbar" @click="richEditorRef?.send()" title="发送" :disabled="uploading">
-            发送
+          <button class="btn-send-toolbar" @click="richEditorRef?.send()" :title="$t('common.send')" :disabled="uploading">
+            {{ $t('common.send') }}
           </button>
         </div>
 
@@ -470,9 +473,9 @@ onBeforeUnmount(() => {
 
     <ConfirmDialog
       :visible="confirmVisible"
-      title="清除聊天记录"
-      :message="`确认清除与 ${peerId} 的所有聊天记录？此操作不可撤销。`"
-      confirm-text="清除"
+      :title="$t('chat.confirmClearTitle')"
+      :message="$t('chat.confirmClearMsg', { peer: peerId })"
+      :confirm-text="$t('chat.clearBtn')"
       :danger="true"
       @confirm="handleConfirmClear"
       @cancel="handleCancelClear"
@@ -494,7 +497,7 @@ onBeforeUnmount(() => {
       >
         <button class="context-menu-item danger" @click="handleRevoke">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
-          撤回
+          {{ $t('chat.revoke') }}
         </button>
       </div>
     </Teleport>

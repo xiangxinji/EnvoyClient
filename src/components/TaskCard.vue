@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
 import type { TaskMessage, TaskResource, AgentStep } from "../types";
@@ -7,6 +8,8 @@ import { apiUrl, managerPost } from "../api";
 import { downloadFileWithDialog } from "../utils/notification";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
+
+const { t } = useI18n();
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -30,11 +33,11 @@ const emit = defineEmits<{
 }>();
 
 const statusLabels: Record<TaskMessage["status"], string> = {
-  pending: "等待中",
-  running: "执行中",
-  reviewing: "审查中",
-  completed: "已完成",
-  failed: "失败",
+  pending: t('task.status.pending'),
+  running: t('task.status.running'),
+  reviewing: t('task.status.reviewing'),
+  completed: t('task.status.completed'),
+  failed: t('task.status.failed'),
 };
 
 // ─── Group resources by type ───
@@ -124,7 +127,7 @@ function getMemberStatusClass(entry: MemberEntry): string {
 
 function getMemberStatusLabel(entry: MemberEntry): string {
   if (entry.hasResult) return statusLabels["completed"];
-  return (props.task.status === "completed" || props.task.status === "failed") ? statusLabels[props.task.status] : "等待中";
+  return (props.task.status === "completed" || props.task.status === "failed") ? statusLabels[props.task.status] : t('task.status.pending');
 }
 
 const starting = ref(false);
@@ -134,7 +137,7 @@ const reviewing = ref(false);
 
 // ─── ConfirmDialog state ───
 const confirmVisible = ref(false);
-const confirmTitle = ref("确认");
+const confirmTitle = ref("");
 const confirmMessage = ref("");
 const confirmDanger = ref(false);
 const pendingAction = ref<(() => void) | null>(null);
@@ -181,32 +184,32 @@ async function handleStart() {
   try {
     const res = await managerPost(`/api/tasks/${props.task.taskId}/start`, { from: props.myId }, { team: props.teamName ?? "" });
     if (res.ok) emit("statusChanged");
-    else showToast("操作失败", "error");
+    else showToast(t('common.operationFailed'), "error");
   } catch {
-    showToast("操作失败", "error");
+    showToast(t('common.operationFailed'), "error");
   }
   starting.value = false;
 }
 
 function requestComplete() {
-  showConfirm("确认完成", "确定要标记此任务为完成吗？", doComplete);
+  showConfirm(t('task.confirmComplete'), t('task.confirmCompleteMsg'), doComplete);
 }
 
 async function doComplete() {
   if (completing.value) return;
   completing.value = true;
   try {
-    const res = await managerPost(`/api/tasks/${props.task.taskId}/complete`, { from: props.myId, data: { note: "手动标记完成", source: "manual" } }, { team: props.teamName ?? "" });
+    const res = await managerPost(`/api/tasks/${props.task.taskId}/complete`, { from: props.myId, data: { note: t('task.manualComplete'), source: "manual" } }, { team: props.teamName ?? "" });
     if (res.ok) emit("statusChanged");
-    else showToast("操作失败", "error");
+    else showToast(t('common.operationFailed'), "error");
   } catch {
-    showToast("操作失败", "error");
+    showToast(t('common.operationFailed'), "error");
   }
   completing.value = false;
 }
 
 function requestApprove() {
-  showConfirm("确认通过", "确定要通过此任务的审查吗？", doApprove);
+  showConfirm(t('task.confirmApprove'), t('task.confirmApproveMsg'), doApprove);
 }
 
 async function doApprove() {
@@ -216,22 +219,22 @@ async function doApprove() {
     const res = await managerPost(`/api/tasks/${props.task.taskId}/result`, {
       from: props.myId,
       success: true,
-      data: { review: "通过", source: "manual" },
+      data: { review: t('task.approved'), source: "manual" },
     }, { team: props.teamName ?? "" });
     if (res.ok) {
       emit("statusChanged");
-      showToast("审查已通过", "success");
+      showToast(t('task.reviewApproved'), "success");
     } else {
-      showToast("操作失败", "error");
+      showToast(t('common.operationFailed'), "error");
     }
   } catch {
-    showToast("操作失败", "error");
+    showToast(t('common.operationFailed'), "error");
   }
   reviewing.value = false;
 }
 
 function requestReject() {
-  showConfirm("确认驳回", "确定要驳回此任务吗？驳回后任务将重新分派给所有成员。", doReject, true);
+  showConfirm(t('task.confirmReject'), t('task.confirmRejectMsg'), doReject, true);
 }
 
 async function doReject() {
@@ -241,16 +244,16 @@ async function doReject() {
     const res = await managerPost(`/api/tasks/${props.task.taskId}/result`, {
       from: props.myId,
       success: false,
-      error: "未通过审查",
+      error: t('task.reviewFailed'),
     }, { team: props.teamName ?? "" });
     if (res.ok) {
       emit("statusChanged");
-      showToast("任务已驳回，将重新分派", "info");
+      showToast(t('task.taskRejected'), "info");
     } else {
-      showToast("操作失败", "error");
+      showToast(t('common.operationFailed'), "error");
     }
   } catch {
-    showToast("操作失败", "error");
+    showToast(t('common.operationFailed'), "error");
   }
   reviewing.value = false;
 }
@@ -271,10 +274,10 @@ async function handleUpload() {
         headers: { team: props.teamName ?? "" },
         body: formData,
       });
-      if (!res.ok) throw new Error("上传失败");
+      if (!res.ok) throw new Error(t('common.uploadFailed'));
       emit("statusChanged");
     } catch {
-      showToast("文件上传失败", "error");
+      showToast(t('common.fileUploadFailed'), "error");
     }
     uploading.value = false;
   };
@@ -322,7 +325,7 @@ async function downloadFile(filename: string) {
     const url = getFileDownloadUrl(filename);
     await downloadFileWithDialog(url, filename, { team: props.teamName ?? "" });
   } catch {
-    showToast("文件下载失败，可能已被删除", "error");
+    showToast(t('common.fileDownloadFailed'), "error");
   } finally {
     downloading.value = "";
   }
@@ -375,7 +378,7 @@ function formatToolResult(result: unknown): string {
           <path d="M9 11l3 3L22 4" />
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </svg>
-        <span>任务</span>
+        <span>{{ $t('task.task') }}</span>
       </div>
       <span class="status-badge" :class="task.status">{{ statusLabels[task.status] }}</span>
     </div>
@@ -395,12 +398,12 @@ function formatToolResult(result: unknown): string {
     <div v-if="clientResults.length > 0" class="task-section">
       <div class="section-label">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        执行结果
+        {{ $t('task.executionResult') }}
       </div>
       <div v-for="(res, i) in clientResults" :key="`summary-${i}`" class="summary-item">
         <span class="resource-by">{{ res.by }}</span>
         <span v-if="isAIExecuted(res)" class="source-badge ai">AI</span>
-        <span v-else class="source-badge manual">手动</span>
+        <span v-else class="source-badge manual">{{ $t('task.manual') }}</span>
         <div
           class="markdown-content"
           v-html="renderMarkdown(getResultText(res.data))"
@@ -412,15 +415,15 @@ function formatToolResult(result: unknown): string {
     <div v-if="leaderReviews.length > 0" class="task-section">
       <div class="section-label">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        审查记录
+        {{ $t('task.reviewLog') }}
       </div>
       <div v-for="(review, i) in leaderReviews" :key="`review-${i}`" class="review-item" :class="(review.data as any)?.success ? 'approved' : 'rejected'">
         <span class="resource-by">{{ review.by }}</span>
         <span class="review-status" :class="(review.data as any)?.success ? 'approved' : 'rejected'">
-          {{ (review.data as any)?.success ? '通过' : '驳回' }}
+          {{ (review.data as any)?.success ? $t('task.approved') : $t('task.rejected') }}
         </span>
         <span v-if="isAIReview(review)" class="source-badge ai">AI</span>
-        <span v-else class="source-badge manual">手动</span>
+        <span v-else class="source-badge manual">{{ $t('task.manual') }}</span>
         <div v-if="(review.data as any)?.data" class="review-data">
           <div class="markdown-content" v-html="renderMarkdown(getResultText((review.data as any).data))" />
         </div>
@@ -432,7 +435,7 @@ function formatToolResult(result: unknown): string {
     <div v-if="fileResources.length > 0" class="task-section">
       <div class="section-label">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-        上传文件
+        {{ $t('task.uploadFile') }}
       </div>
       <div v-for="(res, i) in fileResources" :key="`file-${i}`" class="file-item">
         <span class="resource-by">{{ res.by }}</span>
@@ -444,7 +447,7 @@ function formatToolResult(result: unknown): string {
         >
           <template v-if="downloading === (res.data as any).filename">
             <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-            下载中...
+            {{ $t('task.downloading') }}
           </template>
           <template v-else>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -459,9 +462,9 @@ function formatToolResult(result: unknown): string {
     <div v-if="traceResources.length > 0" class="task-section">
       <div class="section-label clickable" @click.stop="traceExpanded = !traceExpanded">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        执行过程
-        <span class="trace-toggle">{{ traceExpanded ? "收起" : "展开" }}</span>
-        <span class="trace-count">{{ getTraceSteps(traceResources[0]).length }} 步</span>
+        {{ $t('task.executionTrace') }}
+        <span class="trace-toggle">{{ traceExpanded ? $t('task.collapse') : $t('task.expand') }}</span>
+        <span class="trace-count">{{ $t('task.steps', { count: getTraceSteps(traceResources[0]).length }) }}</span>
       </div>
       <div v-if="traceExpanded" class="trace-timeline">
         <div v-for="step in getTraceSteps(traceResources[0])" :key="step.index" class="trace-step">
@@ -491,15 +494,15 @@ function formatToolResult(result: unknown): string {
     <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="task-actions" @click.stop>
       <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-        {{ starting ? '执行中...' : '开始执行' }}
+        {{ starting ? $t('task.starting') : $t('task.startExecution') }}
       </button>
       <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="handleUpload">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        {{ uploading ? '上传中...' : '上传文件' }}
+        {{ uploading ? $t('task.uploading') : $t('task.uploadFile') }}
       </button>
       <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="requestComplete">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-        {{ completing ? '提交中...' : '标记完成' }}
+        {{ completing ? $t('task.submitting') : $t('task.markComplete') }}
       </button>
     </div>
 
@@ -507,11 +510,11 @@ function formatToolResult(result: unknown): string {
     <div v-if="canReview" class="task-actions" @click.stop>
       <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-        {{ reviewing ? '处理中...' : '通过' }}
+        {{ reviewing ? $t('task.processing') : $t('task.approve') }}
       </button>
       <button class="action-btn action-reject" :disabled="reviewing" @click="requestReject">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        驳回
+        {{ $t('task.reject') }}
       </button>
     </div>
 
@@ -531,7 +534,7 @@ function formatToolResult(result: unknown): string {
     />
 
     <div class="task-meta">
-      <span>来自 {{ task.from }}</span>
+      <span>{{ $t('task.from', { from: task.from }) }}</span>
     </div>
   </div>
 </template>

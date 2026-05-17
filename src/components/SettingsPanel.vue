@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, inject } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { useLocale } from "../i18n";
 import { getMemberSettings, TeamClientKey, setTeamClientInstance } from "../composables/teamClientContext";
 import type { TaskExecutionMode } from "../composables/useMemberSettings";
 import GlassSelect from "./GlassSelect.vue";
 import GlassCheckbox from "./GlassCheckbox.vue";
 import BackButton from "./BackButton.vue";
+
+useI18n();
+const { locale, switchLocale } = useLocale();
+const currentLocale = ref(locale.value);
+watch(currentLocale, (val) => switchLocale(val as "zh-CN" | "en"));
 
 const emit = defineEmits<{
   back: [];
@@ -94,43 +101,43 @@ async function handleLogout() {
 <template>
   <div class="settings-panel">
     <div class="settings-header">
-      <span class="header-title">设置</span>
+      <span class="header-title">{{ $t('settings.title') }}</span>
       <BackButton @click="emit('back')" />
     </div>
 
     <div class="settings-body">
       <div class="setting-group">
-        <label class="setting-label">任务执行模式</label>
+        <label class="setting-label">{{ $t('settings.taskMode') }}</label>
         <GlassSelect v-model="executionMode">
-          <option value="manual">手动</option>
-          <option value="auto">自动接管</option>
+          <option value="manual">{{ $t('settings.manual') }}</option>
+          <option value="auto">{{ $t('settings.auto') }}</option>
         </GlassSelect>
         <p class="setting-hint">
-          {{ executionMode === 'auto' ? 'AI 将自动处理收到的任务' : '收到任务后需手动操作' }}
+          {{ executionMode === 'auto' ? $t('settings.autoHint') : $t('settings.manualHint') }}
         </p>
       </div>
 
       <div class="setting-group">
-        <label class="setting-label">AI 自动回复</label>
-        <GlassCheckbox v-model="aiAutoReply">开启后，AI 将自动回复收到的聊天消息</GlassCheckbox>
-        <p class="setting-hint">以你的口吻代替回复，对方会看到 AI 自动回复标记</p>
+        <label class="setting-label">{{ $t('settings.aiAutoReply') }}</label>
+        <GlassCheckbox v-model="aiAutoReply">{{ $t('settings.aiAutoReplyDesc') }}</GlassCheckbox>
+        <p class="setting-hint">{{ $t('settings.aiAutoReplyHint') }}</p>
       </div>
 
       <div class="setting-group">
-        <label class="setting-label">工作目录</label>
+        <label class="setting-label">{{ $t('settings.workingDirectory') }}</label>
         <input
           v-model="workingDirectory"
           type="text"
           class="setting-input"
-          placeholder="留空使用默认 ~/.envoy/workspace/{username}"
+          :placeholder="$t('settings.workingDirectoryPlaceholder')"
           @blur="saveWorkingDirectory"
           @keydown.enter="saveWorkingDirectory"
         />
-        <p class="setting-hint">Agent 执行命令的根目录，不填则使用默认路径</p>
+        <p class="setting-hint">{{ $t('settings.workingDirectoryHint') }}</p>
       </div>
 
       <div class="setting-group">
-        <label class="setting-label">AI 建议历史条数</label>
+        <label class="setting-label">{{ $t('settings.aiHistoryCount') }}</label>
         <input
           v-model.number="aiHistoryCount"
           type="number"
@@ -140,7 +147,15 @@ async function handleLogout() {
           @blur="saveAiHistoryCount"
           @keydown.enter="saveAiHistoryCount"
         />
-        <p class="setting-hint">生成 AI 回复建议时读取的最近聊天记录条数，默认 5</p>
+        <p class="setting-hint">{{ $t('settings.aiHistoryCountHint') }}</p>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">{{ $t('settings.language') }}</label>
+        <GlassSelect v-model="currentLocale">
+          <option value="zh-CN">简体中文</option>
+          <option value="en">English</option>
+        </GlassSelect>
       </div>
     </div>
 
@@ -151,7 +166,7 @@ async function handleLogout() {
           <span class="user-name">{{ username }}</span>
           <span class="user-role" :class="ctx.role">{{ ctx.role }}</span>
         </div>
-        <button class="logout-btn" title="退出登录" @click="showLogoutConfirm = true">
+        <button class="logout-btn" :title="$t('settings.logout')" @click="showLogoutConfirm = true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
@@ -172,18 +187,18 @@ async function handleLogout() {
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
             </div>
-            <h3 class="logout-title">退出登录</h3>
-            <p class="logout-desc">将断开与团队的连接并返回登录页</p>
+            <h3 class="logout-title">{{ $t('settings.logoutTitle') }}</h3>
+            <p class="logout-desc">{{ $t('settings.logoutDesc') }}</p>
             <div class="logout-actions">
-              <button class="btn btn-cancel" @click="showLogoutConfirm = false">取消</button>
-              <button class="btn btn-danger" @click="handleLogout">退出登录</button>
+              <button class="btn btn-cancel" @click="showLogoutConfirm = false">{{ $t('common.cancel') }}</button>
+              <button class="btn btn-danger" @click="handleLogout">{{ $t('settings.logout') }}</button>
             </div>
           </div>
         </div>
       </Transition>
     </Teleport>
 
-    <div v-if="saving" class="saving-indicator">保存中...</div>
+    <div v-if="saving" class="saving-indicator">{{ $t('settings.saving') }}</div>
   </div>
 </template>
 

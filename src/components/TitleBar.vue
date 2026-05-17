@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useTheme } from "../composables/useTheme";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   (e: "close-requested"): void;
@@ -45,18 +48,18 @@ function close() {
 <template>
   <div class="titlebar" data-tauri-drag-region>
     <div class="traffic-lights">
-      <button class="light close" @click="close" title="关闭">
+      <button class="light close" @click="close" :title="t('titlebar.close')">
         <svg width="8" height="8" viewBox="0 0 8 8">
           <line x1="1" y1="1" x2="7" y2="7" stroke="#4d0000" stroke-width="1.2" />
           <line x1="7" y1="1" x2="1" y2="7" stroke="#4d0000" stroke-width="1.2" />
         </svg>
       </button>
-      <button class="light minimize" @click="minimize" title="最小化">
+      <button class="light minimize" @click="minimize" :title="t('titlebar.minimize')">
         <svg width="8" height="8" viewBox="0 0 8 8">
           <line x1="1" y1="4" x2="7" y2="4" stroke="#995700" stroke-width="1.2" />
         </svg>
       </button>
-      <button class="light maximize" @click="toggleMaximize" title="最大化">
+      <button class="light maximize" @click="toggleMaximize" :title="t('titlebar.maximize')">
         <svg width="8" height="8" viewBox="0 0 8 8">
           <path d="M1 3 L4 6 L7 3" fill="none" stroke="#006500" stroke-width="1.2" />
         </svg>
@@ -66,7 +69,7 @@ function close() {
       <span>{{ username ? `Envoy · ${username}` : 'Envoy' }}</span>
     </div>
     <div class="titlebar-actions">
-      <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? '浅色模式' : '深色模式'">
+      <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? t('titlebar.lightMode') : t('titlebar.darkMode')">
         <svg v-if="theme === 'dark'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="5" />
           <line x1="12" y1="1" x2="12" y2="3" />
@@ -82,7 +85,7 @@ function close() {
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
       </button>
-      <button class="pin-toggle" :class="{ active: isPinned }" @click="togglePin" :title="isPinned ? '取消固定' : '固定窗口'">
+      <button class="pin-toggle" :class="{ active: isPinned }" @click="togglePin" :title="isPinned ? t('titlebar.unpin') : t('titlebar.pin')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 17v5" />
           <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76z" />

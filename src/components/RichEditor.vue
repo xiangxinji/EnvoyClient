@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount } from "vue";
+import { useI18n } from "vue-i18n";
 import { useEditor, EditorContent } from "@tiptap/vue-3";
 import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
@@ -7,6 +8,8 @@ import Text from "@tiptap/extension-text";
 import HardBreak from "@tiptap/extension-hard-break";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
+
+const { t } = useI18n();
 
 export interface PendingImage {
   blob: Blob;
@@ -31,7 +34,7 @@ const editor = useEditor({
     Paragraph,
     Text,
     HardBreak,
-    Placeholder.configure({ placeholder: () => props.placeholder ?? "输入消息..." }),
+    Placeholder.configure({ placeholder: () => props.placeholder ?? t('chat.enterMessage') }),
     Image.configure({ inline: false, allowBase64: true }),
   ],
   editorProps: {

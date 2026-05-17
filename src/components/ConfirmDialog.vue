@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   visible: boolean;
@@ -44,11 +47,11 @@ function handleBackdropClick() {
   <Teleport to="body">
     <div v-if="visible" class="confirm-overlay" :class="{ active: show }" @click="handleBackdropClick">
       <div class="confirm-dialog" @click.stop>
-        <div class="confirm-title">{{ title ?? "确认" }}</div>
+        <div class="confirm-title">{{ title ?? t('common.confirm') }}</div>
         <div class="confirm-message">{{ message }}</div>
         <div class="confirm-actions">
-          <button class="btn-cancel" @click="handleCancel">{{ cancelText ?? "取消" }}</button>
-          <button class="btn-confirm" :class="{ danger }" @click="handleConfirm">{{ confirmText ?? "确认" }}</button>
+          <button class="btn-cancel" @click="handleCancel">{{ cancelText ?? t('common.cancel') }}</button>
+          <button class="btn-confirm" :class="{ danger }" @click="handleConfirm">{{ confirmText ?? t('common.confirm') }}</button>
         </div>
       </div>
     </div>

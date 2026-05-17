@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { inject, ref, onMounted, onUnmounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { getMemberSettings, TeamClientKey } from "../composables/teamClientContext";
 import { isRecordingShortcut, buildCombo } from "../composables/useGlobalShortcuts";
 import BackButton from "./BackButton.vue";
+
+useI18n();
 
 const emit = defineEmits<{
   back: [];
@@ -75,15 +78,15 @@ function clearShortcut(type: ShortcutType) {
 <template>
   <div class="quick-panel">
     <div class="quick-panel-header">
-      <span class="header-title">快捷键</span>
+      <span class="header-title">{{ $t('shortcut.title') }}</span>
       <BackButton @click="emit('back')" />
     </div>
 
     <div class="quick-panel-body">
       <div class="shortcut-card">
         <div class="shortcut-info">
-          <span class="shortcut-label">AI 托管任务</span>
-          <span class="shortcut-desc">切换自动 / 手动执行模式</span>
+          <span class="shortcut-label">{{ $t('shortcut.aiTaskMode') }}</span>
+          <span class="shortcut-desc">{{ $t('shortcut.aiTaskModeDesc') }}</span>
         </div>
         <div class="shortcut-actions">
           <button
@@ -93,19 +96,19 @@ function clearShortcut(type: ShortcutType) {
           >
             <template v-if="recording === 'execution_mode'">
               <span class="recording-dot" />
-              按下快捷键...
+              {{ $t('shortcut.pressing') }}
             </template>
             <template v-else-if="shortcutExecutionMode">
               {{ shortcutExecutionMode }}
             </template>
             <template v-else>
-              点击录制
+              {{ $t('shortcut.clickToRecord') }}
             </template>
           </button>
           <button
             v-if="shortcutExecutionMode && recording !== 'execution_mode'"
             class="clear-btn"
-            title="清除快捷键"
+            :title="$t('shortcut.clearShortcut')"
             @click="clearShortcut('execution_mode')"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -118,8 +121,8 @@ function clearShortcut(type: ShortcutType) {
 
       <div class="shortcut-card">
         <div class="shortcut-info">
-          <span class="shortcut-label">AI 自动回复</span>
-          <span class="shortcut-desc">开关 AI 自动回复聊天消息</span>
+          <span class="shortcut-label">{{ $t('shortcut.aiAutoReply') }}</span>
+          <span class="shortcut-desc">{{ $t('shortcut.aiAutoReplyDesc') }}</span>
         </div>
         <div class="shortcut-actions">
           <button
@@ -129,19 +132,19 @@ function clearShortcut(type: ShortcutType) {
           >
             <template v-if="recording === 'auto_reply'">
               <span class="recording-dot" />
-              按下快捷键...
+              {{ $t('shortcut.pressing') }}
             </template>
             <template v-else-if="shortcutAutoReply">
               {{ shortcutAutoReply }}
             </template>
             <template v-else>
-              点击录制
+              {{ $t('shortcut.clickToRecord') }}
             </template>
           </button>
           <button
             v-if="shortcutAutoReply && recording !== 'auto_reply'"
             class="clear-btn"
-            title="清除快捷键"
+            :title="$t('shortcut.clearShortcut')"
             @click="clearShortcut('auto_reply')"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -153,7 +156,7 @@ function clearShortcut(type: ShortcutType) {
       </div>
 
       <p class="shortcut-hint">
-        需要至少一个修饰键（Ctrl / Alt / Meta），按 Esc 取消录制
+        {{ $t('shortcut.recordHint') }}
       </p>
     </div>
   </div>

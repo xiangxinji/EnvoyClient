@@ -1,4 +1,5 @@
 const isTauri = "__TAURI_INTERNALS__" in window;
+import { i18n } from "../i18n";
 
 let cachedIconPath: string | null = null;
 
@@ -37,7 +38,7 @@ export async function downloadFileWithDialog(
   headers?: Record<string, string>,
 ): Promise<boolean> {
   const res = await fetch(url, { headers: headers ?? {} });
-  if (!res.ok) throw new Error("下载失败");
+  if (!res.ok) throw new Error(i18n.global.t('common.downloadFailed'));
   const blob = await res.blob();
 
   if (isTauri) {

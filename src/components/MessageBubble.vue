@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onUnmounted, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
 import type { ChatMessage, MessageAttachment } from "../types";
@@ -12,6 +13,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   contextmenu: [rect: DOMRect, message: ChatMessage];
 }>();
+
+const { t } = useI18n();
 
 const bubbleRef = ref<HTMLElement | null>(null);marked.setOptions({
   gfm: true,
@@ -172,7 +175,7 @@ onUnmounted(() => {
     </div>
   </div>
   <div class="time-row" :class="{ mine: message.mine }">
-    <span v-if="message.source === 'ai-auto'" class="ai-badge">AI 自动回复</span>
+    <span v-if="message.source === 'ai-auto'" class="ai-badge">{{ $t('chat.aiAutoReply') }}</span>
     <span class="time">{{ formatTime(message.timestamp) }}</span>
   </div>
 
@@ -181,30 +184,30 @@ onUnmounted(() => {
     <Transition name="viewer">
       <div v-if="fullscreenUrl" class="fullscreen-overlay" @click="closeFullscreen" @mousemove="onDragMove" @mouseup="onDragEnd" @mouseleave="onDragEnd">
       <div class="fullscreen-toolbar" @click.stop>
-        <button class="toolbar-btn" @click="zoomOut" title="缩小">
+        <button class="toolbar-btn" @click="zoomOut" :title="t('chat.zoomOut')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
         </button>
         <span class="toolbar-scale">{{ Math.round(imageScale * 100) }}%</span>
-        <button class="toolbar-btn" @click="zoomIn" title="放大">
+        <button class="toolbar-btn" @click="zoomIn" :title="t('chat.zoomIn')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
         </button>
         <div class="toolbar-divider"></div>
-        <button class="toolbar-btn" @click="rotateLeft" title="左旋转">
+        <button class="toolbar-btn" @click="rotateLeft" :title="t('chat.rotateLeft')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
         </button>
-        <button class="toolbar-btn" @click="rotateRight" title="右旋转">
+        <button class="toolbar-btn" @click="rotateRight" :title="t('chat.rotateRight')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         </button>
         <div class="toolbar-divider"></div>
-        <button class="toolbar-btn" @click="resetZoom" title="重置">
+        <button class="toolbar-btn" @click="resetZoom" :title="t('chat.resetZoom')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
         </button>
         <div class="toolbar-divider"></div>
-        <button class="toolbar-btn" @click="downloadImage" title="下载">
+        <button class="toolbar-btn" @click="downloadImage" :title="t('chat.downloadImage')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
         <div class="toolbar-divider"></div>
-        <button class="toolbar-btn" @click="closeFullscreen" title="关闭 (Esc)">
+        <button class="toolbar-btn" @click="closeFullscreen" :title="t('chat.closeViewer')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>

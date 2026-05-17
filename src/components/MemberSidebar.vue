@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { inject, computed } from "vue";
+import { inject, computed, onMounted, onUnmounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { TeamClientKey, getMemberSettings } from "../composables/teamClientContext";
 import type { TaskExecutionMode } from "../composables/useMemberSettings";
 
-defineProps<{
+const { t } = useI18n();
+
+const props = defineProps<{
   selectedPeer: string;
 }>();
 
@@ -17,6 +20,40 @@ const { settings: memberSettings, saveSettings } = getMemberSettings();
 
 const isAutoMode = computed(() => memberSettings.value.task_execution_mode === "auto");
 const isAutoReply = computed(() => memberSettings.value.ai_auto_reply);
+
+/** Ordered list of all selectable peer IDs in the sidebar */
+const navItems = computed(() => {
+  const items: string[] = ["__tasks__"];
+  if (ctx.role === "leader") items.push("__dispatch__");
+  for (const m of members.value) {
+    items.push(m.id);
+  }
+  return items;
+});
+
+function handleKeyDown(e: KeyboardEvent) {
+  if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+  const target = e.target as HTMLElement;
+  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+
+  e.preventDefault();
+  const items = navItems.value;
+  if (items.length === 0) return;
+
+  const idx = items.indexOf(props.selectedPeer);
+  let next: number;
+  if (e.key === "ArrowUp") {
+    next = idx <= 0 ? items.length - 1 : idx - 1;
+  } else {
+    next = idx >= items.length - 1 ? 0 : idx + 1;
+  }
+  const peerId = items[next]!;
+  markRead(peerId);
+  emit("select", peerId);
+}
+
+onMounted(() => window.addEventListener("keydown", handleKeyDown));
+onUnmounted(() => window.removeEventListener("keydown", handleKeyDown));
 
 async function toggleExecutionMode() {
   const next: TaskExecutionMode = isAutoMode.value ? "manual" : "auto";
@@ -64,7 +101,7 @@ function getInitial(name: string): string {
 <template>
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h3>成员</h3>
+      <h3>{{ t('sidebar.members') }}</h3>
     </div>
     <ul>
       <!-- Task center entry -->
@@ -81,7 +118,7 @@ function getInitial(name: string): string {
           </svg>
         </div>
         <div class="member-info">
-          <span class="member-name">任务中心</span>
+          <span class="member-name">{{ t('sidebar.taskCenter') }}</span>
         </div>
         <span v-if="taskCount > 0" class="badge badge-task">
           {{ formatBadge(taskCount) }}
@@ -101,7 +138,7 @@ function getInitial(name: string): string {
           </svg>
         </div>
         <div class="member-info">
-          <span class="member-name">任务分派</span>
+          <span class="member-name">{{ t('sidebar.taskDispatch') }}</span>
         </div>
       </li>
 
@@ -130,7 +167,7 @@ function getInitial(name: string): string {
           <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
-        <span>暂无成员</span>
+        <span>{{ t('sidebar.noMembers') }}</span>
       </li>
     </ul>
 
@@ -145,14 +182,14 @@ function getInitial(name: string): string {
               <rect x="2" y="4" width="20" height="16" rx="2" />
               <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M9 16h6" />
             </svg>
-            快捷键
+            {{ t('sidebar.shortcuts') }}
           </button>
           <button class="user-menu-item" :class="{ active: selectedPeer === '__settings__' }" @click="emit('select', '__settings__')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-            设置
+            {{ t('sidebar.settings') }}
           </button>
         </div>
       </div>
@@ -160,7 +197,7 @@ function getInitial(name: string): string {
         <button
           class="quick-toggle"
           :class="{ active: isAutoReply }"
-          title="AI 自动回复"
+          :title="t('sidebar.aiAutoReply')"
           @click="toggleAutoReply"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -170,7 +207,7 @@ function getInitial(name: string): string {
         <button
           class="quick-toggle"
           :class="{ active: isAutoMode }"
-          title="AI 托管任务"
+          :title="t('sidebar.aiTaskMode')"
           @click="toggleExecutionMode"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

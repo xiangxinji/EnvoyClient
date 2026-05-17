@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
 import type { TaskMessage, TaskResource, AgentStep } from "../types";
@@ -11,6 +12,8 @@ import { TeamClientKey } from "../composables/teamClientContext";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
 import BackButton from "./BackButton.vue";
+
+const { t } = useI18n();
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -84,16 +87,16 @@ onUnmounted(() => {
 });
 
 const statusLabels: Record<TaskMessage["status"], string> = {
-  pending: "等待中",
-  running: "执行中",
-  reviewing: "审查中",
-  completed: "已完成",
-  failed: "失败",
+  pending: t('task.status.pending'),
+  running: t('task.status.running'),
+  reviewing: t('task.status.reviewing'),
+  completed: t('task.status.completed'),
+  failed: t('task.status.failed'),
 };
 
 const modeLabels: Record<string, string> = {
-  serial: "串行",
-  parallel: "并行",
+  serial: t('task.mode.serial'),
+  parallel: t('task.mode.parallel'),
 };
 
 // ─── Group resources by type ───
@@ -142,7 +145,7 @@ const timelineEvents = computed<TimelineEvent[]>(() => {
 
   events.push({
     time: liveTask.value.timestamp,
-    label: "创建任务",
+    label: t('task.createTask'),
     by: liveTask.value.from,
     icon: "create",
   });
@@ -150,7 +153,7 @@ const timelineEvents = computed<TimelineEvent[]>(() => {
   for (const r of clientResults.value) {
     events.push({
       time: r.timestamp,
-      label: "执行完成",
+      label: t('task.executionDone'),
       by: r.by,
       icon: "result",
     });
@@ -160,7 +163,7 @@ const timelineEvents = computed<TimelineEvent[]>(() => {
     const success = (r.data as Record<string, unknown>)?.success as boolean;
     events.push({
       time: r.timestamp,
-      label: success ? "审核通过" : "审核驳回",
+      label: success ? t('task.reviewApprovedLabel') : t('task.reviewRejectedLabel'),
       by: r.by,
       icon: "review",
       success,
@@ -170,7 +173,7 @@ const timelineEvents = computed<TimelineEvent[]>(() => {
   for (const r of fileResources.value) {
     events.push({
       time: r.timestamp,
-      label: "上传文件",
+      label: t('task.uploadFile'),
       by: r.by,
       icon: "file",
     });
@@ -248,7 +251,7 @@ const canReview = computed(() => isCreatedByMe.value && liveTask.value.status ==
 // ─── ConfirmDialog state ───
 
 const confirmVisible = ref(false);
-const confirmTitle = ref("确认");
+const confirmTitle = ref(t('task.confirmDefault'));
 const confirmMessage = ref("");
 const confirmDanger = ref(false);
 const pendingAction = ref<(() => void) | null>(null);
@@ -301,32 +304,32 @@ async function handleStart() {
   try {
     const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/start`, { from: props.myId }, { team: props.teamName ?? "" });
     if (res.ok) { /* WebSocket will update */ }
-    else showToast("操作失败", "error");
+    else showToast(t('common.operationFailed'), "error");
   } catch {
-    showToast("操作失败", "error");
+    showToast(t('common.operationFailed'), "error");
   }
   starting.value = false;
 }
 
 function requestComplete() {
-  showConfirm("确认完成", "确定要标记此任务为完成吗？", doComplete);
+  showConfirm(t('task.confirmComplete'), t('task.confirmCompleteMsg'), doComplete);
 }
 
 async function doComplete() {
   if (completing.value) return;
   completing.value = true;
   try {
-    const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/complete`, { from: props.myId, data: { note: "手动标记完成", source: "manual" } }, { team: props.teamName ?? "" });
+    const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/complete`, { from: props.myId, data: { note: t('task.manualComplete'), source: "manual" } }, { team: props.teamName ?? "" });
     if (res.ok) { /* WebSocket will update */ }
-    else showToast("操作失败", "error");
+    else showToast(t('common.operationFailed'), "error");
   } catch {
-    showToast("操作失败", "error");
+    showToast(t('common.operationFailed'), "error");
   }
   completing.value = false;
 }
 
 function requestApprove() {
-  showConfirm("确认通过", "确定要通过此任务的审查吗？", doApprove);
+  showConfirm(t('task.confirmApprove'), t('task.confirmApproveMsg'), doApprove);
 }
 
 async function doApprove() {
@@ -336,21 +339,21 @@ async function doApprove() {
     const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/result`, {
       from: props.myId,
       success: true,
-      data: { review: "通过", source: "manual" },
+      data: { review: t('task.approved'), source: "manual" },
     }, { team: props.teamName ?? "" });
     if (res.ok) {
-      showToast("审查已通过", "success");
+      showToast(t('task.reviewApproved'), "success");
     } else {
-      showToast("操作失败", "error");
+      showToast(t('common.operationFailed'), "error");
     }
   } catch {
-    showToast("操作失败", "error");
+    showToast(t('common.operationFailed'), "error");
   }
   reviewing.value = false;
 }
 
 function requestReject() {
-  showConfirm("确认驳回", "确定要驳回此任务吗？驳回后任务将重新分派给所有成员。", doReject, true);
+  showConfirm(t('task.confirmReject'), t('task.confirmRejectMsg'), doReject, true);
 }
 
 async function doReject() {
@@ -360,15 +363,15 @@ async function doReject() {
     const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/result`, {
       from: props.myId,
       success: false,
-      error: "未通过审查",
+      error: t('task.reviewFailed'),
     }, { team: props.teamName ?? "" });
     if (res.ok) {
-      showToast("任务已驳回，将重新分派", "info");
+      showToast(t('task.taskRejected'), "info");
     } else {
-      showToast("操作失败", "error");
+      showToast(t('common.operationFailed'), "error");
     }
   } catch {
-    showToast("操作失败", "error");
+    showToast(t('common.operationFailed'), "error");
   }
   reviewing.value = false;
 }
@@ -389,10 +392,10 @@ async function handleUpload() {
         headers: { team: props.teamName ?? "" },
         body: formData,
       });
-      if (!res.ok) throw new Error("上传失败");
+      if (!res.ok) throw new Error(t('common.uploadFailed'));
       /* WebSocket will update */
     } catch {
-      showToast("文件上传失败", "error");
+      showToast(t('common.fileUploadFailed'), "error");
     }
     uploading.value = false;
   };
@@ -447,9 +450,9 @@ async function downloadFile(filename: string) {
   try {
     const url = getFileDownloadUrl(filename);
     await downloadFileWithDialog(url, filename, { team: props.teamName ?? "" });
-    showToast("文件已保存", "success");
+    showToast(t('common.fileSaved'), "success");
   } catch {
-    showToast("文件下载失败", "error");
+    showToast(t('common.fileDownloadFailed'), "error");
   } finally {
     downloading.value = "";
   }
@@ -501,7 +504,7 @@ function isTraceExpanded(_by: string): boolean {
   <div class="detail-panel">
     <!-- Header -->
     <div class="detail-header">
-      <span class="detail-title">任务详情</span>
+      <span class="detail-title">{{ $t('task.detail') }}</span>
       <BackButton @click="emit('close')" />
     </div>
 
@@ -509,29 +512,29 @@ function isTraceExpanded(_by: string): boolean {
       <!-- Status + Meta -->
       <div class="detail-meta-row">
         <span class="status-badge" :class="liveTask.status">{{ statusLabels[liveTask.status] }}</span>
-        <span class="mode-badge">{{ modeLabels['serial'] ?? '串行' }}</span>
+        <span class="mode-badge">{{ modeLabels['serial'] ?? $t('task.mode.serial') }}</span>
       </div>
 
       <div class="detail-content">{{ liveTask.content }}</div>
 
       <div class="detail-info-grid">
         <div class="info-item">
-          <span class="info-label">创建者</span>
+          <span class="info-label">{{ $t('task.creator') }}</span>
           <span class="info-value">{{ liveTask.from }}</span>
         </div>
         <div class="info-item">
-          <span class="info-label">创建时间</span>
+          <span class="info-label">{{ $t('task.createdAt') }}</span>
           <span class="info-value">{{ formatTimestamp(liveTask.timestamp) }}</span>
         </div>
         <div v-if="duration" class="info-item">
-          <span class="info-label">耗时</span>
+          <span class="info-label">{{ $t('task.duration') }}</span>
           <span class="info-value">{{ duration }}</span>
         </div>
       </div>
 
       <!-- Timeline -->
       <div class="detail-section">
-        <div class="section-title">事件时间线</div>
+        <div class="section-title">{{ $t('task.timeline') }}</div>
         <div class="timeline">
           <div v-for="(evt, i) in timelineEvents" :key="i" class="timeline-item">
             <div class="timeline-dot" :class="evt.icon">
@@ -544,7 +547,7 @@ function isTraceExpanded(_by: string): boolean {
               <span class="timeline-label">{{ evt.label }}</span>
               <span class="timeline-by">{{ evt.by }}</span>
               <span v-if="evt.time !== undefined" class="timeline-time">{{ formatTime(evt.time) }}</span>
-              <span v-if="evt.success === false" class="timeline-reject">驳回</span>
+              <span v-if="evt.success === false" class="timeline-reject">{{ $t('task.rejected') }}</span>
             </div>
           </div>
         </div>
@@ -552,20 +555,20 @@ function isTraceExpanded(_by: string): boolean {
 
       <!-- Member results grouped -->
       <div v-if="memberEntries.length > 0" class="detail-section">
-        <div class="section-title">成员执行</div>
+        <div class="section-title">{{ $t('task.memberExecution') }}</div>
         <div class="member-results">
           <div v-for="entry in memberEntries" :key="entry.id" class="member-block">
             <div class="member-block-header">
               <span class="member-id">{{ entry.id }}</span>
-              <span v-if="entry.hasResult" class="member-status completed">已完成</span>
-              <span v-else class="member-status pending">待执行</span>
+              <span v-if="entry.hasResult" class="member-status completed">{{ $t('task.status.completed') }}</span>
+              <span v-else class="member-status pending">{{ $t('task.pendingExecute') }}</span>
             </div>
 
             <!-- Client result -->
             <template v-if="entry.hasResult">
               <div v-for="res in clientResults.filter(r => r.by === entry.id)" :key="res.by" class="result-block">
                 <span v-if="isAIExecuted(res)" class="source-badge ai">AI</span>
-                <span v-else class="source-badge manual">手动</span>
+                <span v-else class="source-badge manual">{{ $t('task.manual') }}</span>
                 <div class="markdown-content" v-html="renderMarkdown(getResultText(res.data))" />
               </div>
             </template>
@@ -577,9 +580,9 @@ function isTraceExpanded(_by: string): boolean {
       <div v-if="traceResources.length > 0" class="detail-section">
         <div class="section-title clickable" @click="toggleTrace('__all__')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          执行过程
-          <span class="trace-count">{{ traceResources.map(r => getTraceSteps(r).length).reduce((a, b) => a + b, 0) }} 步</span>
-          <span class="trace-expand">{{ isTraceExpanded('__all__') ? '收起' : '展开' }}</span>
+          {{ $t('task.executionTrace') }}
+          <span class="trace-count">{{ $t('task.steps', { count: traceResources.map(r => getTraceSteps(r).length).reduce((a, b) => a + b, 0) }) }}</span>
+          <span class="trace-expand">{{ isTraceExpanded('__all__') ? $t('task.collapse') : $t('task.expand') }}</span>
         </div>
         <template v-if="isTraceExpanded('__all__')">
           <div v-for="trace in traceResources" :key="trace.by" class="trace-member-block">
@@ -610,11 +613,11 @@ function isTraceExpanded(_by: string): boolean {
 
       <!-- Leader reviews -->
       <div v-if="leaderReviews.length > 0" class="detail-section">
-        <div class="section-title">审查记录</div>
+        <div class="section-title">{{ $t('task.reviewLog') }}</div>
         <div v-for="(review, i) in leaderReviews" :key="`review-${i}`" class="review-item" :class="(review.data as Record<string, unknown>)?.success ? 'approved' : 'rejected'">
           <span class="resource-by">{{ review.by }}</span>
           <span class="review-status" :class="(review.data as Record<string, unknown>)?.success ? 'approved' : 'rejected'">
-            {{ (review.data as Record<string, unknown>)?.success ? '通过' : '驳回' }}
+            {{ (review.data as Record<string, unknown>)?.success ? $t('task.approved') : $t('task.rejected') }}
           </span>
           <div v-if="(review.data as Record<string, unknown>)?.data" class="review-data">
             <div class="markdown-content" v-html="renderMarkdown(getResultText((review.data as Record<string, unknown>).data))" />
@@ -625,13 +628,13 @@ function isTraceExpanded(_by: string): boolean {
 
       <!-- File resources -->
       <div v-if="fileResources.length > 0" class="detail-section">
-        <div class="section-title">资源文件</div>
+        <div class="section-title">{{ $t('task.resourceFiles') }}</div>
         <div v-for="(res, i) in fileResources" :key="`file-${i}`" class="file-item">
           <span class="resource-by">{{ res.by }}</span>
           <a class="file-link" :class="{ disabled: downloading === (res.data as Record<string, unknown>).filename }" href="javascript:void(0)" @click="downloadFile((res.data as Record<string, unknown>).filename as string)">
             <template v-if="downloading === (res.data as Record<string, unknown>).filename">
               <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-              下载中...
+              {{ $t('task.downloading') }}
             </template>
             <template v-else>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -646,26 +649,26 @@ function isTraceExpanded(_by: string): boolean {
       <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="detail-actions">
         <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-          {{ starting ? '执行中...' : '开始执行' }}
+          {{ starting ? $t('task.starting') : $t('task.startExecution') }}
         </button>
         <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="handleUpload">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          {{ uploading ? '上传中...' : '上传文件' }}
+          {{ uploading ? $t('task.uploading') : $t('task.uploadFile') }}
         </button>
         <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="requestComplete">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-          {{ completing ? '提交中...' : '标记完成' }}
+          {{ completing ? $t('task.submitting') : $t('task.markComplete') }}
         </button>
       </div>
 
       <div v-if="canReview" class="detail-actions">
         <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-          {{ reviewing ? '处理中...' : '通过' }}
+          {{ reviewing ? $t('task.processing') : $t('task.approve') }}
         </button>
         <button class="action-btn action-reject" :disabled="reviewing" @click="requestReject">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          驳回
+          {{ $t('task.reject') }}
         </button>
       </div>
     </div>

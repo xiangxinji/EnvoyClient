@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import logo from "../assets/logo.png";
+
+const { t } = useI18n();
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 const router = useRouter();
@@ -22,14 +25,14 @@ async function loadSettings() {
 async function handleSave() {
   const url = managerUrl.value.trim();
   if (!url) {
-    error.value = "Manager URL 不能为空";
+    error.value = t('loginSettings.managerUrl');
     return;
   }
 
   try {
     new URL(url);
   } catch {
-    error.value = "请输入有效的 URL（如 http://localhost:8080）";
+    error.value = t('loginSettings.invalidUrl');
     return;
   }
 
@@ -48,7 +51,7 @@ async function handleSave() {
     error.value = "";
     setTimeout(() => (saved.value = false), 1500);
   } catch (e) {
-    error.value = "保存失败";
+    error.value = t('loginSettings.saveFailed');
   }
 }
 
@@ -63,7 +66,7 @@ onMounted(loadSettings);
   <div class="settings-page">
     <div class="card">
       <img :src="logo" class="logo" alt="Envoy" />
-      <h1>设置</h1>
+      <h1>{{ $t('loginSettings.title') }}</h1>
 
       <div class="fields">
         <div class="field">
@@ -74,15 +77,16 @@ onMounted(loadSettings);
             placeholder="http://localhost:8080"
             @keydown.enter="handleSave"
           />
-          <span class="hint">服务器地址，修改后需重新登录</span>
+          <span class="hint">{{ $t('loginSettings.managerUrlHint') }}</span>
         </div>
+
       </div>
 
       <div class="actions">
-        <button class="btn-back" @click="handleBack">返回</button>
+        <button class="btn-back" @click="handleBack">{{ $t('common.back') }}</button>
         <button class="btn-save" @click="handleSave">
           <span v-if="saved" class="check">✓</span>
-          <span>{{ saved ? "已保存" : "保存" }}</span>
+          <span>{{ saved ? $t('common.saved') : $t('common.save') }}</span>
         </button>
       </div>
 
@@ -268,4 +272,5 @@ input::placeholder {
   font-size: 0.8em;
   margin: 0;
 }
+
 </style>

@@ -1,3 +1,4 @@
+import { i18n } from "../i18n";
 import type { MemberInfo } from "../types";
 import type { Message } from "@envoy/core";
 import type { Task } from "../../envoy/packages/core/task.js";
@@ -17,6 +18,8 @@ export function useTeamClient(
   role: "leader" | "member",
   options: ConnectionClientOptions,
 ) {
+
+
   // 1. Connection layer
   const conn = useConnection(role, options);
 
@@ -90,7 +93,7 @@ export function useTeamClient(
         // Dispatched to members — notify assigned members (not self if Leader)
         const isSubscriber = task.subscribe.includes(myId);
         if (isSubscriber && prev === "pending") {
-          sendDesktopNotification("新任务", content);
+          sendDesktopNotification(i18n.global.t('notification.newTask'), content);
         }
         break;
       }
@@ -99,21 +102,21 @@ export function useTeamClient(
         // (Leader approved → skip notifying self)
         const isRelevant = task.createBy === myId || task.subscribe.includes(myId);
         if (isRelevant) {
-          sendDesktopNotification("任务完成", content);
+          sendDesktopNotification(i18n.global.t('notification.taskCompleted'), content);
         }
         break;
       }
       case "failed": {
         const isRelevant = task.createBy === myId || task.subscribe.includes(myId);
         if (isRelevant) {
-          sendDesktopNotification("任务失败", content);
+          sendDesktopNotification(i18n.global.t('notification.taskFailed'), content);
         }
         break;
       }
       case "reviewing": {
         // Notify creator (Leader), but skip if I'm the one who just completed
         if (task.createBy === myId) {
-          sendDesktopNotification("任务待审核", content);
+          sendDesktopNotification(i18n.global.t('notification.taskReviewing'), content);
         }
         break;
       }
