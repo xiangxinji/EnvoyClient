@@ -4,6 +4,7 @@ import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
 import type { TaskMessage, TaskResource, AgentStep } from "../types";
 import { apiUrl, managerPost } from "../api";
+import { downloadFileWithDialog } from "../utils/notification";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
 
@@ -312,19 +313,18 @@ function getFileDownloadUrl(filename: string): string {
   return apiUrl(`/api/tasks/${props.task.taskId}/resources/${encodeURIComponent(filename)}`);
 }
 
+const downloading = ref("");
+
 async function downloadFile(filename: string) {
+  if (downloading.value) return;
+  downloading.value = filename;
   try {
     const url = getFileDownloadUrl(filename);
-    const res = await fetch(url, { headers: { team: props.teamName ?? "" } });
-    if (!res.ok) throw new Error("下载失败");
-    const blob = await res.blob();
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    await downloadFileWithDialog(url, filename, { team: props.teamName ?? "" });
   } catch {
     showToast("文件下载失败，可能已被删除", "error");
+  } finally {
+    downloading.value = "";
   }
 }
 
@@ -438,11 +438,18 @@ function formatToolResult(result: unknown): string {
         <span class="resource-by">{{ res.by }}</span>
         <a
           class="file-link"
+          :class="{ disabled: downloading === (res.data as any).filename }"
           href="javascript:void(0)"
           @click.stop="downloadFile((res.data as any).filename)"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          {{ (res.data as any).filename }}
+          <template v-if="downloading === (res.data as any).filename">
+            <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            下载中...
+          </template>
+          <template v-else>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            {{ (res.data as any).filename }}
+          </template>
         </a>
         <span class="file-meta">{{ formatFileSize((res.data as any).size) }} · {{ formatTimestamp((res.data as any).uploadedAt) }}</span>
       </div>
@@ -788,6 +795,10 @@ function formatToolResult(result: unknown): string {
 }
 
 .file-link:hover { text-decoration: underline; }
+.file-link.disabled { pointer-events: none; opacity: 0.6; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
 
 .file-meta {
   display: block;

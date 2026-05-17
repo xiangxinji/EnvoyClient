@@ -5,6 +5,7 @@ import DOMPurify from "dompurify";
 import type { TaskMessage, TaskResource, AgentStep } from "../types";
 import type { Task } from "../../envoy/packages/core/task.js";
 import { apiUrl, managerFetch, managerPost } from "../api";
+import { downloadFileWithDialog } from "../utils/notification";
 import { inject } from "vue";
 import { TeamClientKey } from "../composables/teamClientContext";
 import ConfirmDialog from "./ConfirmDialog.vue";
@@ -438,19 +439,19 @@ function getFileDownloadUrl(filename: string): string {
   return apiUrl(`/api/tasks/${liveTask.value.taskId}/resources/${encodeURIComponent(filename)}`);
 }
 
+const downloading = ref("");
+
 async function downloadFile(filename: string) {
+  if (downloading.value) return;
+  downloading.value = filename;
   try {
     const url = getFileDownloadUrl(filename);
-    const res = await fetch(url, { headers: { team: props.teamName ?? "" } });
-    if (!res.ok) throw new Error("下载失败");
-    const blob = await res.blob();
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    await downloadFileWithDialog(url, filename, { team: props.teamName ?? "" });
+    showToast("文件已保存", "success");
   } catch {
     showToast("文件下载失败", "error");
+  } finally {
+    downloading.value = "";
   }
 }
 
@@ -627,9 +628,15 @@ function isTraceExpanded(_by: string): boolean {
         <div class="section-title">资源文件</div>
         <div v-for="(res, i) in fileResources" :key="`file-${i}`" class="file-item">
           <span class="resource-by">{{ res.by }}</span>
-          <a class="file-link" href="javascript:void(0)" @click="downloadFile((res.data as Record<string, unknown>).filename as string)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            {{ (res.data as Record<string, unknown>).filename }}
+          <a class="file-link" :class="{ disabled: downloading === (res.data as Record<string, unknown>).filename }" href="javascript:void(0)" @click="downloadFile((res.data as Record<string, unknown>).filename as string)">
+            <template v-if="downloading === (res.data as Record<string, unknown>).filename">
+              <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              下载中...
+            </template>
+            <template v-else>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              {{ (res.data as Record<string, unknown>).filename }}
+            </template>
           </a>
           <span class="file-meta">{{ formatFileSize((res.data as Record<string, unknown>).size as number) }} · {{ formatTimestamp((res.data as Record<string, unknown>).uploadedAt as number) }}</span>
         </div>
@@ -991,6 +998,11 @@ function isTraceExpanded(_by: string): boolean {
   font-weight: 500;
 }
 .file-link:hover { text-decoration: underline; }
+.file-link.disabled { pointer-events: none; opacity: 0.6; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+
 .file-meta { display: block; font-size: 0.7em; color: var(--text-muted); margin-top: 2px; }
 
 /* Trace toggle */

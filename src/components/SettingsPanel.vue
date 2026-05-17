@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { getMemberSettings, TeamClientKey, setTeamClientInstance } from "../composables/teamClientContext";
 import type { TaskExecutionMode } from "../composables/useMemberSettings";
 import GlassSelect from "./GlassSelect.vue";
+import BackButton from "./BackButton.vue";
 
 const emit = defineEmits<{
   back: [];
@@ -77,12 +78,7 @@ async function handleLogout() {
   <div class="settings-panel">
     <div class="settings-header">
       <span class="header-title">设置</span>
-      <button class="back-btn" @click="emit('back')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-        返回
-      </button>
+      <BackButton @click="emit('back')" />
     </div>
 
     <div class="settings-body">
@@ -190,25 +186,6 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  margin-left: auto;
-  background: none;
-  border: none;
-  color: var(--accent);
-  cursor: pointer;
-  font-size: 0.85em;
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-sm);
-  transition: background 0.15s;
-}
-
-.back-btn:hover {
-  background: var(--bg-secondary);
 }
 
 .header-title {

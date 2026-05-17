@@ -438,6 +438,20 @@ fn shell_exec(command: String, working_dir: Option<String>) -> Result<serde_json
     }))
 }
 
+use base64::Engine;
+
+#[tauri::command]
+fn save_binary_file(path: String, data_b64: String) -> Result<(), String> {
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(&data_b64)
+        .map_err(|e| format!("Invalid base64: {}", e))?;
+    if let Some(parent) = std::path::Path::new(&path).parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&path, decoded).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command]
 fn app_exit(app: tauri::AppHandle) {
     app.exit(0);
@@ -449,6 +463,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))
@@ -516,6 +531,7 @@ pub fn run() {
             shell_exec,
             file_read,
             file_write,
+            save_binary_file,
             brains::init_brains,
             init_workspace,
             load_skill_catalog,
