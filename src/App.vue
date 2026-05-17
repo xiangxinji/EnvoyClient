@@ -80,6 +80,13 @@ function preventRefresh(e: KeyboardEvent) {
 }
 
 onMounted(async () => {
+  const splash = document.getElementById("splash");
+  if (splash) {
+    splash.classList.add("fade-out");
+    splash.addEventListener("transitionend", () => splash.classList.add("gone"));
+    setTimeout(() => splash.classList.add("gone"), 600);
+  }
+
   if (isTauri) {
     window.addEventListener("keydown", preventRefresh);
     try {

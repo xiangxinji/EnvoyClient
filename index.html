@@ -5,10 +5,103 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Envoy</title>
+    <!-- Apply saved theme immediately to avoid light→dark flash -->
+    <script>
+      (function() {
+        var t = localStorage.getItem('envoy-theme');
+        if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
 
   <body>
     <div id="app"></div>
+    <!-- Glass loading splash — removed by Vue after mount -->
+    <div id="splash">
+      <div class="splash-spinner">
+        <svg viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
+      </div>
+      <span class="splash-label">Envoy</span>
+    </div>
+    <style>
+      #splash {
+        position: fixed; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 16px;
+        z-index: 99999;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        transition: opacity .4s ease;
+      }
+      #splash.fade-out { opacity: 0; pointer-events: none; }
+      #splash.gone { display: none; }
+
+      .splash-spinner svg {
+        width: 28px; height: 28px;
+        animation: splash-spin 1s linear infinite;
+      }
+      .splash-spinner svg circle {
+        stroke-dasharray: 40 70;
+      }
+      .splash-label {
+        font-size: 13px; font-weight: 500; letter-spacing: .5px;
+        opacity: .5;
+      }
+
+      @keyframes splash-spin { to { transform: rotate(360deg); } }
+
+      /* Light theme */
+      #splash {
+        background: #f0f0f3;
+        color: #1d1d1f;
+      }
+      .splash-spinner svg circle {
+        stroke: #1d1d1f;
+        opacity: .25;
+      }
+      #splash::before {
+        content: '';
+        position: absolute;
+        width: 300px; height: 300px;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: .35;
+        background: #2fb38b;
+        top: 30%; left: 25%;
+      }
+      #splash::after {
+        content: '';
+        position: absolute;
+        width: 200px; height: 200px;
+        border-radius: 50%;
+        filter: blur(60px);
+        opacity: .25;
+        background: #2fb38b;
+        bottom: 25%; right: 20%;
+      }
+
+      /* Dark theme */
+      html.dark #splash {
+        background: #141416;
+        color: #f5f5f7;
+      }
+      html.dark .splash-spinner svg circle {
+        stroke: #f5f5f7;
+        opacity: .25;
+      }
+      html.dark #splash::before {
+        background: #3dd9a5;
+        opacity: .2;
+      }
+      html.dark #splash::after {
+        background: #3dd9a5;
+        opacity: .15;
+      }
+    </style>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
