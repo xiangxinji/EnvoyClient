@@ -227,7 +227,7 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
     pendingFiles.value = [];
   }
 
-  sendChat(props.peerId, text || " ", attachments.length > 0 ? attachments : undefined);
+  sendChat(props.peerId, text || " ", { attachments: attachments.length > 0 ? attachments : undefined });
 }
 
 function handleClearChat() {

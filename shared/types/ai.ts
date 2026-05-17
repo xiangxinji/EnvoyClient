@@ -14,7 +14,7 @@ export interface ModelPreset {
 
 // ─── Scene Configuration ───
 
-export type SceneType = "chat" | "task" | "analyze" | "agent" | "dispatch" | "review";
+export type SceneType = "chat" | "task" | "analyze" | "agent" | "dispatch" | "review" | "auto-reply";
 
 export interface SceneConfig {
   presetId: string | null;

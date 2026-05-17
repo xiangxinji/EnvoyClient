@@ -9,12 +9,14 @@ export interface MemberSettings {
   working_directory: string;
   task_execution_mode: TaskExecutionMode;
   ai_suggestion_history_count: number;
+  ai_auto_reply: boolean;
 }
 
 const DEFAULT_SETTINGS: MemberSettings = {
   working_directory: "",
   task_execution_mode: "auto",
   ai_suggestion_history_count: 5,
+  ai_auto_reply: false,
 };
 
 const _settings = ref<MemberSettings>({ ...DEFAULT_SETTINGS });
@@ -45,6 +47,9 @@ export function useMemberSettings() {
         ai_suggestion_history_count: typeof userSettings.ai_suggestion_history_count === "number"
           ? userSettings.ai_suggestion_history_count
           : DEFAULT_SETTINGS.ai_suggestion_history_count,
+        ai_auto_reply: typeof userSettings.ai_auto_reply === "boolean"
+          ? userSettings.ai_auto_reply
+          : DEFAULT_SETTINGS.ai_auto_reply,
       };
     } catch (e) {
       console.error(`[settings] loadSettings failed for ${username}:`, e);
@@ -74,6 +79,10 @@ export function useMemberSettings() {
     if (updates.ai_suggestion_history_count !== undefined) {
       existing.ai_suggestion_history_count = updates.ai_suggestion_history_count;
       _settings.value.ai_suggestion_history_count = updates.ai_suggestion_history_count;
+    }
+    if (updates.ai_auto_reply !== undefined) {
+      existing.ai_auto_reply = updates.ai_auto_reply;
+      _settings.value.ai_auto_reply = updates.ai_auto_reply;
     }
 
     users[username] = existing;

@@ -18,6 +18,7 @@ interface SyncMessage {
   to_user: string;
   content: string;
   extra: string | null;
+  source: string;
   created_at: number;
 }
 
@@ -73,6 +74,7 @@ export function useMessages(
       text: msg.content,
       timestamp: msg.created_at,
       mine: msg.from_user === myId,
+      source: (msg.source === "ai-auto" ? "ai-auto" : "human") as "human" | "ai-auto",
       attachments: extra.attachments as MessageAttachment[] | undefined,
     } satisfies ChatMessage;
   }
@@ -105,7 +107,7 @@ export function useMessages(
 
   function handleIncomingMessage(msg: Message): boolean {
     if (msg.type === "message" && msg.subtype === "chat") {
-      const payload = msg.payload as { text: string; id?: string; seq?: number; attachments?: MessageAttachment[] };
+      const payload = msg.payload as { text: string; id?: string; seq?: number; source?: string; attachments?: MessageAttachment[] };
       if (payload.attachments) {
         for (const att of payload.attachments) {
           if (att.url.startsWith("/")) att.url = apiUrl(att.url);
@@ -120,6 +122,7 @@ export function useMessages(
         text: payload.text,
         timestamp: msg.timestamp,
         mine: msg.from === myId,
+        source: (payload.source === "ai-auto" ? "ai-auto" : "human") as "human" | "ai-auto",
         attachments: payload.attachments,
       };
       const peerId = msg.from === myId ? msg.to : msg.from;
@@ -174,9 +177,12 @@ export function useMessages(
     }
   }
 
-  async function sendChat(targetId: string, text: string, attachments?: MessageAttachment[]) {
+  async function sendChat(targetId: string, text: string, options?: { attachments?: MessageAttachment[]; source?: "human" | "ai-auto" }) {
+    const attachments = options?.attachments;
+    const source = options?.source;
     const body: Record<string, unknown> = { from: myId, to: targetId, text };
     if (attachments?.length) body.attachments = attachments;
+    if (source) body.source = source;
 
     try {
       const res = await managerPost("/api/messages", body, { team: teamName });
@@ -191,6 +197,7 @@ export function useMessages(
         text,
         timestamp: Date.now(),
         mine: true,
+        source,
         attachments: attachments?.length ? attachments : undefined,
       };
       addToConversation(targetId, chatMsg);
@@ -205,6 +212,7 @@ export function useMessages(
         text,
         timestamp: Date.now(),
         mine: true,
+        source,
         attachments: attachments?.length ? attachments : undefined,
       };
       addToConversation(targetId, chatMsg);

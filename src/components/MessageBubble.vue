@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, watch } from "vue";
+import { computed, ref, onUnmounted, watch } from "vue";
 import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
 import type { ChatMessage, MessageAttachment } from "../types";
@@ -168,6 +168,7 @@ onUnmounted(() => {
     </div>
   </div>
   <div class="time-row" :class="{ mine: message.mine }">
+    <span v-if="message.source === 'ai-auto'" class="ai-badge">AI 自动回复</span>
     <span class="time">{{ formatTime(message.timestamp) }}</span>
   </div>
 
@@ -495,10 +496,23 @@ onUnmounted(() => {
   padding: 0 4px;
   margin-top: -2px;
   margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
 }
 
 .time-row.mine {
-  text-align: right;
+  justify-content: flex-end;
+}
+
+.ai-badge {
+  font-size: 0.68em;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .time {

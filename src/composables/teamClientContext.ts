@@ -10,7 +10,7 @@ export const TeamClientKey: InjectionKey<TeamClientContext> = Symbol("team-clien
 const _instance = shallowRef<TeamClientContext | null>(null);
 const _memberSettings = useMemberSettings();
 
-export function setTeamClientInstance(ctx: TeamClientContext) {
+export function setTeamClientInstance(ctx: TeamClientContext | null) {
   _instance.value = ctx;
 }
 

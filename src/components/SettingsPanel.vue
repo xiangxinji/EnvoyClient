@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { getMemberSettings, TeamClientKey, setTeamClientInstance } from "../composables/teamClientContext";
 import type { TaskExecutionMode } from "../composables/useMemberSettings";
 import GlassSelect from "./GlassSelect.vue";
+import GlassCheckbox from "./GlassCheckbox.vue";
 import BackButton from "./BackButton.vue";
 
 const emit = defineEmits<{
@@ -19,6 +20,7 @@ const username = ctx.myId;
 const executionMode = ref<TaskExecutionMode>("auto");
 const workingDirectory = ref("");
 const aiHistoryCount = ref(5);
+const aiAutoReply = ref(false);
 const saving = ref(false);
 const showLogoutConfirm = ref(false);
 
@@ -27,6 +29,7 @@ onMounted(async () => {
   executionMode.value = settings.value.task_execution_mode;
   workingDirectory.value = settings.value.working_directory;
   aiHistoryCount.value = settings.value.ai_suggestion_history_count;
+  aiAutoReply.value = settings.value.ai_auto_reply;
 });
 
 watch(executionMode, async (val) => {
@@ -36,6 +39,20 @@ watch(executionMode, async (val) => {
     await saveSettings(username, { task_execution_mode: val });
   } catch {
     executionMode.value = settings.value.task_execution_mode;
+  }
+  saving.value = false;
+});
+
+watch(aiAutoReply, async (val) => {
+  if (val === settings.value.ai_auto_reply) return;
+  saving.value = true;
+  try {
+    await saveSettings(username, { ai_auto_reply: val });
+    if (!val) {
+      ctx.autoReplyDispose?.();
+    }
+  } catch {
+    aiAutoReply.value = settings.value.ai_auto_reply;
   }
   saving.value = false;
 });
@@ -91,6 +108,12 @@ async function handleLogout() {
         <p class="setting-hint">
           {{ executionMode === 'auto' ? 'AI 将自动处理收到的任务' : '收到任务后需手动操作' }}
         </p>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">AI 自动回复</label>
+        <GlassCheckbox v-model="aiAutoReply">开启后，AI 将自动回复收到的聊天消息</GlassCheckbox>
+        <p class="setting-hint">以你的口吻代替回复，对方会看到 AI 自动回复标记</p>
       </div>
 
       <div class="setting-group">

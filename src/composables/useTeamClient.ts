@@ -5,6 +5,8 @@ import { useConnection } from "./useConnection";
 import type { ConnectionStatus, ConnectionClientOptions } from "./useConnection";
 import { useMessages } from "./useMessages";
 import { useTaskExecution } from "./useTaskExecution";
+import { useAutoReply } from "./useAutoReply";
+import { getMemberSettings } from "./teamClientContext";
 import { managerPost } from "../api";
 import { sendDesktopNotification } from "../utils/notification";
 
@@ -28,6 +30,17 @@ export function useTeamClient(
     teamName: conn.teamName,
   });
 
+  // 4. Auto-reply layer
+  const autoReply = useAutoReply({
+    myId: conn.myId,
+    teamName: conn.teamName,
+    role,
+    getConversation: msg.getConversation,
+    sendChat: msg.sendChat,
+  });
+
+  const { settings: memberSettings } = getMemberSettings();
+
   // ─── Glue: bridge connection events to message layer ───
 
   conn.client.on("connected", () => {
@@ -48,6 +61,13 @@ export function useTeamClient(
       return;
     }
     msg.handleIncomingMessage(msgObj);
+
+    // Trigger auto-reply if enabled and message is from someone else
+    if (msgObj.type === "message" && msgObj.subtype === "chat" && msgObj.from !== conn.myId) {
+      if (memberSettings.value.ai_auto_reply) {
+        autoReply.trigger(msgObj.from, memberSettings.value.ai_suggestion_history_count);
+      }
+    }
   });
 
   conn.client.on("task", msg.handleTaskUpdate);
@@ -131,5 +151,6 @@ export function useTeamClient(
     incrementUnread: msg.incrementUnread,
     markRead: msg.markRead,
     clearConversation: msg.clearConversation,
+    autoReplyDispose: autoReply.dispose,
   };
 }

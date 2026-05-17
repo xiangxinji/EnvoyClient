@@ -23,6 +23,7 @@ export interface ChatMessage {
   text: string;
   timestamp: number;
   mine: boolean;
+  source?: "human" | "ai-auto";
   attachments?: MessageAttachment[];
 }
 
