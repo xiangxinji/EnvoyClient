@@ -204,10 +204,12 @@ onMounted(loadSettings);
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
-    <select class="locale-switch" :value="currentLocale" @change="handleLangChange(($event.target as HTMLSelectElement).value)">
-      <option value="zh-CN">简体中文</option>
-      <option value="en">English</option>
-    </select>
+    <div class="locale-switch">
+      <GlassSelect v-model="currentLocale" @update:model-value="handleLangChange">
+        <option value="zh-CN">简体中文</option>
+        <option value="en">English</option>
+      </GlassSelect>
+    </div>
     <div class="card">
       <img :src="logo" class="logo" alt="Envoy" />
       <h1>Envoy</h1>
@@ -579,21 +581,24 @@ input::placeholder {
   top: var(--space-md);
   right: var(--space-md);
   z-index: 2;
-  padding: 4px 8px;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  background: var(--glass-bg-light);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  color: var(--text-muted);
-  font-size: 0.75em;
-  outline: none;
-  cursor: pointer;
-  opacity: 0.5;
+  width: 100px;
+  opacity: 0.45;
   transition: opacity 0.2s;
 }
 
 .locale-switch:hover {
   opacity: 1;
+}
+
+.locale-switch :deep(.glass-select-trigger) {
+  height: 28px;
+  font-size: 0.75em;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+}
+
+.locale-switch :deep(.glass-select-option) {
+  font-size: 0.78em;
+  padding: 6px 10px;
 }
 </style>

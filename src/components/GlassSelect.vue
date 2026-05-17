@@ -177,8 +177,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  right: 0;
   z-index: 100;
+  width: 100%;
+  box-sizing: border-box;
   max-height: 220px;
   overflow-y: auto;
   border: 1px solid var(--glass-border);
