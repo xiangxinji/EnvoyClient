@@ -1,20 +1,11 @@
 <script setup lang="ts">
 import TitleBar from "./components/InstallerTitleBar.vue";
-
-async function handleClose() {
-  const { getCurrentWindow } = await import("@tauri-apps/api/window");
-  await getCurrentWindow().close();
-}
 </script>
 
 <template>
   <div class="app-container">
-    <TitleBar @close="handleClose" />
-    <router-view v-slot="{ Component }">
-      <transition name="page" mode="out-in">
-        <component :is="Component" />
-      </transition>
-    </router-view>
+    <TitleBar />
+    <router-view />
   </div>
 </template>
 
@@ -81,36 +72,6 @@ html, body {
   background: var(--app-gradient);
 }
 
-.app-container::before {
-  content: "";
-  position: absolute;
-  top: -40%;
-  left: -20%;
-  width: 80%;
-  height: 80%;
-  border-radius: 50%;
-  background: var(--orb-1);
-  filter: blur(120px);
-  opacity: 0.4;
-  z-index: -1;
-  pointer-events: none;
-}
-
-.app-container::after {
-  content: "";
-  position: absolute;
-  bottom: -30%;
-  right: -15%;
-  width: 60%;
-  height: 60%;
-  border-radius: 50%;
-  background: var(--orb-2);
-  filter: blur(100px);
-  opacity: 0.3;
-  z-index: -1;
-  pointer-events: none;
-}
-
 input, button, textarea {
   font-family: inherit;
   font-size: inherit;
@@ -120,13 +81,4 @@ input, button, textarea {
   background: var(--accent);
   color: var(--text-on-accent);
 }
-
-.page-enter-active {
-  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.page-leave-active {
-  transition: opacity 0.18s cubic-bezier(0.4, 0, 1, 1), transform 0.18s cubic-bezier(0.4, 0, 1, 1);
-}
-.page-enter-from { opacity: 0; transform: translateY(12px); }
-.page-leave-to { opacity: 0; transform: translateY(-8px); }
 </style>

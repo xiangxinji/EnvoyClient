@@ -98,8 +98,6 @@ async function goToPath() {
   flex-direction: column;
   gap: var(--space-sm);
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   padding: var(--space-lg);

@@ -1,5 +1,21 @@
 use std::path::Path;
 
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+#[cfg(target_os = "windows")]
+fn hidden_command(program: &str) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+    let mut cmd = std::process::Command::new(program);
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd
+}
+
+#[cfg(not(target_os = "windows"))]
+fn hidden_command(program: &str) -> std::process::Command {
+    std::process::Command::new(program)
+}
+
 #[tauri::command]
 pub fn create_shortcuts(install_path: String) -> Result<(), String> {
     let target = Path::new(&install_path);
@@ -9,29 +25,17 @@ pub fn create_shortcuts(install_path: String) -> Result<(), String> {
         create_windows_shortcuts(target)?;
     }
 
-    #[cfg(target_os = "macos")]
-    {
-        // macOS: no shortcuts needed, the .app bundle goes into /Applications
-    }
-
     Ok(())
 }
 
 #[cfg(target_os = "windows")]
 fn create_windows_shortcuts(install_dir: &Path) -> Result<(), String> {
-    let exe_path = install_dir.join("Envoy.exe");
-    if !exe_path.exists() {
-        // Try lowercase
-        let alt = install_dir.join("envoy.exe");
-        if !alt.exists() {
-            return Err(format!("找不到主程序: {}", exe_path.to_string_lossy()));
-        }
-    }
-
     let exe_path = if install_dir.join("Envoy.exe").exists() {
         install_dir.join("Envoy.exe")
-    } else {
+    } else if install_dir.join("envoy.exe").exists() {
         install_dir.join("envoy.exe")
+    } else {
+        return Err(format!("找不到主程序: {}", install_dir.to_string_lossy()));
     };
 
     // Desktop shortcut
@@ -53,13 +57,11 @@ fn create_windows_shortcuts(install_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(target_os = "windows")]
 fn create_lnk(
     target: &std::path::Path,
     work_dir: &std::path::Path,
     shortcut_path: &std::path::Path,
 ) -> Result<(), String> {
-    // Use PowerShell to create the shortcut (avoids adding a lnk crate dependency)
     let target_str = target.to_string_lossy().to_string();
     let work_dir_str = work_dir.to_string_lossy().to_string();
     let shortcut_str = shortcut_path.to_string_lossy().to_string();
@@ -69,8 +71,8 @@ fn create_lnk(
         shortcut_str, target_str, work_dir_str
     );
 
-    let output = std::process::Command::new("powershell")
-        .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+    let output = hidden_command("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &script])
         .output()
         .map_err(|e| format!("无法创建快捷方式: {}", e))?;
 

@@ -1,19 +1,12 @@
 <script setup lang="ts">
-import { ref, watchEffect } from "vue";
+import { ref } from "vue";
 import GlassButton from "../components/GlassButton.vue";
 import { useInstaller } from "../composables/useInstaller";
 import router from "../router";
 
-const { installPath, canProceed, startInstall, getDiskInfo, error } = useInstaller();
+const { installPath, canProceed, startInstall, error } = useInstaller();
 
-const diskInfo = ref({ free_gb: 0, total_gb: 0 });
 const installing = ref(false);
-
-watchEffect(async () => {
-  if (installPath.value) {
-    diskInfo.value = await getDiskInfo(installPath.value);
-  }
-});
 
 async function browse() {
   try {
@@ -54,17 +47,7 @@ async function handleInstall() {
       <GlassButton @click="browse">浏览</GlassButton>
     </div>
 
-    <div class="disk-info" v-if="diskInfo.total_gb > 0">
-      <span class="disk-label">可用空间</span>
-      <span class="disk-value">{{ diskInfo.free_gb.toFixed(1) }} GB / {{ diskInfo.total_gb.toFixed(1) }} GB</span>
-    </div>
-
-    <div class="disk-bar" v-if="diskInfo.total_gb > 0">
-      <div
-        class="disk-bar-used"
-        :style="{ width: ((diskInfo.total_gb - diskInfo.free_gb) / diskInfo.total_gb * 100) + '%' }"
-      />
-    </div>
+    <p class="path-hint">将安装到: {{ installPath }}</p>
 
     <div class="actions">
       <GlassButton @click="router.push('/welcome')">上一步</GlassButton>
@@ -108,39 +91,16 @@ async function handleInstall() {
   font-family: inherit;
   font-size: 0.88em;
   outline: none;
-  transition: border-color 0.15s;
 }
 
 .path-input:focus {
   border-color: var(--accent);
 }
 
-.disk-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.82em;
-}
-
-.disk-label {
+.path-hint {
+  margin: 0;
+  font-size: 0.8em;
   color: var(--text-muted);
-}
-
-.disk-value {
-  color: var(--text-secondary);
-}
-
-.disk-bar {
-  height: 4px;
-  background: var(--glass-bg-light);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.disk-bar-used {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
-  transition: width 0.3s;
 }
 
 .actions {

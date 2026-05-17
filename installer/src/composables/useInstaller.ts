@@ -8,7 +8,6 @@ const progress = ref(0);
 const currentFile = ref("");
 const error = ref("");
 const isInstalling = ref(false);
-const defaultPath = ref("");
 
 export function useInstaller() {
   const canProceed = computed(() => installPath.value.length > 0);
@@ -17,18 +16,8 @@ export function useInstaller() {
     try {
       const path = await invoke<string>("get_default_install_path");
       installPath.value = path;
-      defaultPath.value = path;
     } catch (_e: unknown) {
       installPath.value = "C:\\Users\\Default\\AppData\\Local\\Envoy";
-      defaultPath.value = installPath.value;
-    }
-  }
-
-  async function getDiskInfo(path: string): Promise<{ free_gb: number; total_gb: number }> {
-    try {
-      return await invoke("get_disk_info", { path });
-    } catch {
-      return { free_gb: 0, total_gb: 0 };
     }
   }
 
@@ -38,7 +27,6 @@ export function useInstaller() {
     currentFile.value = "";
     error.value = "";
 
-    // Register listener BEFORE navigating and invoking
     const unlisten = await listen<{ percent: number; file: string }>("install-progress", (e) => {
       progress.value = e.payload.percent;
       currentFile.value = e.payload.file;
@@ -48,7 +36,6 @@ export function useInstaller() {
 
     try {
       await invoke("start_install", { targetPath: installPath.value });
-      // Only proceed to shortcuts/registry if install succeeded
       progress.value = 100;
       await invoke("create_shortcuts", { installPath: installPath.value });
       await invoke("register_uninstaller", { installPath: installPath.value });
@@ -84,10 +71,8 @@ export function useInstaller() {
     currentFile,
     error,
     isInstalling,
-    defaultPath,
     canProceed,
     loadDefaultPath,
-    getDiskInfo,
     startInstall,
     cancelInstall,
     launchApp,

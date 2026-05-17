@@ -52,8 +52,6 @@ async function handleClose() {
   align-items: center;
   justify-content: center;
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
   border-radius: 50%;
   box-shadow: var(--glass-shadow);

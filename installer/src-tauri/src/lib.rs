@@ -16,7 +16,6 @@ pub fn run() {
         .setup(|_app| Ok(()))
         .invoke_handler(tauri::generate_handler![
             commands::get_default_install_path,
-            commands::get_disk_info,
             commands::start_install,
             commands::cancel_install,
             commands::create_shortcuts,
