@@ -8,6 +8,8 @@ import {
   createQueryResourcesTool,
   createReadResourceTool,
   createReadSkillTool,
+  createCloudListTool,
+  createCloudUploadTool,
 } from "../agent/tools";
 import { managerPost } from "../api";
 import { getMemberSettings } from "./teamClientContext";
@@ -104,7 +106,10 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       const customDir = settings.value.working_directory;
       const workspacePath = (customDir && customDir.trim()) || `~/.envoy/workspace/${ctx.myId}`;
 
-      const tools = [...getDefaultTools(workspacePath), uploadTool, queryResTool, readResTool, readSkillTool];
+      const tools = [...getDefaultTools(workspacePath), uploadTool, queryResTool, readResTool, readSkillTool,
+        createCloudListTool({ teamName: ctx.teamName }),
+        createCloudUploadTool({ teamName: ctx.teamName, myId: ctx.myId }),
+      ];
 
       let skillCatalog: string | undefined;
       try {

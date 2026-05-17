@@ -23,7 +23,8 @@ const isAutoReply = computed(() => memberSettings.value.ai_auto_reply);
 
 /** Ordered list of all selectable peer IDs in the sidebar */
 const navItems = computed(() => {
-  const items: string[] = ["__tasks__"];
+  const items: string[] = ["__cloud__"];
+  items.push("__tasks__");
   if (ctx.role === "leader") items.push("__dispatch__");
   for (const m of members.value) {
     items.push(m.id);
@@ -104,6 +105,22 @@ function getInitial(name: string): string {
       <h3>{{ t('sidebar.members') }}</h3>
     </div>
     <ul>
+      <!-- Cloud resources entry -->
+      <li
+        class="task-center-entry"
+        :class="{ active: selectedPeer === '__cloud__' }"
+        @click="emit('select', '__cloud__')"
+      >
+        <div class="avatar cloud-avatar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+          </svg>
+        </div>
+        <div class="member-info">
+          <span class="member-name">{{ t('sidebar.cloudResources') }}</span>
+        </div>
+      </li>
+
       <!-- Task center entry -->
       <li
         class="task-center-entry"
@@ -379,7 +396,8 @@ li.active {
 }
 
 .task-center-avatar svg,
-.dispatch-avatar svg {
+.dispatch-avatar svg,
+.cloud-avatar svg {
   width: 14px;
   height: 14px;
 }
@@ -391,6 +409,11 @@ li.active {
 .dispatch-avatar {
   background: var(--warning-bg);
   color: var(--warning);
+}
+
+.cloud-avatar {
+  background: var(--accent-light);
+  color: var(--accent);
 }
 
 /* User avatar button */

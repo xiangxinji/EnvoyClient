@@ -8,6 +8,7 @@ import TaskDispatchPanel from "./TaskDispatchPanel.vue";
 import SettingsPanel from "../components/SettingsPanel.vue";
 import QuickSettingsPanel from "../components/QuickSettingsPanel.vue";
 import TaskDetailPanel from "../components/TaskDetailPanel.vue";
+import CloudResourcesPanel from "../components/CloudResourcesPanel.vue";
 import { TeamClientKey, getTeamClientInstance } from "../composables/teamClientContext";
 import { useGlobalShortcuts } from "../composables/useGlobalShortcuts";
 import type { TaskMessage } from "../types";
@@ -71,6 +72,7 @@ if (ctx) {
     />
     <SettingsPanel v-if="selectedPeer === '__settings__'" @back="handleSettingsBack" />
     <QuickSettingsPanel v-else-if="selectedPeer === '__quick__'" @back="handleSettingsBack" />
+    <CloudResourcesPanel v-else-if="selectedPeer === '__cloud__'" />
     <TaskDispatchPanel v-else-if="selectedPeer === '__dispatch__'" />
     <template v-else-if="selectedPeer === '__tasks__'">
       <TaskCenterView v-show="!selectedTask" @select-task="handleSelectTask" />

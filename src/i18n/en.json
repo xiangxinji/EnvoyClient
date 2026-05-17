@@ -50,6 +50,7 @@
   },
   "sidebar": {
     "members": "Members",
+    "cloudResources": "Cloud",
     "taskCenter": "Task Center",
     "taskDispatch": "Task Dispatch",
     "noMembers": "No members",
@@ -236,5 +237,22 @@
     "aiAutoReply": "AI Auto Reply",
     "aiAutoReplyDesc": "Toggle AI auto reply for chat messages",
     "recordHint": "At least one modifier key (Ctrl / Alt / Meta) is required. Press Esc to cancel recording"
+  },
+  "cloud": {
+    "title": "Cloud Resources",
+    "upload": "Upload",
+    "createDir": "New Folder",
+    "createDirPrompt": "Enter folder name",
+    "empty": "No files",
+    "download": "Download",
+    "colName": "Name",
+    "colSize": "Size",
+    "colUploader": "Uploader",
+    "colTime": "Time",
+    "confirmDeleteFile": "Are you sure you want to delete file \"{name}\"? This action cannot be undone.",
+    "confirmDeleteDir": "Are you sure you want to delete folder \"{name}\" and all its contents? This action cannot be undone.",
+    "select": "Select",
+    "selectedCount": "{count} selected",
+    "confirmBatchDelete": "Are you sure you want to delete {count} selected items? This action cannot be undone."
   }
 }
