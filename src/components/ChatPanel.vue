@@ -7,7 +7,7 @@ import TaskCard from "./TaskCard.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
 import RichEditor from "./RichEditor.vue";
-import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, RevokedNotice } from "../types";
+import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage } from "../types";
 import { isImageMime, formatFileSize, compressImage } from "../utils/imageCompress";
 import { apiUrl } from "../api";
 

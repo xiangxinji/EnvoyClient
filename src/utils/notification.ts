@@ -1,11 +1,30 @@
 const isTauri = "__TAURI_INTERNALS__" in window;
 
+let cachedIconPath: string | null = null;
+
+async function resolveIconPath(): Promise<string | undefined> {
+  if (cachedIconPath !== null) return cachedIconPath || undefined;
+  if (!isTauri) {
+    cachedIconPath = "";
+    return undefined;
+  }
+  try {
+    const { resolveResource } = await import("@tauri-apps/api/path");
+    cachedIconPath = await resolveResource("icons/icon.png");
+    return cachedIconPath;
+  } catch {
+    cachedIconPath = "";
+    return undefined;
+  }
+}
+
 export async function sendDesktopNotification(title: string, body: string): Promise<void> {
   if (!isTauri) return;
   try {
     const { sendNotification } = await import("@tauri-apps/plugin-notification");
+    const iconPath = await resolveIconPath();
     if (sendNotification) {
-      sendNotification({ title, body });
+      sendNotification({ title, body, icon: iconPath });
     }
   } catch {
     // Plugin not available, silently skip
