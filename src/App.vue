@@ -80,9 +80,7 @@ function preventRefresh(e: KeyboardEvent) {
 }
 
 function preventContextMenu(e: MouseEvent) {
-  if (import.meta.env.PROD) {
-    e.preventDefault();
-  }
+  e.preventDefault();
 }
 
 onMounted(async () => {
@@ -93,9 +91,10 @@ onMounted(async () => {
     setTimeout(() => splash.classList.add("gone"), 600);
   }
 
+  window.addEventListener("contextmenu", preventContextMenu);
+
   if (isTauri) {
     window.addEventListener("keydown", preventRefresh);
-    window.addEventListener("contextmenu", preventContextMenu);
     try {
       const { getCurrentWindow } = await import("@tauri-apps/api/window");
       const unlistenFn = await (getCurrentWindow() as any).listen(
@@ -111,9 +110,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   unlisten?.();
+  window.removeEventListener("contextmenu", preventContextMenu);
   if (isTauri) {
     window.removeEventListener("keydown", preventRefresh);
-    window.removeEventListener("contextmenu", preventContextMenu);
   }
 });
 </script>
