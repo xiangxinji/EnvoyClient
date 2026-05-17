@@ -2,20 +2,23 @@
 
 ## Project Overview
 
-EnvoyClient 是一个基于 Tauri 2 + Vue 3 的 **团队 AI Agent 协作桌面客户端**。使用自研 Envoy 框架进行 WebSocket 实时通信，支持 Leader/Member 角色区分，微信风格聊天界面，手动与 AI 智能任务分派，以及本地 ReAct Agent 自主执行任务。项目还包含 Manager 管理后台（Hono HTTP API + Vue 3 Web），支持多团队创建、用户管理、AI 配置和仪表盘。所有 AI 能力（聊天、任务分派、Agent 推理）通过 Manager 统一代理，支持 OpenAI/Anthropic/Google/DeepSeek 多 Provider。
+EnvoyClient 是一个基于 Tauri 2 + Vue 3 的 **团队 AI Agent 协作桌面客户端**。使用自研 Envoy 框架进行 WebSocket 实时通信，支持 Leader/Member 角色区分，微信风格聊天界面（消息撤回、AI 自动回复、文件下载），手动与 AI 智能任务分派，以及本地 ReAct Agent 自主执行任务。任务完成后支持 Reviewing 工作流（Leader 手动/AI 自动审批）。项目还包含 Manager 管理后台（Hono HTTP API + Vue 3 Web），支持多团队创建、用户管理、AI 配置（per-scene model preset）和仪表盘。所有 AI 能力（聊天、任务分派、Agent 推理、自动回复、任务审批）通过 Manager 统一代理，支持 OpenAI/Anthropic/Google/DeepSeek 多 Provider。客户端支持桌面通知、成员个性化设置（执行模式、AI 自动回复、工作目录）和完整登出流程。
 
 ## Tech Stack
 
 - **Client Frontend**: Vue 3 + TypeScript + Vite + Vue Router (hash mode)
-- **Desktop Runtime**: Tauri 2 (Rust backend) — 文件 IO、Shell 执行、消息持久化
+- **Desktop Runtime**: Tauri 2 (Rust backend) — 文件 IO、Shell 执行、消息持久化、桌面通知、原生保存对话框
 - **Communication**: Envoy 框架 (WebSocket, Git submodule `envoy/`) — Server/Client/Team/Leader/Member
 - **AI Integration**: Vercel AI SDK (`ai` + `@ai-sdk/*`) — generateText, generateObject, SSE streaming
 - **AI Providers**: OpenAI / Anthropic / Google / DeepSeek（通过 Manager 统一配置代理）
-- **Agent System**: 客户端 ReAct 循环 + Manager AI 推理端点 + Tauri 本地工具（Shell/File）
+- **AI Scenes**: chat / task / analyze / agent / dispatch / review / auto-reply（per-scene model preset + temperature + maxTokens）
+- **Agent System**: 客户端 ReAct 循环 + Manager AI 推理端点 + Tauri 本地工具（Shell/File）+ Skill Catalog
 - **Manager Backend**: Hono + @hono/node-server (Node.js HTTP API, port 8080)
 - **Manager Frontend**: Vue 3 + TypeScript + Vite + Vue Router (port 5180)
-- **Storage**: Rust 文件 IO — `~/.envoy/` 目录下（history, teams, users, keys, settings, brains）
+- **Storage**: Rust 文件 IO + SQLite (better-sqlite3) — `~/.envoy/` 目录下（history, teams, users, keys, settings, brains）
 - **Auth**: RSA-OAEP 加密传输 + bcrypt 密码哈希 + session token (24h)
+- **Notifications**: @tauri-apps/plugin-notification — 任务状态变化桌面通知
+- **File Dialogs**: @tauri-apps/plugin-dialog — 原生保存对话框（文件下载）
 
 ## Commands
 
@@ -41,20 +44,25 @@ npm run manager:web            # 仅启动前端
 │  Hono HTTP API (8080)                                   │
 │  ├── Teams API      → Team 实例池 (每团队独立 WS 端口)   │
 │  ├── Users API      → 用户注册/认证 (users.json)        │
-│  ├── Messages API   → 消息中转 + 任务提交/结果           │
-│  ├── AI API         → AI 推理/聊天/分派/分析              │
+│  ├── Messages API   → 消息中转/撤回/同步 + 任务提交/结果  │
+│  ├── AI API         → AI 推理/聊天/分派/分析/审批/自动回复│
 │  └── Dashboard API  → 全局统计                           │
+│  Storage: SQLite (better-sqlite3) + JSON files          │
 ├─────────────────────────────────────────────────────────┤
 │                   Envoy Framework                        │
 │  WebSocket Server  → 任务调度 (serial/parallel)          │
 │  Leader/Member     → 角色化客户端 (team:join)            │
 │  Team              → 成员管理 + 广播 + 角色追踪           │
+│  Task Reviewing    → 串行任务完成后 Leader 审批/驳回      │
 ├─────────────────────────────────────────────────────────┤
 │                 Tauri Desktop Client                     │
-│  Vue 3 UI          → 聊天/任务中心/任务分派               │
+│  Vue 3 UI          → 聊天/任务中心/任务分派/设置面板      │
 │  ReAct Agent       → 本地 Agent 循环 (max 20 steps)      │
 │  Tauri Commands    → shell_exec / file_read / file_write  │
+│                    → save_binary_file / load_skill_catalog│
 │  History           → ~/.envoy/history/{userId}/{peerId}  │
+│  Notifications     → 桌面通知 (任务状态变化)              │
+│  Member Settings   → 执行模式/AI自动回复/工作目录         │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -62,15 +70,17 @@ npm run manager:web            # 仅启动前端
 
 | 路径 | 用途 |
 |------|------|
-| `~/.envoy/history/{userId}/{peerId}.json` | 聊天消息记录 |
+| `~/.envoy/history/{userId}/{peerId}.json` | 聊天消息记录（本地持久化） |
 | `~/.envoy/teams/{teamName}/meta.json` | 团队配置（成员列表、端口） |
+| `~/.envoy/teams/{teamName}/db/team.db` | SQLite 数据库（消息、任务） |
 | `~/.envoy/teams/{teamName}/tasks/{taskId}/task.json` | 任务持久化 |
 | `~/.envoy/teams/{teamName}/tasks/{taskId}/resources/` | 任务资源文件 |
 | `~/.envoy/users.json` | 全局用户账号（bcrypt 哈希） |
 | `~/.envoy/keys/` | RSA 密钥对（密码加密传输） |
-| `~/.envoy/manager.json` | Manager 设置 + AI 配置 |
-| `~/.envoy/settings.json` | 客户端设置 |
+| `~/.envoy/manager.json` | Manager 设置 + AI 配置（presets + scenes） |
+| `~/.envoy/settings.json` | 客户端设置 + per-user 成员设置 |
 | `~/.envoy/brains/{username}/` | 用户 Agent 记忆/技能目录 |
+| `~/.envoy/brains/{username}/skills/` | Agent 技能目录（Skill Catalog） |
 
 ## Business Flows
 
@@ -87,10 +97,28 @@ npm run manager:web            # 仅启动前端
 ### 聊天流程
 
 1. 用户选择聊天对象 → ChatPanel 显示对话
-2. 发送消息: `sendChat(targetId, text)` → 本地立即添加 + POST `/api/messages`
-3. Manager 调用 `team.innerServer.relay()` → WebSocket 转发到目标客户端
-4. 目标客户端 `client.on("message")` → `useTeamClient` 添加到会话 + 增加未读计数
-5. 消息通过 `invoke("save_message")` 持久化到本地文件
+2. 消息同步: 连接时调用 `GET /api/messages/sync` 拉取离线消息
+3. 发送消息: `sendChat(targetId, text)` → 本地立即添加 + POST `/api/messages`
+4. Manager 存入 SQLite → `team.innerServer.relay()` → WebSocket 转发到目标客户端
+5. 目标客户端 `client.on("message")` → `useMessages` 添加到会话 + 增加未读计数
+6. 消息通过 `invoke("save_message")` 持久化到本地文件
+7. 若开启 AI 自动回复 → 5s 防抖后自动生成并发送 AI 回复（`source: "ai-auto"`）
+
+### 消息撤回流程
+
+1. 用户点击自己发送的消息的撤回按钮
+2. `revokeMessage(id)` → DELETE `/api/messages/{id}?from={userId}`
+3. Manager 验证发送者身份 → 从 SQLite 删除 → 通过 relay 发送 `chat-rvoke` 子类型
+4. 本地和接收端将 timeline 中的消息替换为 `RevokedNotice`（显示"消息已撤回"）
+
+### AI 自动回复流程
+
+1. 用户在成员设置面板开启 `ai_auto_reply`
+2. 收到聊天消息时，`useAutoReply.trigger(peerId, historyCount)` 启动 5s 防抖计时器
+3. 计时到期后 `generateReply()` → 获取对话历史 → POST `/api/ai/auto-reply/generate`
+4. Manager 使用 `"auto-reply"` scene 调用 AI，模拟用户口吻生成回复
+5. 自动调用 `sendChat()` 发送，消息标记 `source: "ai-auto"`
+6. 接收端显示 "AI auto reply" 徽章
 
 ### 任务分派流程（手动）
 
@@ -112,20 +140,33 @@ npm run manager:web            # 仅启动前端
 
 ### Agent 执行流程 (ReAct Loop)
 
-1. Member 收到 dispatch 任务 → `useTeamClient` 组装工具集：
-   - `shell`: 执行 Shell 命令 (Tauri `shell_exec`)
+1. Member 收到 dispatch 任务 → `useTaskExecution.registerHandler(client)` 被触发
+2. 检查执行模式：`auto` → 自动执行，`manual` → 等待用户手动触发（返回 `SKIP_RESULT`）
+3. 自动执行时，组装工具集 + 从 `load_skill_catalog` 加载技能目录：
+   - `shell`: 执行 Shell 命令 (Tauri `shell_exec`)，工作目录取自成员设置
    - `file_read` / `file_write`: 读写本地文件
    - `upload_resource` / `query_resources` / `read_resource`: 任务资源管理
    - `done`: 完成任务并提交结果
-2. `useAgent.runAgent(taskContent, tools)` 启动 ReAct 循环 (max 20 steps)
-3. **每一步**:
+4. POST `/api/tasks/{id}/start` 将任务状态转为 running
+5. `useAgent.runAgent(taskContent, tools)` 启动 ReAct 循环 (max 20 steps)
+6. **每一步**:
    - 发送对话历史 + 工具 schema → POST `/api/ai/agent/reason`
    - Manager 将工具定义转为 AI SDK 格式，调用 `generateText()`
    - AI 返回文本结果或工具调用
    - 若有工具调用 → 本地执行（60s 超时）→ 结果追加到历史
    - 若无工具调用 → 作为最终结果返回
-4. `done` 工具被调用时 → POST `/api/tasks/{id}/result` 提交结果到 Manager
-5. 结果持久化到 `~/.envoy/teams/{team}/tasks/{id}/resources/{memberId}.json`
+7. `done` 工具被调用时 → POST `/api/tasks/{id}/result` 提交结果 + 执行 trace 到 Manager
+8. 结果持久化到 `~/.envoy/teams/{team}/tasks/{id}/resources/{memberId}.json`
+
+### 任务 Reviewing 工作流
+
+1. 串行任务所有 Member 完成后，Envoy Server 将任务状态设为 `"reviewing"`
+2. 任务自动 dispatch 回 Leader
+3. Leader 端 `useTaskExecution` 检测到 reviewing 状态：
+   - **Auto 模式**: 调用 `ai.reviewTaskResult()` → POST `/api/ai/task/review`（AI 使用 `generateObject` + Zod 判断 `{ success, summary }`）
+   - **Manual 模式**: 在 TaskDetailPanel 中手动审批
+4. 审批通过 → POST `/api/tasks/{id}/result` (success: true) → 任务 completed
+5. 审批驳回 → POST `/api/tasks/{id}/result` (success: false) → Server 调用 `resetForRetry()` 重新分派给所有 Member
 
 ### AI 聊天辅助
 
@@ -147,14 +188,17 @@ npm run manager:web            # 仅启动前端
 ### 主界面 (`/chat` → ChatView.vue)
 
 **左侧边栏 (MemberSidebar)**:
-- **任务中心**: 查看所有任务（按状态分组：运行中/待执行/已完成/失败）
+- **任务中心**: 查看所有任务（按状态分组：运行中/待执行/审核中/已完成/失败）
 - **分派任务** (仅 Leader): AI 辅助创建和分派新任务
 - **成员列表**: 显示在线/离线状态
+- **设置**: 成员个性化设置（执行模式、AI 自动回复、工作目录）
 
 **右侧内容区（根据侧边栏选择切换）**:
 - **任务中心视图 (TaskCenterView)**: 聚合展示所有任务，按状态分组，显示任务卡片（状态、成员、资源、时间戳）
+- **任务详情面板 (TaskDetailPanel)**: 任务 timeline、成员执行结果、Agent trace、Leader 审批、资源文件下载
 - **任务分派面板 (TaskDispatchPanel)**: 输入任务描述 → AI 匹配成员 → 预览 → 确认分派
-- **聊天面板 (ChatPanel)**: 1:1 对话，支持 Markdown 渲染（marked + DOMPurify），AI 建议回复
+- **聊天面板 (ChatPanel)**: 1:1 对话，支持 Markdown 渲染（marked + DOMPurify），AI 建议回复，消息撤回，文件下载
+- **设置面板 (SettingsPanel)**: 任务执行模式(auto/manual)、AI 自动回复、工作目录、AI 建议历史条数、登出
 
 ## Core Mechanisms
 
@@ -162,17 +206,23 @@ npm run manager:web            # 仅启动前端
 
 - **Serial Mode**: 串行分发，一个成员完成后才发给下一个。当前成员离线则任务失败
 - **Parallel Mode**: 并行分发，所有订阅者同时收到，全部完成后任务完成
-- **任务生命周期**: created → dispatched → running → completed/failed
+- **任务生命周期**: created → dispatched → running → reviewing(仅串行) → completed/failed
+- **Reviewing 阶段**: 串行任务所有成员完成后进入 reviewing，dispatch 回 Leader 审批。Leader 离线则强制完成。驳回触发 `resetForRetry()` 重新分派
 - **自动结果发送**: Member 的 `doing()` handler 执行完毕后自动将结果发回 Server
 - **客户端离线处理**: 断连时标记为 failed，串行模式跳到下一个，并行模式检查是否还有待响应者
+- **桌面通知**: 任务 dispatch/完成/reviewing 时通过 `@tauri-apps/plugin-notification` 发送 OS 通知
 
 ### ReAct Agent
 
 - **Reason + Act 循环**: 客户端运行循环，Manager 提供 AI 推理
+- **执行入口**: `useTaskExecution.registerHandler(client)` 注册 doing handler，区分 auto/manual 模式
+- **Skill Catalog**: 启动时通过 `load_skill_catalog(username)` 加载 `~/.envoy/brains/{username}/skills/`
+- **工作目录**: Shell 工具的 cwd 取自成员设置 `working_directory`
 - **最大步数**: 20 步
 - **超时**: AI 推理 30s，工具执行 60s
 - **工具输出截断**: stdout 限制 2000 字符，stderr 限制 1000 字符
 - **终止条件**: AI 返回纯文本（无工具调用）或 `done` 工具被调用
+- **执行 Trace**: 每步的输入输出记录在 `ExecutionTraceData` 中，随结果一起提交
 
 ### SSE 流式通信
 
@@ -190,6 +240,23 @@ npm run manager:web            # 仅启动前端
 
 - `safeInvoke()` 检测 Tauri 环境，浏览器端静默跳过 Rust 调用
 - `BrowserTransport.ts` 提供浏览器端 WebSocket Transport 替代 Node.js `ws` 模块
+- `downloadFileWithDialog()` 在浏览器端降级为 `<a>` download
+
+### AI Scene / Model 映射
+
+- **8 个 AI Scene**: `chat` | `task` | `analyze` | `agent` | `dispatch` | `review` | `auto-reply`
+- 每个 scene 可映射到不同的 model preset（provider + model + apiKey）
+- 每个 scene 可独立配置 `temperature` 和 `maxTokens`
+- `resolveForScene(sceneType)` 查找 scene 配置 → 找到 preset → fallback 到默认 preset
+- 配置存储在 `manager.json` 的 `presets` 和 `scenes` 字段
+
+### 成员设置 (Member Settings)
+
+- **存储**: `~/.envoy/settings.json` 的 `users[username]` 路径下，通过 Tauri `get_settings`/`save_settings` 读写
+- **task_execution_mode**: `"auto"`（AI 自动处理任务）或 `"manual"`（用户手动触发）
+- **ai_auto_reply**: 布尔值，开启后收到消息 5s 防抖自动生成 AI 回复
+- **working_directory**: Agent shell 执行的根目录
+- **ai_suggestion_history_count**: AI 回复建议上下文消息数（1-50，默认 5）
 
 ## Key Files
 
@@ -197,36 +264,48 @@ npm run manager:web            # 仅启动前端
 
 | 文件 | 职责 |
 |------|------|
-| `src/App.vue` | 根组件：TitleBar + router-view，全局 CSS 变量（light/dark 主题） |
+| `src/App.vue` | 根组件：TitleBar + router-view（page transition 动画），全局 CSS 变量（light/dark 主题） |
 | `src/router.ts` | 路由定义：`/` → RoleSelect, `/chat` → ChatView |
-| `src/types.ts` | 类型定义：MemberInfo, ChatMessage, TaskMessage, TaskResource, TaskPlan, TimelineItem |
+| `src/types.ts` | 类型定义：MemberInfo, ChatMessage, TaskMessage, TaskResource, TaskPlan, TimelineItem, RevokedNotice, AgentStep, AgentResult, ExecutionTraceData, TaskExecutionMode, MemberSettings |
 | `src/api.ts` | Manager REST API 封装：setManagerUrl, managerFetch, managerPost |
 | `src/envoy/BrowserTransport.ts` | 浏览器兼容 WebSocket Transport |
-| `src/composables/useTeamClient.ts` | **核心 composable**: 连接管理、消息收发、任务更新、Agent 任务执行注册 |
-| `src/composables/useAI.ts` | AI composable: SSE 流式聊天、任务规划、结果分析、智能分派 |
+| `src/composables/useTeamClient.ts` | **核心 composable**: 连接管理、消息收发、任务更新、auto-reply 集成、桌面通知 |
+| `src/composables/useMessages.ts` | 消息管理 composable：消息收发、撤回（DELETE + RevokedNotice）、离线同步 |
+| `src/composables/useAI.ts` | AI composable: SSE 流式聊天、任务规划、结果分析、智能分派、任务审批 |
+| `src/composables/useAutoReply.ts` | AI 自动回复 composable：5s 防抖、调用 Manager auto-reply API、发送 AI 生成消息 |
+| `src/composables/useMemberSettings.ts` | 成员设置 composable：per-user 设置读写（执行模式、AI 自动回复、工作目录） |
+| `src/composables/useTaskExecution.ts` | 任务执行 composable：doing handler 注册、auto/manual 分发、Leader review/Member execution |
 | `src/composables/useTheme.ts` | 主题切换（dark/light），localStorage 持久化 |
-| `src/composables/teamClientContext.ts` | 全局 TeamClient 实例（shallowRef + provide/inject） |
+| `src/composables/teamClientContext.ts` | 全局 TeamClient 实例（shallowRef + provide/inject）+ getMemberSettings/setTeamClientInstance |
 | `src/agent/react.ts` | ReAct Agent 循环：max 20 步，调用 Manager AI 推理 + 本地工具执行 |
 | `src/agent/tools.ts` | Agent 工具定义：shell, file_read, file_write, done, upload/query/read_resource |
+| `src/utils/notification.ts` | 桌面通知 + 文件下载：sendDesktopNotification, downloadFileWithDialog |
 | `src/views/RoleSelect.vue` | 登录页：RSA 加密认证、团队选择、WebSocket 连接 |
-| `src/views/ChatView.vue` | 主布局：三面板（侧边栏 + 任务中心/分派/聊天） |
-| `src/views/TaskCenterView.vue` | 任务中心：按状态聚合显示所有任务 |
+| `src/views/ChatView.vue` | 主布局：三面板（侧边栏 + 任务中心/分派/聊天/设置/任务详情） |
+| `src/views/TaskCenterView.vue` | 任务中心：按状态聚合显示所有任务（含 reviewing 分组） |
 | `src/views/TaskDispatchPanel.vue` | 任务分派：AI 辅助匹配成员、预览、确认 |
 | `src/components/TitleBar.vue` | macOS 风格标题栏：traffic lights + logo + 主题切换 |
-| `src/components/MemberSidebar.vue` | 侧边栏：任务中心、分派入口、成员列表（在线/离线） |
-| `src/components/ChatPanel.vue` | 聊天面板：消息列表、AI 建议回复、输入控制 |
-| `src/components/MessageBubble.vue` | 消息气泡：Markdown 渲染（marked + DOMPurify） |
+| `src/components/MemberSidebar.vue` | 侧边栏：任务中心、分派入口、成员列表（在线/离线）、设置入口 |
+| `src/components/ChatPanel.vue` | 聊天面板：消息列表、AI 建议回复、输入控制、文件附件下载、图片查看器 |
+| `src/components/MessageBubble.vue` | 消息气泡：Markdown 渲染、撤回按钮、AI auto reply 徽章、附件卡片 |
 | `src/components/TaskCard.vue` | 任务卡片：状态徽章、成员、资源、时间戳 |
+| `src/components/TaskDetailPanel.vue` | 任务详情面板：timeline、成员结果、Agent trace、Leader 审批、资源下载、操作按钮 |
+| `src/components/SettingsPanel.vue` | 成员设置面板：执行模式、AI 自动回复、工作目录、建议历史条数、登出 |
+| `src/components/GlassButton.vue` | 基础按钮控件：default/primary/danger 变体，36px，毛玻璃样式 |
+| `src/components/GlassSelect.vue` | 基础下拉选择控件：36px，毛玻璃样式 |
+| `src/components/GlassCheckbox.vue` | 基础复选框控件：36px，毛玻璃样式 |
+| `src/components/BackButton.vue` | 通用返回按钮：左箭头 + 文字，用于面板头部导航 |
 
 ### Tauri 后端 (`src-tauri/`)
 
 | 文件 | 职责 |
 |------|------|
-| `src-tauri/src/lib.rs` | Tauri commands：file_read, file_write, shell_exec, save/load/export/import history, settings, init_brains |
+| `src-tauri/src/lib.rs` | Tauri commands：file_read, file_write, shell_exec, save_binary_file, load_skill_catalog, save/load/export/import history, settings, init_brains |
 | `src-tauri/src/history.rs` | 消息持久化：按用户/对端分 JSON 文件存储 |
 | `src-tauri/src/settings.rs` | 客户端设置读写 (`~/.envoy/settings.json`) |
 | `src-tauri/src/brains.rs` | 初始化用户 Agent 记忆目录 (`~/.envoy/brains/{username}`) |
 | `src-tauri/tauri.conf.json` | 窗口配置：800x600，无装饰，CSP 策略 |
+| `src-tauri/capabilities/default.json` | Tauri 权限：notification:default, dialog:default |
 | `src-tauri/brains/` | Agent 记忆模板目录（基础信息/偏好/日志/技能） |
 
 ### Manager 后端 (`manager/server/`)
@@ -235,24 +314,26 @@ npm run manager:web            # 仅启动前端
 |------|------|
 | `manager/server/index.ts` | Hono 入口：CORS、RSA 初始化、Team 恢复、路由注册、任务持久化监听 |
 | `manager/server/crypto.ts` | RSA 密钥对生成/加载、加密/解密 |
-| `manager/server/settings.ts` | 管理员设置 + AI 配置持久化 (`manager.json`) |
+| `manager/server/db.ts` | SQLite 数据库操作 (better-sqlite3)：消息增删查、附件存储 |
+| `manager/server/settings.ts` | 管理员设置 + AI 配置持久化 (`manager.json`) + resolveForScene scene/preset 解析 |
 | `manager/server/team-registry.ts` | 团队 CRUD：meta.json 读写、端口分配、目录管理 |
 | `manager/server/user-registry.ts` | 用户 CRUD：users.json 读写、bcrypt 认证 |
 | `manager/server/routes/admin.ts` | 管理员认证：session token，24h 过期 |
-| `manager/server/routes/ai.ts` | AI 路由：health、agent reason、task dispatch、config CRUD |
+| `manager/server/routes/ai.ts` | AI 路由：health、agent reason、task dispatch、auto-reply generate、task review、config CRUD |
 | `manager/server/routes/teams.ts` | 团队 CRUD、成员管理、任务查询、实时统计 |
-| `manager/server/routes/messages.ts` | 消息中转、任务提交/结果、资源上传下载 |
+| `manager/server/routes/messages.ts` | 消息中转/撤回/同步/对话列表、任务提交/结果、附件上传下载、资源管理 |
 | `manager/server/routes/users.ts` | 用户管理：增删查、RSA 加密密码认证 |
 | `manager/server/routes/dashboard.ts` | 仪表盘：全局统计（团队/成员/任务） |
 | `manager/server/services/ai/index.ts` | `createAIRoutes()` — AI HTTP 路由挂载 |
 | `manager/server/services/ai/provider.ts` | Provider 工厂：OpenAI/Anthropic/Google/DeepSeek → AI SDK model |
 | `manager/server/services/ai/stream.ts` | AI stream → SSE 转换器 |
-| `manager/server/services/ai/chat.ts` | 聊天补全处理器（SSE streaming） |
+| `manager/server/services/ai/chat.ts` | 聊天补全处理器（SSE streaming）+ 自动回复生成处理器 |
 | `manager/server/services/ai/task.ts` | 任务生成处理器（generateObject + Zod） |
 | `manager/server/services/ai/analyze.ts` | 任务结果分析处理器 |
 | `manager/server/services/ai/agent.ts` | Agent 推理处理器：工具定义转换 + generateText |
 | `manager/server/services/ai/dispatch.ts` | 智能分派：职责匹配 + generateObject 结构化输出 |
-| `manager/server/services/ai/prompts/` | 所有 AI Prompt 模板（chat, task, analyze, agent, dispatch） |
+| `manager/server/services/ai/review.ts` | 任务审批处理器：generateObject + Zod `{ success, summary }` |
+| `manager/server/services/ai/prompts/` | 所有 AI Prompt 模板（chat, task, analyze, agent, dispatch, review, auto-reply） |
 
 ### Manager 前端 (`manager/web/`)
 
@@ -271,10 +352,10 @@ npm run manager:web            # 仅启动前端
 | 文件 | 职责 |
 |------|------|
 | `envoy/packages/core/message.ts` | 消息协议：9 种 MessageType，序列化/反序列化 |
-| `envoy/packages/core/task.ts` | 任务类型：TaskMode (serial/parallel), TaskStatus, Resource |
+| `envoy/packages/core/task.ts` | 任务类型：TaskMode (serial/parallel), TaskStatus (含 reviewing), Resource |
 | `envoy/packages/core/queue.ts` | 通用 FIFO 队列 |
 | `envoy/packages/core/event-emitter.ts` | 类型安全事件系统 |
-| `envoy/packages/server/server.ts` | Server：任务调度（串行/并行）、消息中转、心跳、客户端追踪 |
+| `envoy/packages/server/server.ts` | Server：任务调度（串行/并行）、消息中转、心跳、客户端追踪、reviewing 状态管理 |
 | `envoy/packages/server/connection-manager.ts` | 客户端状态管理 + 心跳超时 |
 | `envoy/packages/client/client.ts` | Client：doing() 注册处理器、submit() 提交任务、串行任务队列、自动结果发送 |
 | `envoy/packages/client/watcher-client.ts` | Watcher 客户端：观察任务和客户端事件 |
@@ -286,7 +367,7 @@ npm run manager:web            # 仅启动前端
 
 | 文件 | 职责 |
 |------|------|
-| `shared/types/ai.ts` | AI 类型：ProviderType, ChatRequest, TaskPlan, AgentMessage |
+| `shared/types/ai.ts` | AI 类型：ProviderType, SceneType, SceneConfig, ModelPreset, AIConfig, ChatRequest, TaskPlan, AgentMessage |
 | `shared/types/sse.ts` | SSE 事件类型：TextDelta, ToolCall, ToolResult, Done, Error |
 
 ## Style Rules
@@ -388,7 +469,7 @@ background: var(--app-gradient);
 
 所有基础表单控件（input、select、checkbox、button 等）必须封装为独立组件（`src/components/Glass*.vue`），不允许在页面中直接使用原生元素或各自定义样式。
 
-**已有组件**：`GlassSelect.vue`、`GlassCheckbox.vue`
+**已有组件**：`GlassButton.vue`（default/primary/danger 变体）、`GlassSelect.vue`、`GlassCheckbox.vue`
 
 **统一尺寸**：
 ```css
@@ -410,5 +491,7 @@ padding: 0 14px;
 - 删除用户、团队、成员
 - 清空聊天记录 / 历史导出覆盖
 - 取消/终止正在运行的任务
+- 消息撤回（不可恢复）
+- 任务审批驳回（触发重新分派给所有 Member）
 
 确认文案必须清楚说明操作后果（如 `确定要删除团队 "xxx" 吗？此操作不可恢复`）。
