@@ -53,6 +53,7 @@ export interface TaskResource {
   by: string;
   data: unknown;
   attempt: number;
+  timestamp?: number;
 }
 
 export type ClientResultData = { result: string };

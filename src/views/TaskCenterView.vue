@@ -9,6 +9,10 @@ import type { Task } from "../../envoy/packages/core/task.js";
 const ctx = inject(TeamClientKey)!;
 const { teamName, myId, role } = ctx;
 
+const emit = defineEmits<{
+  selectTask: [task: TaskMessage];
+}>();
+
 interface ApiTask {
   id: string;
   createBy: string;
@@ -128,7 +132,6 @@ let refreshTimer: ReturnType<typeof setInterval> | undefined;
 onMounted(async () => {
   await fetchTasks();
   ctx.client?.on("task", onTaskUpdate);
-  // Periodic refresh as fallback
   refreshTimer = setInterval(fetchTasks, 30000);
 });
 
@@ -158,7 +161,7 @@ onUnmounted(() => {
           {{ group.label }} ({{ group.tasks.length }})
         </div>
         <div class="group-tasks">
-          <TaskCard v-for="task in group.tasks" :key="task.taskId" :task="task" :team-name="teamName" :my-id="myId" />
+          <TaskCard v-for="task in group.tasks" :key="task.taskId" :task="task" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
         </div>
       </div>
     </div>

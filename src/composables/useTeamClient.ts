@@ -1,10 +1,12 @@
 import type { MemberInfo } from "../types";
 import type { Message } from "@envoy/core";
+import type { Task } from "../../envoy/packages/core/task.js";
 import { useConnection } from "./useConnection";
 import type { ConnectionStatus, ConnectionClientOptions } from "./useConnection";
 import { useMessages } from "./useMessages";
 import { useTaskExecution } from "./useTaskExecution";
 import { managerPost } from "../api";
+import { sendDesktopNotification } from "../utils/notification";
 
 export type { ConnectionStatus };
 export type { ConnectionClientOptions as TeamClientOptions };
@@ -49,6 +51,54 @@ export function useTeamClient(
   });
 
   conn.client.on("task", msg.handleTaskUpdate);
+
+  // Track previous task statuses for notification dedup
+  const prevTaskStatus = new Map<string, string>();
+
+  conn.client.on("task", (task: Task) => {
+    const prev = prevTaskStatus.get(task.id);
+    prevTaskStatus.set(task.id, task.status);
+
+    // Skip notification if no previous status (first load) or status unchanged
+    if (!prev || prev === task.status) return;
+
+    const content = task.content.length > 30 ? task.content.slice(0, 30) + "..." : task.content;
+    const myId = conn.myId;
+
+    switch (task.status) {
+      case "running": {
+        // Dispatched to members — notify assigned members (not self if Leader)
+        const isSubscriber = task.subscribe.includes(myId);
+        if (isSubscriber && prev === "pending") {
+          sendDesktopNotification("新任务", content);
+        }
+        break;
+      }
+      case "completed": {
+        // Notify creator + all subscribers, but skip if I triggered it
+        // (Leader approved → skip notifying self)
+        const isRelevant = task.createBy === myId || task.subscribe.includes(myId);
+        if (isRelevant) {
+          sendDesktopNotification("任务完成", content);
+        }
+        break;
+      }
+      case "failed": {
+        const isRelevant = task.createBy === myId || task.subscribe.includes(myId);
+        if (isRelevant) {
+          sendDesktopNotification("任务失败", content);
+        }
+        break;
+      }
+      case "reviewing": {
+        // Notify creator (Leader), but skip if I'm the one who just completed
+        if (task.createBy === myId) {
+          sendDesktopNotification("任务待审核", content);
+        }
+        break;
+      }
+    }
+  });
 
   // Register task execution handler
   taskExec.registerHandler(conn.client);

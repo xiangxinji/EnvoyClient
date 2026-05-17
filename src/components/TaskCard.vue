@@ -25,6 +25,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   statusChanged: [];
+  selectTask: [task: TaskMessage];
 }>();
 
 const statusLabels: Record<TaskMessage["status"], string> = {
@@ -367,7 +368,7 @@ function formatToolResult(result: unknown): string {
 </script>
 
 <template>
-  <div class="task-card" :class="task.status">
+  <div class="task-card" :class="task.status" @click="emit('selectTask', task)">
     <div class="task-header">
       <div class="task-title">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -438,7 +439,7 @@ function formatToolResult(result: unknown): string {
         <a
           class="file-link"
           href="javascript:void(0)"
-          @click="downloadFile((res.data as any).filename)"
+          @click.stop="downloadFile((res.data as any).filename)"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           {{ (res.data as any).filename }}
@@ -449,7 +450,7 @@ function formatToolResult(result: unknown): string {
 
     <!-- Execution trace section -->
     <div v-if="traceResources.length > 0" class="task-section">
-      <div class="section-label clickable" @click="traceExpanded = !traceExpanded">
+      <div class="section-label clickable" @click.stop="traceExpanded = !traceExpanded">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         执行过程
         <span class="trace-toggle">{{ traceExpanded ? "收起" : "展开" }}</span>
@@ -480,7 +481,7 @@ function formatToolResult(result: unknown): string {
     </div>
 
     <!-- Operation buttons -->
-    <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="task-actions">
+    <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="task-actions" @click.stop>
       <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3" /></svg>
         {{ starting ? '执行中...' : '开始执行' }}
@@ -496,7 +497,7 @@ function formatToolResult(result: unknown): string {
     </div>
 
     <!-- Leader review buttons -->
-    <div v-if="canReview" class="task-actions">
+    <div v-if="canReview" class="task-actions" @click.stop>
       <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
         {{ reviewing ? '处理中...' : '通过' }}
@@ -541,6 +542,12 @@ function formatToolResult(result: unknown): string {
   color: var(--text-primary);
   align-self: flex-start;
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.task-card:hover {
+  box-shadow: var(--glass-shadow);
 }
 
 .task-card.running { border-left-color: var(--task-running-border); }

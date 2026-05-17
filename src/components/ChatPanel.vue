@@ -7,11 +7,15 @@ import TaskCard from "./TaskCard.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
 import RichEditor from "./RichEditor.vue";
-import type { TimelineItem, ChatMessage, MessageAttachment } from "../types";
+import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage } from "../types";
 import { isImageMime, formatFileSize, compressImage } from "../utils/imageCompress";
 import { apiUrl } from "../api";
 
 const props = defineProps<{ peerId: string }>();
+
+const emit = defineEmits<{
+  selectTask: [task: TaskMessage];
+}>();
 
 const ctx = inject(TeamClientKey)!;
 const { getConversation, sendChat, dispatchTask, role, myId, markRead, members, teamName, clearConversation } = ctx;
@@ -326,7 +330,7 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
         <div v-else-if="hasMoreHistory" class="load-hint">↑ 向上滚动加载更多</div>
         <template v-for="item in visibleMessages" :key="item.id">
           <MessageBubble v-if="item.type === 'chat'" :message="item" :my-id="myId" />
-          <TaskCard v-else :task="item" :team-name="teamName" :my-id="myId" />
+          <TaskCard v-else :task="item" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
         </template>
 
         <!-- AI suggestion overlay -->
