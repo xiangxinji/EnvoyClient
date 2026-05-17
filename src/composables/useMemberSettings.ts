@@ -10,6 +10,8 @@ export interface MemberSettings {
   task_execution_mode: TaskExecutionMode;
   ai_suggestion_history_count: number;
   ai_auto_reply: boolean;
+  shortcut_auto_reply: string;
+  shortcut_execution_mode: string;
 }
 
 const DEFAULT_SETTINGS: MemberSettings = {
@@ -17,6 +19,8 @@ const DEFAULT_SETTINGS: MemberSettings = {
   task_execution_mode: "auto",
   ai_suggestion_history_count: 5,
   ai_auto_reply: false,
+  shortcut_auto_reply: "",
+  shortcut_execution_mode: "",
 };
 
 const _settings = ref<MemberSettings>({ ...DEFAULT_SETTINGS });
@@ -50,6 +54,12 @@ export function useMemberSettings() {
         ai_auto_reply: typeof userSettings.ai_auto_reply === "boolean"
           ? userSettings.ai_auto_reply
           : DEFAULT_SETTINGS.ai_auto_reply,
+        shortcut_auto_reply: typeof userSettings.shortcut_auto_reply === "string"
+          ? userSettings.shortcut_auto_reply
+          : DEFAULT_SETTINGS.shortcut_auto_reply,
+        shortcut_execution_mode: typeof userSettings.shortcut_execution_mode === "string"
+          ? userSettings.shortcut_execution_mode
+          : DEFAULT_SETTINGS.shortcut_execution_mode,
       };
     } catch (e) {
       console.error(`[settings] loadSettings failed for ${username}:`, e);
@@ -83,6 +93,14 @@ export function useMemberSettings() {
     if (updates.ai_auto_reply !== undefined) {
       existing.ai_auto_reply = updates.ai_auto_reply;
       _settings.value.ai_auto_reply = updates.ai_auto_reply;
+    }
+    if (updates.shortcut_auto_reply !== undefined) {
+      existing.shortcut_auto_reply = updates.shortcut_auto_reply;
+      _settings.value.shortcut_auto_reply = updates.shortcut_auto_reply;
+    }
+    if (updates.shortcut_execution_mode !== undefined) {
+      existing.shortcut_execution_mode = updates.shortcut_execution_mode;
+      _settings.value.shortcut_execution_mode = updates.shortcut_execution_mode;
     }
 
     users[username] = existing;

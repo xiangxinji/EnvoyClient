@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { inject, computed } from "vue";
 import { TeamClientKey, getMemberSettings } from "../composables/teamClientContext";
+import type { TaskExecutionMode } from "../composables/useMemberSettings";
 
 defineProps<{
   selectedPeer: string;
@@ -12,7 +13,23 @@ const emit = defineEmits<{
 
 const ctx = inject(TeamClientKey)!;
 const { members, unreadCounts, markRead, messages, myId } = ctx;
-const { settings: memberSettings } = getMemberSettings();
+const { settings: memberSettings, saveSettings } = getMemberSettings();
+
+const isAutoMode = computed(() => memberSettings.value.task_execution_mode === "auto");
+const isAutoReply = computed(() => memberSettings.value.ai_auto_reply);
+
+async function toggleExecutionMode() {
+  const next: TaskExecutionMode = isAutoMode.value ? "manual" : "auto";
+  await saveSettings(myId, { task_execution_mode: next });
+}
+
+async function toggleAutoReply() {
+  const next = !isAutoReply.value;
+  await saveSettings(myId, { ai_auto_reply: next });
+  if (!next) {
+    ctx.autoReplyDispose?.();
+  }
+}
 
 // Count all tasks across all conversations
 const taskCount = computed(() => {
@@ -123,6 +140,13 @@ function getInitial(name: string): string {
           {{ getInitial(myId) }}
         </div>
         <div class="user-menu" @click.stop>
+          <button class="user-menu-item" :class="{ active: selectedPeer === '__quick__' }" @click="emit('select', '__quick__')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M9 16h6" />
+            </svg>
+            快捷键
+          </button>
           <button class="user-menu-item" :class="{ active: selectedPeer === '__settings__' }" @click="emit('select', '__settings__')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3" />
@@ -132,9 +156,28 @@ function getInitial(name: string): string {
           </button>
         </div>
       </div>
-      <span class="mode-tag" :class="memberSettings.task_execution_mode">
-        {{ memberSettings.task_execution_mode === 'auto' ? 'AI 托管' : '手动' }}
-      </span>
+      <div class="quick-toggles">
+        <button
+          class="quick-toggle"
+          :class="{ active: isAutoReply }"
+          title="AI 自动回复"
+          @click="toggleAutoReply"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </button>
+        <button
+          class="quick-toggle"
+          :class="{ active: isAutoMode }"
+          title="AI 托管任务"
+          @click="toggleExecutionMode"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+        </button>
+      </div>
     </div>
   </aside>
 </template>
@@ -396,21 +439,36 @@ li.active {
   border-top: 1px solid var(--glass-border);
 }
 
-.mode-tag {
-  font-size: 0.68em;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
-  letter-spacing: 0.3px;
+/* Quick toggle buttons */
+.quick-toggles {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.mode-tag.auto {
+.quick-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg-light);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.quick-toggle:hover {
+  background: var(--sidebar-hover);
+  color: var(--text-secondary);
+}
+
+.quick-toggle.active {
   background: var(--accent-light);
   color: var(--accent);
-}
-
-.mode-tag.manual {
-  background: var(--bg-secondary);
-  color: var(--text-muted);
+  border-color: var(--accent);
 }
 </style>

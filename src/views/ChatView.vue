@@ -6,8 +6,10 @@ import ChatPanel from "../components/ChatPanel.vue";
 import TaskCenterView from "./TaskCenterView.vue";
 import TaskDispatchPanel from "./TaskDispatchPanel.vue";
 import SettingsPanel from "../components/SettingsPanel.vue";
+import QuickSettingsPanel from "../components/QuickSettingsPanel.vue";
 import TaskDetailPanel from "../components/TaskDetailPanel.vue";
 import { TeamClientKey, getTeamClientInstance } from "../composables/teamClientContext";
+import { useGlobalShortcuts } from "../composables/useGlobalShortcuts";
 import type { TaskMessage } from "../types";
 
 const router = useRouter();
@@ -28,7 +30,7 @@ function handleSelectPeer(peerId: string) {
   // Switching sidebar tab clears the detail view
   selectedTask.value = null;
   detailReturnPeer.value = null;
-  if (selectedPeer.value !== "__settings__") {
+  if (selectedPeer.value !== "__settings__" && selectedPeer.value !== "__quick__") {
     previousPeer.value = selectedPeer.value;
   }
   selectedPeer.value = peerId;
@@ -57,6 +59,7 @@ function handleCloseDetail() {
 
 if (ctx) {
   provide(TeamClientKey, ctx);
+  useGlobalShortcuts(ctx);
 }
 </script>
 
@@ -67,6 +70,7 @@ if (ctx) {
       @select="handleSelectPeer"
     />
     <SettingsPanel v-if="selectedPeer === '__settings__'" @back="handleSettingsBack" />
+    <QuickSettingsPanel v-else-if="selectedPeer === '__quick__'" @back="handleSettingsBack" />
     <TaskDispatchPanel v-else-if="selectedPeer === '__dispatch__'" />
     <template v-else-if="selectedPeer === '__tasks__'">
       <TaskCenterView v-show="!selectedTask" @select-task="handleSelectTask" />
