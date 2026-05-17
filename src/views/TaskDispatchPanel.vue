@@ -254,9 +254,9 @@ function getMatchedMembers() {
   text-align: center;
   color: var(--text-muted);
   font-size: 0.85em;
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 textarea {
@@ -295,7 +295,7 @@ textarea::placeholder {
   border-radius: var(--radius-md);
   border: none;
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
   font-weight: 600;
   font-size: 0.9em;
   cursor: pointer;
@@ -337,8 +337,8 @@ textarea::placeholder {
 .spinner-small {
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border: 2px solid var(--glass-border);
+  border-top-color: var(--text-on-accent);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -432,7 +432,7 @@ textarea::placeholder {
   border-radius: var(--radius-sm);
   border: none;
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
   font-weight: 600;
   font-size: 0.85em;
   cursor: pointer;
@@ -450,8 +450,8 @@ textarea::placeholder {
 .btn-cancel {
   padding: 8px var(--space-xl);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-light);
   color: var(--text-secondary);
   font-size: 0.85em;
   cursor: pointer;

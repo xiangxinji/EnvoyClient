@@ -145,7 +145,7 @@ function handleBackdropClick() {
 
 .btn-confirm {
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .btn-confirm:hover {

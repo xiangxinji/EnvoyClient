@@ -474,9 +474,9 @@ input::placeholder {
   width: 100%;
   padding: var(--space-md);
   box-sizing: border-box;
-  background: var(--bg-primary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .auth-user {
@@ -521,7 +521,7 @@ input::placeholder {
   border-radius: var(--radius-sm);
   border: none;
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
   font-weight: 600;
   font-size: 0.95em;
   cursor: pointer;
@@ -544,8 +544,8 @@ input::placeholder {
 .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border: 2px solid var(--glass-border);
+  border-top-color: var(--text-on-accent);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }

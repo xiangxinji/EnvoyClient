@@ -560,7 +560,7 @@ onBeforeUnmount(() => {
 }
 
 .header-status.offline {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   color: var(--text-muted);
 }
 
@@ -584,7 +584,7 @@ onBeforeUnmount(() => {
 }
 
 .btn-menu:hover {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   color: var(--text-primary);
 }
 
@@ -620,7 +620,7 @@ onBeforeUnmount(() => {
 }
 
 .dropdown-item:hover {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
 }
 
 .dropdown-item.danger {
@@ -713,7 +713,7 @@ onBeforeUnmount(() => {
 
 .btn-ai-accept {
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .btn-ai-accept:hover {
@@ -721,9 +721,9 @@ onBeforeUnmount(() => {
 }
 
 .btn-ai-retry {
-  background: var(--bg-primary);
+  background: var(--glass-bg-light);
   color: var(--text-secondary);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .btn-ai-retry:hover {
@@ -798,7 +798,7 @@ onBeforeUnmount(() => {
 .ai-plan-assignment {
   padding: var(--space-sm);
   margin-bottom: var(--space-sm);
-  background: var(--bg-primary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-sm);
 }
 
@@ -820,7 +820,7 @@ onBeforeUnmount(() => {
   font-family: monospace;
   font-size: 0.8em;
   color: var(--text-primary);
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   padding: 2px 6px;
   border-radius: 3px;
   margin: 2px 0;
@@ -980,7 +980,7 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-sm);
   border: none;
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
   font-size: 0.85em;
   font-weight: 500;
   cursor: pointer;
@@ -1012,7 +1012,7 @@ onBeforeUnmount(() => {
 
 .btn-confirm {
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .btn-confirm:hover {
@@ -1020,9 +1020,9 @@ onBeforeUnmount(() => {
 }
 
 .btn-cancel {
-  background: var(--bg-primary);
+  background: var(--glass-bg-light);
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .btn-cancel:hover {
@@ -1030,14 +1030,14 @@ onBeforeUnmount(() => {
 }
 
 .btn-ai {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   color: var(--accent);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .btn-ai:hover {
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 /* Attachment preview */
@@ -1054,8 +1054,8 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-xs) var(--space-sm);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   max-width: 200px;
 }
@@ -1066,7 +1066,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-tertiary);
+  background: var(--glass-bg);
   border-radius: 4px;
   color: var(--text-muted);
   flex-shrink: 0;
@@ -1152,7 +1152,7 @@ onBeforeUnmount(() => {
 }
 
 .context-menu-item:hover {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
 }
 
 .context-menu-item.danger {

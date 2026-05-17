@@ -344,7 +344,7 @@ li.active {
 
 .badge {
   background: var(--badge-bg);
-  color: white;
+  color: var(--text-on-accent);
   font-size: 0.65em;
   font-weight: 600;
   padding: 1px 6px;

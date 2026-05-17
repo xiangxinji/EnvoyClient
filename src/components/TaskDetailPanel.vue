@@ -753,9 +753,9 @@ function isTraceExpanded(_by: string): boolean {
   font-size: 0.7em;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .detail-content {
@@ -881,10 +881,10 @@ function isTraceExpanded(_by: string): boolean {
 }
 
 .member-block {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-sm);
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .member-block-header {
@@ -927,7 +927,7 @@ function isTraceExpanded(_by: string): boolean {
 }
 
 .source-badge.ai { background: var(--accent-light); color: var(--accent); }
-.source-badge.manual { background: var(--bg-tertiary); color: var(--text-muted); }
+.source-badge.manual { background: var(--glass-bg-light); color: var(--text-muted); }
 
 /* Markdown */
 .markdown-content {
@@ -962,10 +962,10 @@ function isTraceExpanded(_by: string): boolean {
 
 /* Review */
 .review-item {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-sm);
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -985,10 +985,10 @@ function isTraceExpanded(_by: string): boolean {
 
 /* Files */
 .file-item {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-sm);
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .file-link {
@@ -1058,10 +1058,10 @@ function isTraceExpanded(_by: string): boolean {
 }
 
 .trace-step {
-  background: var(--bg-tertiary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-sm);
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
 }
 
 .trace-step-header {
@@ -1107,7 +1107,7 @@ function isTraceExpanded(_by: string): boolean {
   font-size: 0.72em;
   color: var(--text-secondary);
   font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
-  background: var(--bg-tertiary);
+  background: var(--glass-bg-light);
   padding: 1px 4px;
   border-radius: 3px;
   word-break: break-all;
@@ -1156,7 +1156,7 @@ function isTraceExpanded(_by: string): boolean {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   color: var(--text-secondary);
 }
 
@@ -1171,7 +1171,7 @@ function isTraceExpanded(_by: string): boolean {
 
 .action-start:hover:not(:disabled) { background: var(--task-running-bg); border-color: var(--task-running-border); color: var(--task-running-text); }
 .action-complete:hover:not(:disabled) { background: var(--task-completed-bg); border-color: var(--task-completed-border); color: var(--task-completed-text); }
-.action-upload:hover:not(:disabled) { background: var(--bg-tertiary); }
+.action-upload:hover:not(:disabled) { background: var(--glass-bg); }
 .action-approve:hover:not(:disabled) { background: var(--task-completed-bg); border-color: var(--task-completed-border); color: var(--task-completed-text); }
 .action-reject:hover:not(:disabled) { background: var(--task-failed-bg); border-color: var(--task-failed-border); color: var(--task-failed-text); }
 </style>

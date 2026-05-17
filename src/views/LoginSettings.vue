@@ -230,8 +230,8 @@ input::placeholder {
   flex: 1;
   padding: 10px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-light);
   color: var(--text-secondary);
   font-size: 0.9em;
   cursor: pointer;
@@ -239,7 +239,7 @@ input::placeholder {
 }
 
 .btn-back:hover {
-  background: var(--bg-secondary);
+  background: var(--glass-bg);
 }
 
 .btn-save {
@@ -248,7 +248,7 @@ input::placeholder {
   border-radius: var(--radius-sm);
   border: none;
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
   font-weight: 600;
   font-size: 0.9em;
   cursor: pointer;

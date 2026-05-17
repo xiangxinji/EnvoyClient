@@ -147,6 +147,7 @@ onUnmounted(() => {
   --accent: #2fb38b;
   --accent-hover: #269c77;
   --accent-light: #eaf7f2;
+  --text-on-accent: #ffffff;
   --task-pending-bg: #f0f0f2;
   --task-pending-text: #86868b;
   --task-running-border: #2fb38b;
@@ -225,6 +226,7 @@ html.dark {
   --accent: #3dd9a5;
   --accent-hover: #5ee4b8;
   --accent-light: #152e24;
+  --text-on-accent: #ffffff;
   --task-pending-bg: #1c1c1e;
   --task-pending-text: #98989d;
   --task-running-border: #3dd9a5;
@@ -323,7 +325,7 @@ input, button, textarea {
 
 ::selection {
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 ::-webkit-scrollbar {

@@ -150,12 +150,12 @@ const remember = ref(false);
 
 .btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .btn-danger {
   background: var(--error);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .dialog :deep(.glass-checkbox) {

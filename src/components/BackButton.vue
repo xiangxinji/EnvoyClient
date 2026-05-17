@@ -30,6 +30,6 @@ defineEmits<{
 }
 
 .back-btn:hover {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
 }
 </style>

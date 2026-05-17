@@ -606,7 +606,7 @@ function formatToolResult(result: unknown): string {
   flex-direction: column;
   gap: var(--space-xs);
   padding: var(--space-sm);
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-sm);
 }
 
@@ -666,19 +666,19 @@ function formatToolResult(result: unknown): string {
 
 /* Summary */
 .summary-item {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-sm);
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   margin-bottom: var(--space-xs);
 }
 
 /* Leader review */
 .review-item {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-sm);
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   margin-bottom: var(--space-xs);
   display: flex;
   flex-wrap: wrap;
@@ -732,7 +732,7 @@ function formatToolResult(result: unknown): string {
 }
 
 .source-badge.manual {
-  background: var(--bg-tertiary);
+  background: var(--glass-bg-light);
   color: var(--text-muted);
 }
 
@@ -780,10 +780,10 @@ function formatToolResult(result: unknown): string {
 
 /* File resources */
 .file-item {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-sm);
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   margin-bottom: var(--space-xs);
 }
 
@@ -818,10 +818,10 @@ function formatToolResult(result: unknown): string {
 }
 
 .trace-step {
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   border-radius: var(--radius-sm);
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .trace-step-header {
@@ -883,7 +883,7 @@ function formatToolResult(result: unknown): string {
   font-size: 0.72em;
   color: var(--text-secondary);
   font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
-  background: var(--bg-tertiary);
+  background: var(--glass-bg-light);
   padding: 1px 4px;
   border-radius: 3px;
   word-break: break-all;
@@ -924,7 +924,7 @@ function formatToolResult(result: unknown): string {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   color: var(--text-secondary);
 }
 
@@ -951,7 +951,7 @@ function formatToolResult(result: unknown): string {
 }
 
 .action-upload:hover:not(:disabled) {
-  background: var(--bg-tertiary);
+  background: var(--glass-bg);
 }
 
 .action-approve:hover:not(:disabled) {

@@ -258,7 +258,7 @@ async function handleLogout() {
   box-sizing: border-box;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   color: var(--text-primary);
   font-size: 0.9em;
   outline: none;
@@ -286,10 +286,10 @@ async function handleLogout() {
   right: var(--space-lg);
   font-size: 0.78em;
   color: var(--text-muted);
-  background: var(--bg-secondary);
+  background: var(--glass-bg-light);
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .settings-footer {
@@ -451,7 +451,7 @@ async function handleLogout() {
 
 .btn-danger {
   background: var(--error);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .logout-enter-active {

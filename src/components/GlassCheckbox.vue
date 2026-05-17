@@ -65,7 +65,7 @@ defineEmits<{
 }
 
 .box .check {
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .glass-checkbox input:focus-visible + .box {

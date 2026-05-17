@@ -58,13 +58,13 @@ defineEmits<{
 .glass-btn.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .glass-btn.primary:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .glass-btn.danger {
@@ -75,6 +75,6 @@ defineEmits<{
 
 .glass-btn.danger:hover:not(:disabled) {
   background: var(--error);
-  color: white;
+  color: var(--text-on-accent);
 }
 </style>
