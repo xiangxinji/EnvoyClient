@@ -90,7 +90,15 @@
     "resetZoom": "重置",
     "downloadImage": "下载",
     "closeViewer": "关闭 (Esc)",
-    "enterMessage": "输入消息..."
+    "enterMessage": "输入消息...",
+    "multiSelect": "多选",
+    "selectedCount": "已选 {count} 条消息",
+    "forward": "转发",
+    "forwardTo": "转发给",
+    "confirmForward": "确认转发",
+    "forwardSuccess": "消息已转发",
+    "chatHistory": "聊天记录",
+    "noForwardTarget": "没有可转发的成员"
   },
   "task": {
     "status": {

@@ -14,6 +14,13 @@ export interface MessageAttachment {
   mimeType: string;
 }
 
+export interface ForwardedRecord {
+  from: string;
+  text: string;
+  timestamp: number;
+  attachments?: MessageAttachment[];
+}
+
 export interface ChatMessage {
   type: "chat";
   id: string;
@@ -25,6 +32,7 @@ export interface ChatMessage {
   mine: boolean;
   source?: "human" | "ai-auto";
   attachments?: MessageAttachment[];
+  forwarded?: ForwardedRecord[];
 }
 
 export interface ToolCallRecord {

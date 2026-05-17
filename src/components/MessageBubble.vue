@@ -4,14 +4,18 @@ import { useI18n } from "vue-i18n";
 import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
 import type { ChatMessage, MessageAttachment } from "../types";
+import { downloadFileWithDialog } from "../utils/notification";
 
 const props = defineProps<{
   message: ChatMessage;
   myId: string;
+  selectMode?: boolean;
+  selected?: boolean;
 }>();
 
 const emit = defineEmits<{
   contextmenu: [rect: DOMRect, message: ChatMessage];
+  toggleSelect: [id: string];
 }>();
 
 const { t } = useI18n();
@@ -46,6 +50,8 @@ function formatSize(bytes: number): string {
 
 // Fullscreen image viewer
 const fullscreenUrl = ref<string | null>(null);
+const forwardedDialogVisible = ref(false);
+const forwardedDownloading = ref(false);
 const imageScale = ref(1);
 const imageRotation = ref(0);
 const panX = ref(0);
@@ -95,7 +101,25 @@ function rotateRight() {
 }
 
 function handleFullscreenKey(e: KeyboardEvent) {
-  if (e.key === "Escape") closeFullscreen();
+  if (e.key === "Escape") {
+    if (fullscreenUrl.value) {
+      closeFullscreen();
+    } else if (forwardedDialogVisible.value) {
+      forwardedDialogVisible.value = false;
+    }
+  }
+}
+
+async function handleForwardedFileDownload(att: MessageAttachment) {
+  if (forwardedDownloading.value) return;
+  forwardedDownloading.value = true;
+  try {
+    await downloadFileWithDialog(att.url, att.name);
+  } catch {
+    // download failed
+  } finally {
+    forwardedDownloading.value = false;
+  }
 }
 
 function downloadImage() {
@@ -136,8 +160,8 @@ function onDragEnd() {
   isDragging.value = false;
 }
 
-watch(fullscreenUrl, (url) => {
-  if (url) {
+watch([fullscreenUrl, forwardedDialogVisible], ([url, dialog]) => {
+  if (url || dialog) {
     document.addEventListener("keydown", handleFullscreenKey);
   } else {
     document.removeEventListener("keydown", handleFullscreenKey);
@@ -150,11 +174,28 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="bubbleRef" class="bubble" :class="{ mine: message.mine }" @contextmenu.prevent="bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)">
-    <div class="content" v-html="renderedHtml"></div>
+  <div class="bubble-row" :class="{ mine: message.mine }">
+    <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
+      <svg v-if="selected" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div
+      ref="bubbleRef"
+      class="bubble"
+      :class="{ mine: message.mine, selected: selected && selectMode }"
+      @click="selectMode && emit('toggleSelect', message.id)"
+      @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)"
+    >
+      <div v-if="!message.forwarded?.length" class="content" v-html="renderedHtml"></div>
 
-    <!-- Attachments -->
-    <div v-if="message.attachments?.length" class="attachments">
+      <!-- Forwarded: clickable summary → opens dialog -->
+      <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>
+        <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+
+      <!-- Attachments (only for non-forwarded messages) -->
+      <div v-if="message.attachments?.length" class="attachments">
       <template v-for="(att, i) in message.attachments" :key="i">
         <!-- Image card -->
         <div v-if="att.type === 'image'" class="image-card" @click="openFullscreen(att)">
@@ -172,6 +213,7 @@ onUnmounted(() => {
           <svg class="file-download" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </a>
       </template>
+    </div>
     </div>
   </div>
   <div class="time-row" :class="{ mine: message.mine }">
@@ -223,9 +265,80 @@ onUnmounted(() => {
     </div>
     </Transition>
   </Teleport>
+
+  <!-- Forwarded messages dialog -->
+  <Teleport to="body">
+    <Transition name="viewer">
+      <div v-if="forwardedDialogVisible" class="forwarded-dialog-overlay" @click="forwardedDialogVisible = false">
+        <div class="forwarded-dialog" @click.stop>
+          <div class="forwarded-dialog-header">
+            <span>{{ t('chat.chatHistory') }}</span>
+            <button class="forwarded-dialog-close" @click="forwardedDialogVisible = false">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="forwarded-dialog-body">
+            <div v-for="(rec, i) in message.forwarded" :key="i" class="fd-record">
+              <div class="fd-meta">{{ rec.from }} · {{ formatTime(rec.timestamp) }}</div>
+              <div v-if="rec.text" class="fd-text">{{ rec.text }}</div>
+              <div v-if="rec.attachments?.length" class="fd-attachments">
+                <template v-for="(att, j) in rec.attachments" :key="j">
+                  <div v-if="att.type === 'image'" class="image-card" @click="openFullscreen(att)">
+                    <img :src="att.url" :alt="att.name" loading="lazy" />
+                  </div>
+                  <div v-else class="file-card" @click="handleForwardedFileDownload(att)">
+                    <div class="file-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                    </div>
+                    <div class="file-info">
+                      <span class="file-name">{{ att.name }}</span>
+                      <span class="file-size">{{ formatSize(att.size) }}</span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
+.bubble-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 78%;
+}
+
+.bubble-row.mine {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--glass-border);
+  background: var(--glass-bg-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.15s;
+}
+
+.checkbox.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+}
+
 .bubble {
   max-width: 75%;
   padding: 10px 14px;
@@ -247,6 +360,152 @@ onUnmounted(() => {
 
 .bubble:not(.mine) {
   border-bottom-left-radius: 4px;
+}
+
+.bubble.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Forwarded summary (clickable in bubble) */
+.forwarded-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+  font-size: 0.88em;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.forwarded-summary:hover {
+  opacity: 1;
+}
+
+.forwarded-summary .arrow {
+  margin-left: auto;
+}
+
+/* Forwarded dialog */
+.forwarded-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.forwarded-dialog {
+  width: 440px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--glass-shadow-heavy);
+  overflow: hidden;
+}
+
+.forwarded-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  font-weight: 600;
+  font-size: 0.95em;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.forwarded-dialog-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.forwarded-dialog-close:hover {
+  background: var(--glass-bg-light);
+  color: var(--text-primary);
+}
+
+.forwarded-dialog-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.fd-record {
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.fd-record:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.fd-meta {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.fd-text {
+  font-size: 0.9em;
+  color: var(--text-primary);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.fd-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.fd-attachments .image-card {
+  border: none;
+}
+
+.fd-attachments .file-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  max-width: 280px;
+}
+
+.fd-attachments .file-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-primary);
+  text-decoration: none;
+  width: 100%;
 }
 
 .content {
@@ -335,11 +594,8 @@ onUnmounted(() => {
 }
 
 .image-card {
-  border-radius: var(--radius-md);
-  overflow: hidden;
   cursor: pointer;
   max-width: 280px;
-  border: 1px solid var(--glass-border);
   transition: opacity 0.15s;
 }
 
@@ -352,6 +608,7 @@ onUnmounted(() => {
   max-width: 100%;
   max-height: 200px;
   object-fit: cover;
+  border-radius: var(--radius-md);
 }
 
 .file-card {

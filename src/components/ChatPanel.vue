@@ -8,7 +8,8 @@ import TaskCard from "./TaskCard.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
 import RichEditor from "./RichEditor.vue";
-import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage } from "../types";
+import ForwardDialog from "./ForwardDialog.vue";
+import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, ForwardedRecord } from "../types";
 import { isImageMime, formatFileSize, compressImage } from "../utils/imageCompress";
 import { apiUrl } from "../api";
 
@@ -337,13 +338,106 @@ function closeContextMenu(e: MouseEvent) {
   }
 }
 
+// Multi-select & forwarding
+const selectMode = ref(false);
+const selectedIds = ref<Set<string>>(new Set());
+const forwardDialogVisible = ref(false);
+
+function enterSelectMode() {
+  selectMode.value = true;
+  selectedIds.value = new Set();
+}
+
+function exitSelectMode() {
+  selectMode.value = false;
+  selectedIds.value = new Set();
+}
+
+function toggleMessageSelect(id: string) {
+  const next = new Set(selectedIds.value);
+  if (next.has(id)) {
+    next.delete(id);
+  } else {
+    next.add(id);
+  }
+  selectedIds.value = next;
+}
+
+// Blank-area right-click context menu (for multi-select entry)
+const blankMenuVisible = ref(false);
+const blankMenuX = ref(0);
+const blankMenuY = ref(0);
+
+function handleMessagesContextmenu(e: MouseEvent) {
+  const el = messageList.value;
+  if (!el) return;
+  // Only trigger when right-clicking the container itself (blank area), not on a bubble
+  if (e.target !== el) return;
+  e.preventDefault();
+  blankMenuX.value = e.clientX;
+  blankMenuY.value = e.clientY;
+  blankMenuVisible.value = true;
+}
+
+function handleBlankMenuSelect() {
+  blankMenuVisible.value = false;
+  enterSelectMode();
+}
+
+function closeBlankMenu(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (!target.closest(".blank-context-menu")) {
+    blankMenuVisible.value = false;
+  }
+}
+
+function handleSelectModeKeydown(e: KeyboardEvent) {
+  if (e.key === "Escape" && selectMode.value) {
+    exitSelectMode();
+  }
+}
+
+function handleForwardClick() {
+  if (selectedIds.value.size === 0) return;
+  forwardDialogVisible.value = true;
+}
+
+async function handleForwardConfirm(targetId: string) {
+  forwardDialogVisible.value = false;
+
+  const selectedMsgs = conversation.value.filter(
+    (item): item is ChatMessage => item.type === "chat" && selectedIds.value.has(item.id)
+  );
+  if (selectedMsgs.length === 0) return;
+
+  const records: ForwardedRecord[] = selectedMsgs.map((m) => ({
+    from: m.from,
+    text: m.text,
+    timestamp: m.timestamp,
+    attachments: m.attachments,
+  }));
+
+  const summaryText = t('chat.chatHistory') + ` (${records.length})`;
+
+  sendChat(targetId, summaryText, { forwarded: records });
+
+  exitSelectMode();
+  toastMessage.value = t('chat.forwardSuccess');
+  toastType.value = "success";
+  toastVisible.value = true;
+}
+
 onMounted(() => {
   document.addEventListener("click", closeMenuOnClickOutside);
   document.addEventListener("click", closeContextMenu);
+  document.addEventListener("click", closeBlankMenu);
+  document.addEventListener("keydown", handleSelectModeKeydown);
 });
 onBeforeUnmount(() => {
   document.removeEventListener("click", closeMenuOnClickOutside);
   document.removeEventListener("click", closeContextMenu);
+  document.removeEventListener("click", closeBlankMenu);
+  document.removeEventListener("keydown", handleSelectModeKeydown);
 });
 </script>
 
@@ -365,6 +459,10 @@ onBeforeUnmount(() => {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
           </button>
           <div v-if="menuOpen" class="dropdown" @click.stop>
+            <button class="dropdown-item" @click="menuOpen = false; enterSelectMode()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              {{ $t('chat.multiSelect') }}
+            </button>
             <button class="dropdown-item danger" @click="handleClearChat">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               {{ $t('chat.clearHistory') }}
@@ -373,7 +471,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div ref="messageList" class="messages" @scroll="handleScroll">
+      <div ref="messageList" class="messages" @scroll="handleScroll" @contextmenu="handleMessagesContextmenu">
         <div v-if="loadingMore" class="loading-more">
           <span class="spinner-small"></span> {{ $t('common.loading') }}
         </div>
@@ -382,7 +480,15 @@ onBeforeUnmount(() => {
           <div v-if="item.type === 'revoked'" class="revoked-notice">
             {{ $t('chat.revokedNotice', { from: item.from }) }}
           </div>
-          <MessageBubble v-else-if="item.type === 'chat'" :message="item" :my-id="myId" @contextmenu="handleMessageContextmenu" />
+          <MessageBubble
+            v-else-if="item.type === 'chat'"
+            :message="item"
+            :my-id="myId"
+            :select-mode="selectMode"
+            :selected="selectedIds.has(item.id)"
+            @contextmenu="handleMessageContextmenu"
+            @toggle-select="toggleMessageSelect"
+          />
           <TaskCard v-else :task="item" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
         </template>
 
@@ -401,7 +507,16 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div class="input-area">
+      <!-- Multi-select action bar -->
+      <div v-if="selectMode" class="select-bar">
+        <span class="select-count">{{ $t('chat.selectedCount', { count: selectedIds.size }) }}</span>
+        <div class="select-actions">
+          <button class="btn-select-cancel" @click="exitSelectMode">{{ t('common.cancel') }}</button>
+          <button class="btn-select-forward" @click="handleForwardClick" :disabled="selectedIds.size === 0">{{ t('chat.forward') }}</button>
+        </div>
+      </div>
+
+      <div v-if="!selectMode" class="input-area">
         <!-- Task input (Leader only) -->
         <div v-if="taskInputVisible && role === 'leader'" class="task-input-wrapper">
           <div class="task-input">
@@ -488,6 +603,14 @@ onBeforeUnmount(() => {
       @done="toastVisible = false"
     />
 
+    <ForwardDialog
+      :visible="forwardDialogVisible"
+      :members="members"
+      :current-peer-id="peerId"
+      @confirm="handleForwardConfirm"
+      @cancel="forwardDialogVisible = false"
+    />
+
     <Teleport to="body">
       <div
         v-if="contextMenuVisible"
@@ -498,6 +621,21 @@ onBeforeUnmount(() => {
         <button class="context-menu-item danger" @click="handleRevoke">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
           {{ $t('chat.revoke') }}
+        </button>
+      </div>
+    </Teleport>
+
+    <!-- Blank area right-click context menu -->
+    <Teleport to="body">
+      <div
+        v-if="blankMenuVisible"
+        class="context-menu blank-context-menu"
+        :style="{ left: blankMenuX + 'px', top: blankMenuY + 'px' }"
+        @click.stop
+      >
+        <button class="context-menu-item" @click="handleBlankMenuSelect">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><path d="M21 3l-7 7"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          {{ $t('chat.forward') }}
         </button>
       </div>
     </Teleport>
@@ -836,6 +974,64 @@ onBeforeUnmount(() => {
   color: var(--error);
   font-size: 0.8em;
   margin-top: var(--space-sm);
+}
+
+/* Multi-select action bar */
+.select-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-top: 1px solid var(--glass-border);
+}
+
+.select-count {
+  font-size: 0.85em;
+  color: var(--text-secondary);
+}
+
+.select-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.btn-select-cancel {
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-select-cancel:hover {
+  background: var(--glass-bg-light);
+}
+
+.btn-select-forward {
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: 0.85em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-select-forward:hover {
+  background: var(--accent-hover);
+}
+
+.btn-select-forward:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Input area */
