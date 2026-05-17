@@ -7,7 +7,7 @@ import TaskCard from "./TaskCard.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
 import RichEditor from "./RichEditor.vue";
-import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage } from "../types";
+import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, RevokedNotice } from "../types";
 import { isImageMime, formatFileSize, compressImage } from "../utils/imageCompress";
 import { apiUrl } from "../api";
 
@@ -18,7 +18,7 @@ const emit = defineEmits<{
 }>();
 
 const ctx = inject(TeamClientKey)!;
-const { getConversation, sendChat, dispatchTask, role, myId, markRead, members, teamName, clearConversation } = ctx;
+const { getConversation, sendChat, dispatchTask, role, myId, markRead, members, teamName, clearConversation, revokeMessage } = ctx;
 
 const peerStatus = computed(() => {
   const m = members.value.find((m) => m.id === props.peerId);
@@ -293,8 +293,55 @@ function closeMenuOnClickOutside(e: MouseEvent) {
   }
 }
 
-onMounted(() => document.addEventListener("click", closeMenuOnClickOutside));
-onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOutside));
+const toastType = ref<"success" | "error">("success");
+
+// Context menu for message revoke
+const contextMenuVisible = ref(false);
+const contextMenuX = ref(0);
+const contextMenuY = ref(0);
+const contextMenuMsg = ref<ChatMessage | null>(null);
+
+function handleMessageContextmenu(rect: DOMRect, message: ChatMessage) {
+  if (!message.mine) return;
+  contextMenuMsg.value = message;
+  // Position below the bubble, aligned to its edge
+  contextMenuX.value = message.mine
+    ? rect.right - 120  // mine: align right edge
+    : rect.left;         // others: align left edge
+  contextMenuY.value = rect.bottom + 4;
+  contextMenuVisible.value = true;
+}
+
+async function handleRevoke() {
+  contextMenuVisible.value = false;
+  if (!contextMenuMsg.value || !props.peerId) return;
+  const ok = await revokeMessage(props.peerId, contextMenuMsg.value.id);
+  if (ok) {
+    toastMessage.value = "消息已撤回";
+    toastType.value = "success";
+  } else {
+    toastMessage.value = "撤回失败";
+    toastType.value = "error";
+  }
+  toastVisible.value = true;
+  contextMenuMsg.value = null;
+}
+
+function closeContextMenu(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (!target.closest(".context-menu")) {
+    contextMenuVisible.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener("click", closeMenuOnClickOutside);
+  document.addEventListener("click", closeContextMenu);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener("click", closeMenuOnClickOutside);
+  document.removeEventListener("click", closeContextMenu);
+});
 </script>
 
 <template>
@@ -329,7 +376,10 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
         </div>
         <div v-else-if="hasMoreHistory" class="load-hint">↑ 向上滚动加载更多</div>
         <template v-for="item in visibleMessages" :key="item.id">
-          <MessageBubble v-if="item.type === 'chat'" :message="item" :my-id="myId" />
+          <div v-if="item.type === 'revoked'" class="revoked-notice">
+            {{ item.from }} 撤回了一条消息
+          </div>
+          <MessageBubble v-else-if="item.type === 'chat'" :message="item" :my-id="myId" @contextmenu="handleMessageContextmenu" />
           <TaskCard v-else :task="item" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
         </template>
 
@@ -431,9 +481,23 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
     <Toast
       :visible="toastVisible"
       :message="toastMessage"
-      type="success"
+      :type="toastType"
       @done="toastVisible = false"
     />
+
+    <Teleport to="body">
+      <div
+        v-if="contextMenuVisible"
+        class="context-menu"
+        :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
+        @click.stop
+      >
+        <button class="context-menu-item danger" @click="handleRevoke">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+          撤回
+        </button>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -1053,5 +1117,54 @@ onBeforeUnmount(() => document.removeEventListener("click", closeMenuOnClickOuts
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Context menu */
+.context-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 120px;
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--glass-shadow);
+  overflow: hidden;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 0.85em;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.context-menu-item:hover {
+  background: var(--bg-secondary);
+}
+
+.context-menu-item.danger {
+  color: var(--error);
+}
+
+.context-menu-item.danger:hover {
+  background: var(--task-failed-bg);
+}
+
+/* Revoked notice */
+.revoked-notice {
+  align-self: center;
+  font-size: 0.78em;
+  color: var(--text-muted);
+  padding: var(--space-xs) var(--space-md);
 }
 </style>

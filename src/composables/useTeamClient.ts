@@ -151,6 +151,7 @@ export function useTeamClient(
     incrementUnread: msg.incrementUnread,
     markRead: msg.markRead,
     clearConversation: msg.clearConversation,
+    revokeMessage: msg.revokeMessage,
     autoReplyDispose: autoReply.dispose,
   };
 }

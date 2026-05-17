@@ -9,7 +9,11 @@ const props = defineProps<{
   myId: string;
 }>();
 
-marked.setOptions({
+const emit = defineEmits<{
+  contextmenu: [rect: DOMRect, message: ChatMessage];
+}>();
+
+const bubbleRef = ref<HTMLElement | null>(null);marked.setOptions({
   gfm: true,
   breaks: true,
 });
@@ -143,7 +147,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="bubble" :class="{ mine: message.mine }">
+  <div ref="bubbleRef" class="bubble" :class="{ mine: message.mine }" @contextmenu.prevent="bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)">
     <div class="content" v-html="renderedHtml"></div>
 
     <!-- Attachments -->

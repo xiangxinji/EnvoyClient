@@ -75,7 +75,15 @@ export interface TaskMessage {
   timestamp: number;
 }
 
-export type TimelineItem = ChatMessage | TaskMessage;
+export interface RevokedNotice {
+  type: "revoked";
+  id: string;
+  seq: number;
+  from: string;
+  timestamp: number;
+}
+
+export type TimelineItem = ChatMessage | TaskMessage | RevokedNotice;
 
 export interface TaskPlan {
   summary: string;

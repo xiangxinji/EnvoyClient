@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import type { Message } from "@envoy/core";
-import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment } from "../types";
+import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, RevokedNotice } from "../types";
 import { managerPost, managerFetch, apiUrl } from "../api";
 
 interface SyncResponse {
@@ -106,6 +106,29 @@ export function useMessages(
   }
 
   function handleIncomingMessage(msg: Message): boolean {
+    if (msg.type === "message" && msg.subtype === "chat-revoke") {
+      const payload = msg.payload as { msgId: string };
+      const revokedFrom = msg.from;
+      const notice: RevokedNotice = {
+        type: "revoked",
+        id: payload.msgId,
+        seq: 0,
+        from: revokedFrom,
+        timestamp: Date.now(),
+      };
+      for (const [peerId, items] of messages.value) {
+        const idx = items.findIndex(
+          (t) => t.type === "chat" && t.id === payload.msgId,
+        );
+        if (idx >= 0) {
+          const updated = [...items];
+          updated[idx] = notice;
+          messages.value.set(peerId, updated);
+        }
+      }
+      return true;
+    }
+
     if (msg.type === "message" && msg.subtype === "chat") {
       const payload = msg.payload as { text: string; id?: string; seq?: number; source?: string; attachments?: MessageAttachment[] };
       if (payload.attachments) {
@@ -229,6 +252,34 @@ export function useMessages(
     unreadCounts.value = newUnread;
   }
 
+  async function revokeMessage(peerId: string, msgId: string): Promise<boolean> {
+    try {
+      const res = await fetch(
+        apiUrl(`/api/messages/${encodeURIComponent(msgId)}?from=${encodeURIComponent(myId)}`),
+        {
+          method: "DELETE",
+          headers: { team: teamName },
+        },
+      );
+      if (!res.ok) return false;
+
+      const items = messages.value.get(peerId);
+      if (items) {
+        const notice: RevokedNotice = {
+          type: "revoked",
+          id: msgId,
+          seq: 0,
+          from: myId,
+          timestamp: Date.now(),
+        };
+        messages.value.set(peerId, items.map((t) => t.id === msgId ? notice : t));
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   return {
     messages,
     unreadCounts,
@@ -241,5 +292,6 @@ export function useMessages(
     handleTaskUpdate,
     sendChat,
     clearConversation,
+    revokeMessage,
   };
 }
