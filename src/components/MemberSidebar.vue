@@ -3,8 +3,11 @@ import { inject, computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { TeamClientKey, getMemberSettings } from "../composables/teamClientContext";
 import GlassInput from "./GlassInput.vue";
+import MemberHoverCard from "./MemberHoverCard.vue";
+import ToolHoverCard from "./ToolHoverCard.vue";
 import { useSidebarSearch } from "../composables/useSidebarSearch";
 import type { TaskExecutionMode } from "../composables/useMemberSettings";
+import type { MemberInfo } from "../types";
 
 const { t } = useI18n();
 
@@ -33,6 +36,103 @@ const {
 } = useSidebarSearch(members, ctx.role, t);
 
 const searchInputRef = ref<InstanceType<typeof GlassInput> | null>(null);
+
+// Hover card state
+const hoveredMember = ref<MemberInfo | null>(null);
+const hoverRect = ref<DOMRect | null>(null);
+const hoverCardVisible = ref(false);
+let showTimer: ReturnType<typeof setTimeout> | null = null;
+let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+function handleMemberEnter(m: MemberInfo, e: MouseEvent) {
+  if (hideTimer) {
+    clearTimeout(hideTimer);
+    hideTimer = null;
+  }
+  const target = e.currentTarget as HTMLElement;
+  showTimer = setTimeout(() => {
+    hoveredMember.value = m;
+    hoverRect.value = target.getBoundingClientRect();
+    hoverCardVisible.value = true;
+  }, 150);
+}
+
+function handleMemberLeave() {
+  if (showTimer) {
+    clearTimeout(showTimer);
+    showTimer = null;
+  }
+  hideTimer = setTimeout(() => {
+    hoverCardVisible.value = false;
+  }, 100);
+}
+
+function handleCardEnter() {
+  if (hideTimer) {
+    clearTimeout(hideTimer);
+    hideTimer = null;
+  }
+}
+
+function handleCardLeave() {
+  hideTimer = setTimeout(() => {
+    hoverCardVisible.value = false;
+  }, 100);
+}
+
+// Tool hover card state
+const toolDescMap: Record<string, string> = {
+  __cloud__: "sidebar.cloudResourcesDesc",
+  __tasks__: "sidebar.taskCenterDesc",
+  __dispatch__: "sidebar.taskDispatchDesc",
+};
+const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch"> = {
+  __cloud__: "cloud",
+  __tasks__: "tasks",
+  __dispatch__: "dispatch",
+};
+
+const hoveredToolId = ref<string | null>(null);
+const toolHoverRect = ref<DOMRect | null>(null);
+const toolCardVisible = ref(false);
+let toolShowTimer: ReturnType<typeof setTimeout> | null = null;
+let toolHideTimer: ReturnType<typeof setTimeout> | null = null;
+
+function handleToolEnter(toolId: string, e: MouseEvent) {
+  if (toolHideTimer) {
+    clearTimeout(toolHideTimer);
+    toolHideTimer = null;
+  }
+  const target = e.currentTarget as HTMLElement;
+  toolShowTimer = setTimeout(() => {
+    hoveredToolId.value = toolId;
+    toolHoverRect.value = target.getBoundingClientRect();
+    toolCardVisible.value = true;
+  }, 150);
+}
+
+function handleToolLeave() {
+  if (toolShowTimer) {
+    clearTimeout(toolShowTimer);
+    toolShowTimer = null;
+  }
+  toolHideTimer = setTimeout(() => {
+    toolCardVisible.value = false;
+  }, 100);
+}
+
+function handleToolCardEnter() {
+  if (toolHideTimer) {
+    clearTimeout(toolHideTimer);
+    toolHideTimer = null;
+  }
+}
+
+function handleToolCardLeave() {
+  toolHideTimer = setTimeout(() => {
+    toolCardVisible.value = false;
+  }, 100);
+}
 
 /** Ordered list of all selectable peer IDs in the sidebar (unfiltered, for reference) */
 const navItems = computed(() => {
@@ -174,6 +274,8 @@ function getInitial(name: string): string {
           class="task-center-entry"
           :class="{ active: tool.id === selectedPeer }"
           @click="markRead(tool.id); emit('select', tool.id)"
+          @mouseenter="handleToolEnter(tool.id, $event)"
+          @mouseleave="handleToolLeave"
         >
           <div class="avatar" :class="tool.id === '__cloud__' ? 'cloud-avatar' : tool.id === '__dispatch__' ? 'dispatch-avatar' : 'task-center-avatar'">
             <svg v-if="tool.id === '__cloud__'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -206,6 +308,8 @@ function getInitial(name: string): string {
           :key="m.id"
           :class="{ active: m.id === selectedPeer }"
           @click="handleClick(m.id)"
+          @mouseenter="handleMemberEnter(m, $event)"
+          @mouseleave="handleMemberLeave"
         >
           <div class="avatar">
             {{ getInitial(m.id) }}
@@ -268,6 +372,24 @@ function getInitial(name: string): string {
         </button>
       </div>
     </div>
+    <MemberHoverCard
+      v-if="hoveredMember"
+      :member="hoveredMember"
+      :rect="hoverRect"
+      :visible="hoverCardVisible"
+      @mouseenter="handleCardEnter"
+      @mouseleave="handleCardLeave"
+    />
+    <ToolHoverCard
+      v-if="hoveredToolId"
+      :icon="toolIconMap[hoveredToolId]!"
+      :name="t(`sidebar.${hoveredToolId === '__cloud__' ? 'cloudResources' : hoveredToolId === '__tasks__' ? 'taskCenter' : 'taskDispatch'}`)"
+      :description="t(toolDescMap[hoveredToolId]!)"
+      :rect="toolHoverRect"
+      :visible="toolCardVisible"
+      @mouseenter="handleToolCardEnter"
+      @mouseleave="handleToolCardLeave"
+    />
   </aside>
 </template>
 

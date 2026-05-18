@@ -61,7 +61,10 @@
     "aiTaskMode": "AI Task Mode",
     "searchPlaceholder": "Search tools or members...",
     "noResults": "No results",
-    "searchClear": "Clear search"
+    "searchClear": "Clear search",
+    "cloudResourcesDesc": "Upload, download and manage shared team files in the cloud.",
+    "taskCenterDesc": "View all tasks by status, track progress, and review task details.",
+    "taskDispatchDesc": "Create new tasks with AI-assisted member matching and smart dispatch."
   },
   "chat": {
     "selectPeer": "Select a member to start chatting",

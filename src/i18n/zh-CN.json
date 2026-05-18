@@ -61,7 +61,10 @@
     "aiTaskMode": "AI 托管任务",
     "searchPlaceholder": "搜索工具或成员...",
     "noResults": "无匹配结果",
-    "searchClear": "清除搜索"
+    "searchClear": "清除搜索",
+    "cloudResourcesDesc": "上传、下载和管理团队共享的云端文件资源。",
+    "taskCenterDesc": "按状态查看所有任务，追踪进度并查看任务详情。",
+    "taskDispatchDesc": "创建新任务，AI 辅助匹配合适成员并智能分派。"
   },
   "chat": {
     "selectPeer": "选择一位成员开始聊天",
