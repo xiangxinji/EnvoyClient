@@ -173,7 +173,7 @@ onMounted(loadFiles);
 <template>
   <div class="cloud-panel">
     <div class="cloud-header">
-      <h2>{{ t('cloud.title') }}</h2>
+      <span class="header-name">{{ t('cloud.title') }}</span>
     </div>
 
     <div class="cloud-toolbar">
@@ -301,8 +301,24 @@ onMounted(loadFiles);
 
 <style scoped>
 .cloud-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: transparent; }
-.cloud-header { padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--glass-border); }
-.cloud-header h2 { margin: 0; font-size: 1em; font-weight: 600; color: var(--text-primary); }
+.cloud-header {
+  position: relative;
+  z-index: 10;
+  height: 52px;
+  box-sizing: border-box;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.header-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
 
 .cloud-toolbar { display: flex; align-items: center; justify-content: space-between; padding: var(--space-sm) var(--space-lg); border-bottom: 1px solid var(--glass-border); gap: var(--space-md); }
 .breadcrumb { display: flex; align-items: center; gap: 2px; font-size: 0.85em; min-width: 0; overflow: hidden; }
