@@ -9,7 +9,7 @@ import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
 import RichEditor from "./RichEditor.vue";
 import ForwardDialog from "./ForwardDialog.vue";
-import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, ForwardedRecord } from "../types";
+import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, ForwardedRecord, QuoteInfo } from "../types";
 import { isImageMime, formatFileSize, compressImage } from "../utils/imageCompress";
 import { apiUrl } from "../api";
 
@@ -231,7 +231,13 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
     pendingFiles.value = [];
   }
 
-  sendChat(props.peerId, text || " ", { attachments: attachments.length > 0 ? attachments : undefined });
+  const quoteInfo: QuoteInfo | undefined = quotingMsg.value
+    ? { id: quotingMsg.value.id, from: quotingMsg.value.from, text: generateSnapshotText(quotingMsg.value), timestamp: quotingMsg.value.timestamp }
+    : undefined;
+
+  sendChat(props.peerId, text || " ", { attachments: attachments.length > 0 ? attachments : undefined, quote: quoteInfo });
+
+  if (quoteInfo) quotingMsg.value = null;
 }
 
 function handleClearChat() {
@@ -299,21 +305,87 @@ function closeMenuOnClickOutside(e: MouseEvent) {
 
 const toastType = ref<"success" | "error">("success");
 
-// Context menu for message revoke
+// Context menu for message revoke / quote
 const contextMenuVisible = ref(false);
 const contextMenuX = ref(0);
 const contextMenuY = ref(0);
 const contextMenuMsg = ref<ChatMessage | null>(null);
 
+// Quote reply state
+const quotingMsg = ref<ChatMessage | null>(null);
+
 function handleMessageContextmenu(rect: DOMRect, message: ChatMessage) {
-  if (!message.mine) return;
   contextMenuMsg.value = message;
-  // Position below the bubble, aligned to its edge
   contextMenuX.value = message.mine
-    ? rect.right - 120  // mine: align right edge
-    : rect.left;         // others: align left edge
+    ? rect.right - 120
+    : rect.left;
   contextMenuY.value = rect.bottom + 4;
   contextMenuVisible.value = true;
+}
+
+function handleQuoteReply() {
+  contextMenuVisible.value = false;
+  if (!contextMenuMsg.value) return;
+  quotingMsg.value = contextMenuMsg.value;
+  contextMenuMsg.value = null;
+  nextTick(() => richEditorRef.value?.focus());
+}
+
+function handleContextForward() {
+  contextMenuVisible.value = false;
+  if (!contextMenuMsg.value) return;
+  const id = contextMenuMsg.value.id;
+  contextMenuMsg.value = null;
+  selectMode.value = true;
+  selectedIds.value = new Set([id]);
+}
+
+function clearQuotingMsg() {
+  quotingMsg.value = null;
+}
+
+function handleScrollToQuote(quoteId: string) {
+  const el = messageList.value;
+  if (!el) return;
+
+  let target = el.querySelector(`[data-id="${quoteId}"]`) as HTMLElement | null;
+
+  if (!target) {
+    // Target might be beyond loaded range — load all and retry
+    const prevScrollHeight = el.scrollHeight;
+    displayCount.value = conversation.value.length;
+    nextTick(() => {
+      target = el.querySelector(`[data-id="${quoteId}"]`) as HTMLElement | null;
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        highlightMessage(target);
+      } else if (messageList.value) {
+        messageList.value.scrollTop = messageList.value.scrollHeight - prevScrollHeight;
+      }
+    });
+    return;
+  }
+
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  highlightMessage(target);
+}
+
+function highlightMessage(el: HTMLElement) {
+  el.classList.add('quote-highlight');
+  setTimeout(() => el.classList.remove('quote-highlight'), 1500);
+}
+
+const QUOTE_TEXT_LIMIT = 100;
+
+function generateSnapshotText(msg: ChatMessage): string {
+  if (msg.forwarded?.length) return t('chat.quotePlaceholderForwarded');
+  if (!msg.text || !msg.text.trim()) {
+    if (msg.attachments?.some(a => a.type === 'image')) return t('chat.quotePlaceholderImage');
+    const file = msg.attachments?.find(a => a.type === 'file');
+    if (file) return t('chat.quotePlaceholderFile') + ' ' + file.name;
+    return '';
+  }
+  return msg.text.length > QUOTE_TEXT_LIMIT ? msg.text.slice(0, QUOTE_TEXT_LIMIT) : msg.text;
 }
 
 async function handleRevoke() {
@@ -363,37 +435,13 @@ function toggleMessageSelect(id: string) {
   selectedIds.value = next;
 }
 
-// Blank-area right-click context menu (for multi-select entry)
-const blankMenuVisible = ref(false);
-const blankMenuX = ref(0);
-const blankMenuY = ref(0);
-
-function handleMessagesContextmenu(e: MouseEvent) {
-  const el = messageList.value;
-  if (!el) return;
-  // Only trigger when right-clicking the container itself (blank area), not on a bubble
-  if (e.target !== el) return;
-  e.preventDefault();
-  blankMenuX.value = e.clientX;
-  blankMenuY.value = e.clientY;
-  blankMenuVisible.value = true;
-}
-
-function handleBlankMenuSelect() {
-  blankMenuVisible.value = false;
-  enterSelectMode();
-}
-
-function closeBlankMenu(e: MouseEvent) {
-  const target = e.target as HTMLElement;
-  if (!target.closest(".blank-context-menu")) {
-    blankMenuVisible.value = false;
-  }
-}
-
 function handleSelectModeKeydown(e: KeyboardEvent) {
-  if (e.key === "Escape" && selectMode.value) {
-    exitSelectMode();
+  if (e.key === "Escape") {
+    if (selectMode.value) {
+      exitSelectMode();
+    } else if (quotingMsg.value) {
+      quotingMsg.value = null;
+    }
   }
 }
 
@@ -430,13 +478,11 @@ async function handleForwardConfirm(targetId: string) {
 onMounted(() => {
   document.addEventListener("click", closeMenuOnClickOutside);
   document.addEventListener("click", closeContextMenu);
-  document.addEventListener("click", closeBlankMenu);
   document.addEventListener("keydown", handleSelectModeKeydown);
 });
 onBeforeUnmount(() => {
   document.removeEventListener("click", closeMenuOnClickOutside);
   document.removeEventListener("click", closeContextMenu);
-  document.removeEventListener("click", closeBlankMenu);
   document.removeEventListener("keydown", handleSelectModeKeydown);
 });
 </script>
@@ -471,7 +517,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div ref="messageList" class="messages" @scroll="handleScroll" @contextmenu="handleMessagesContextmenu">
+      <div ref="messageList" class="messages" @scroll="handleScroll">
         <div v-if="loadingMore" class="loading-more">
           <span class="spinner-small"></span> {{ $t('common.loading') }}
         </div>
@@ -486,8 +532,10 @@ onBeforeUnmount(() => {
             :my-id="myId"
             :select-mode="selectMode"
             :selected="selectedIds.has(item.id)"
+            :timeline="conversation"
             @contextmenu="handleMessageContextmenu"
             @toggle-select="toggleMessageSelect"
+            @scroll-to-quote="handleScrollToQuote"
           />
           <TaskCard v-else :task="item" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
         </template>
@@ -556,6 +604,17 @@ onBeforeUnmount(() => {
         </div>
         <div v-if="attachmentError" class="attachment-error">{{ attachmentError }}</div>
 
+        <!-- Quote reply preview -->
+        <div v-if="quotingMsg" class="quote-preview">
+          <div class="quote-preview-content">
+            <span class="quote-preview-sender">{{ quotingMsg.from }}</span>
+            <span class="quote-preview-text">{{ generateSnapshotText(quotingMsg) }}</span>
+          </div>
+          <button class="quote-preview-close" @click="clearQuotingMsg">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
         <!-- Toolbar (floating above editor) -->
         <div class="toolbar">
           <div class="toolbar-left">
@@ -618,24 +677,17 @@ onBeforeUnmount(() => {
         :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
         @click.stop
       >
-        <button class="context-menu-item danger" @click="handleRevoke">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
-          {{ $t('chat.revoke') }}
+        <button class="context-menu-item" @click="handleQuoteReply">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+          {{ $t('chat.quote') }}
         </button>
-      </div>
-    </Teleport>
-
-    <!-- Blank area right-click context menu -->
-    <Teleport to="body">
-      <div
-        v-if="blankMenuVisible"
-        class="context-menu blank-context-menu"
-        :style="{ left: blankMenuX + 'px', top: blankMenuY + 'px' }"
-        @click.stop
-      >
-        <button class="context-menu-item" @click="handleBlankMenuSelect">
+        <button class="context-menu-item" @click="handleContextForward">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><path d="M21 3l-7 7"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
           {{ $t('chat.forward') }}
+        </button>
+        <button v-if="contextMenuMsg?.mine" class="context-menu-item danger" @click="handleRevoke">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+          {{ $t('chat.revoke') }}
         </button>
       </div>
     </Teleport>
@@ -1365,5 +1417,74 @@ onBeforeUnmount(() => {
   font-size: 0.78em;
   color: var(--text-muted);
   padding: var(--space-xs) var(--space-md);
+}
+
+/* Quote preview bar */
+.quote-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  margin-bottom: var(--space-xs);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+
+.quote-preview-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  overflow: hidden;
+}
+
+.quote-preview-sender {
+  font-size: 0.78em;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.quote-preview-text {
+  font-size: 0.78em;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quote-preview-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.quote-preview-close:hover {
+  background: var(--glass-bg);
+  color: var(--text-primary);
+}
+
+/* Quote highlight */
+.quote-highlight {
+  animation: quote-highlight-pulse 1.5s ease-out;
+}
+
+@keyframes quote-highlight-pulse {
+  0% { box-shadow: 0 0 0 0 var(--accent); }
+  30% { box-shadow: 0 0 0 3px var(--accent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 </style>

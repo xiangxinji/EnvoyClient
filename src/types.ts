@@ -21,6 +21,13 @@ export interface ForwardedRecord {
   attachments?: MessageAttachment[];
 }
 
+export interface QuoteInfo {
+  id: string;
+  from: string;
+  text: string;
+  timestamp: number;
+}
+
 export interface ChatMessage {
   type: "chat";
   id: string;
@@ -33,6 +40,7 @@ export interface ChatMessage {
   source?: "human" | "ai-auto";
   attachments?: MessageAttachment[];
   forwarded?: ForwardedRecord[];
+  quote?: QuoteInfo;
 }
 
 export interface ToolCallRecord {

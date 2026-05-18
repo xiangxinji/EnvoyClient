@@ -106,7 +106,12 @@
     "confirmForward": "确认转发",
     "forwardSuccess": "消息已转发",
     "chatHistory": "聊天记录",
-    "noForwardTarget": "没有可转发的成员"
+    "noForwardTarget": "没有可转发的成员",
+    "quote": "引用回复",
+    "quoteRevoked": "原消息已撤回",
+    "quotePlaceholderImage": "[图片]",
+    "quotePlaceholderFile": "[文件]",
+    "quotePlaceholderForwarded": "[聊天记录]"
   },
   "task": {
     "status": {

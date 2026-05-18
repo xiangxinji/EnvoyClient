@@ -3,7 +3,7 @@ import { computed, ref, onUnmounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
-import type { ChatMessage, MessageAttachment } from "../types";
+import type { ChatMessage, MessageAttachment, TimelineItem } from "../types";
 import { downloadFileWithDialog } from "../utils/notification";
 
 const props = defineProps<{
@@ -11,14 +11,34 @@ const props = defineProps<{
   myId: string;
   selectMode?: boolean;
   selected?: boolean;
+  timeline?: TimelineItem[];
 }>();
 
 const emit = defineEmits<{
   contextmenu: [rect: DOMRect, message: ChatMessage];
   toggleSelect: [id: string];
+  "scroll-to-quote": [quoteId: string];
 }>();
 
 const { t } = useI18n();
+
+const isQuoteRevoked = computed(() => {
+  if (!props.message.quote || !props.timeline) return false;
+  const found = props.timeline.find(item => item.id === props.message.quote!.id);
+  return !!found && found.type === "revoked";
+});
+
+const quoteDisplayText = computed(() => {
+  if (!props.message.quote) return "";
+  if (isQuoteRevoked.value) return t('chat.quoteRevoked');
+  return props.message.quote.text;
+});
+
+function handleQuoteClick() {
+  if (props.message.quote) {
+    emit("scroll-to-quote", props.message.quote.id);
+  }
+}
 
 const bubbleRef = ref<HTMLElement | null>(null);marked.setOptions({
   gfm: true,
@@ -174,7 +194,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="bubble-row" :class="{ mine: message.mine }">
+  <div class="bubble-row" :class="{ mine: message.mine }" :data-id="message.id">
     <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
       <svg v-if="selected" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
@@ -185,6 +205,12 @@ onUnmounted(() => {
       @click="selectMode && emit('toggleSelect', message.id)"
       @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)"
     >
+      <!-- Quote card -->
+      <div v-if="message.quote" class="quote-card" :class="{ revoked: isQuoteRevoked }" @click.stop="handleQuoteClick">
+        <span class="quote-sender">{{ message.quote.from }}</span>
+        <span class="quote-text">{{ quoteDisplayText }}</span>
+      </div>
+
       <div v-if="!message.forwarded?.length" class="content" v-html="renderedHtml"></div>
 
       <!-- Forwarded: clickable summary → opens dialog -->
@@ -506,6 +532,67 @@ onUnmounted(() => {
   color: var(--text-primary);
   text-decoration: none;
   width: 100%;
+}
+
+/* Quote card — glass overlay (mine) / clean bar (other) */
+.quote-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  margin-bottom: var(--space-sm);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-left: 3px solid rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.quote-card:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.quote-card.revoked .quote-text {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.quote-sender {
+  font-size: 0.75em;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.quote-text {
+  font-size: 0.78em;
+  opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* Other bubble — clean bar only, no background */
+.bubble:not(.mine) .quote-card {
+  background: transparent;
+  border: none;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+
+.bubble:not(.mine) .quote-card:hover {
+  background: transparent;
+}
+
+.bubble:not(.mine) .quote-sender {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.bubble:not(.mine) .quote-text {
+  color: var(--text-secondary);
+  opacity: 1;
 }
 
 .content {

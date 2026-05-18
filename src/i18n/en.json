@@ -106,7 +106,12 @@
     "confirmForward": "Confirm Forward",
     "forwardSuccess": "Messages forwarded",
     "chatHistory": "Chat History",
-    "noForwardTarget": "No members to forward to"
+    "noForwardTarget": "No members to forward to",
+    "quote": "Quote Reply",
+    "quoteRevoked": "Original message revoked",
+    "quotePlaceholderImage": "[Image]",
+    "quotePlaceholderFile": "[File]",
+    "quotePlaceholderForwarded": "[Chat History]"
   },
   "task": {
     "status": {

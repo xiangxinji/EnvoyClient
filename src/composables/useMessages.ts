@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import type { Message } from "@envoy/core";
-import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, RevokedNotice, ForwardedRecord } from "../types";
+import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, RevokedNotice, ForwardedRecord, QuoteInfo } from "../types";
 import { managerPost, managerFetch, apiUrl } from "../api";
 
 interface SyncResponse {
@@ -77,6 +77,7 @@ export function useMessages(
       source: (msg.source === "ai-auto" ? "ai-auto" : "human") as "human" | "ai-auto",
       attachments: extra.attachments as MessageAttachment[] | undefined,
       forwarded: extra.forwarded as ForwardedRecord[] | undefined,
+      quote: extra.quote as QuoteInfo | undefined,
     } satisfies ChatMessage;
   }
 
@@ -131,7 +132,7 @@ export function useMessages(
     }
 
     if (msg.type === "message" && msg.subtype === "chat") {
-      const payload = msg.payload as { text: string; id?: string; seq?: number; source?: string; attachments?: MessageAttachment[]; forwarded?: ForwardedRecord[] };
+      const payload = msg.payload as { text: string; id?: string; seq?: number; source?: string; attachments?: MessageAttachment[]; forwarded?: ForwardedRecord[]; quote?: QuoteInfo };
       if (payload.attachments) {
         for (const att of payload.attachments) {
           if (att.url.startsWith("/")) att.url = apiUrl(att.url);
@@ -149,6 +150,7 @@ export function useMessages(
         source: (payload.source === "ai-auto" ? "ai-auto" : "human") as "human" | "ai-auto",
         attachments: payload.attachments,
         forwarded: payload.forwarded,
+        quote: payload.quote,
       };
       const peerId = msg.from === myId ? msg.to : msg.from;
       addToConversation(peerId, chatMsg);
@@ -202,14 +204,16 @@ export function useMessages(
     }
   }
 
-  async function sendChat(targetId: string, text: string, options?: { attachments?: MessageAttachment[]; source?: "human" | "ai-auto"; forwarded?: ForwardedRecord[] }) {
+  async function sendChat(targetId: string, text: string, options?: { attachments?: MessageAttachment[]; source?: "human" | "ai-auto"; forwarded?: ForwardedRecord[]; quote?: QuoteInfo }) {
     const attachments = options?.attachments;
     const source = options?.source;
     const forwarded = options?.forwarded;
+    const quote = options?.quote;
     const body: Record<string, unknown> = { from: myId, to: targetId, text };
     if (attachments?.length) body.attachments = attachments;
     if (source) body.source = source;
     if (forwarded?.length) body.forwarded = forwarded;
+    if (quote) body.quote = quote;
 
     try {
       const res = await managerPost("/api/messages", body, { team: teamName });
@@ -227,6 +231,7 @@ export function useMessages(
         source,
         attachments: attachments?.length ? attachments : undefined,
         forwarded: forwarded?.length ? forwarded : undefined,
+        quote,
       };
       addToConversation(targetId, chatMsg);
     } catch {
@@ -243,6 +248,7 @@ export function useMessages(
         source,
         attachments: attachments?.length ? attachments : undefined,
         forwarded: forwarded?.length ? forwarded : undefined,
+        quote,
       };
       addToConversation(targetId, chatMsg);
     }
