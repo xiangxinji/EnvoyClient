@@ -41,32 +41,33 @@ export function useConnection(
 
   async function loadConfiguredMembers() {
     try {
-      const res = await managerFetch(
-        `/api/teams/${encodeURIComponent(teamName)}/configured-members`,
-      );
+      const url = `/api/teams/${encodeURIComponent(teamName)}/configured-members`;
+      console.log("[useConnection] fetching configured members:", url);
+      const res = await managerFetch(url);
       const data = await res.json() as {
         leader: string;
-        members: { username: string; responsibilities?: string; capabilities?: string }[];
+        members: { username: string; role?: string; responsibilities?: string; capabilities?: string }[];
       };
+      console.log("[useConnection] configured members response:", data);
       const list: MemberInfo[] = [
         { id: data.leader, role: "leader", status: "offline" },
         ...data.members.map((m) => ({
           id: m.username,
-          role: "member" as const,
+          role: (m.role === "leader" ? "leader" : "member") as "leader" | "member",
           status: "offline" as const,
           responsibilities: m.responsibilities,
           capabilities: m.capabilities,
         })),
       ];
+      console.log("[useConnection] member list:", list);
       configuredMembers.value = list;
-    } catch {
-      // API unavailable, fallback to WS-only members
+    } catch (e) {
+      console.error("[useConnection] loadConfiguredMembers failed:", e);
     }
   }
 
   client.on("connected", () => {
     status.value = "connected";
-    loadConfiguredMembers();
   });
 
   client.on("disconnected", () => {
@@ -77,9 +78,10 @@ export function useConnection(
     status.value = "reconnecting";
   });
 
-  function connect() {
+  async function connect() {
     status.value = "connecting";
-    return client.connect();
+    await client.connect();
+    await loadConfiguredMembers();
   }
 
   function disconnect() {
