@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, provide } from "vue";
+import { ref, computed, provide } from "vue";
 import { useRouter } from "vue-router";
 import MemberSidebar from "../components/MemberSidebar.vue";
 import ChatPanel from "../components/ChatPanel.vue";
@@ -9,6 +9,7 @@ import SettingsPanel from "../components/SettingsPanel.vue";
 import QuickSettingsPanel from "../components/QuickSettingsPanel.vue";
 import TaskDetailPanel from "../components/TaskDetailPanel.vue";
 import CloudResourcesPanel from "../components/CloudResourcesPanel.vue";
+import ReconnectOverlay from "../components/ReconnectOverlay.vue";
 import { TeamClientKey, getTeamClientInstance } from "../composables/teamClientContext";
 import { useGlobalShortcuts } from "../composables/useGlobalShortcuts";
 import type { TaskMessage } from "../types";
@@ -62,6 +63,18 @@ if (ctx) {
   provide(TeamClientKey, ctx);
   useGlobalShortcuts(ctx);
 }
+
+const showReconnectOverlay = computed(() => {
+  if (!ctx) return false;
+  const s = ctx.status.value;
+  return s === "disconnected" || s === "reconnecting" || s === "reconnect_failed";
+});
+
+function handleLogout() {
+  if (!ctx) return;
+  ctx.logout();
+  router.replace("/");
+}
 </script>
 
 <template>
@@ -94,6 +107,12 @@ if (ctx) {
         @close="handleCloseDetail"
       />
     </template>
+    <ReconnectOverlay
+      v-if="showReconnectOverlay"
+      :status="ctx.status.value as 'disconnected' | 'connecting' | 'reconnecting' | 'reconnect_failed'"
+      :attempt="ctx.reconnectAttempt.value"
+      @logout="handleLogout"
+    />
   </div>
 </template>
 

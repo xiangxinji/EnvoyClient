@@ -7,7 +7,7 @@ import type { ConnectionStatus, ConnectionClientOptions } from "./useConnection"
 import { useMessages } from "./useMessages";
 import { useTaskExecution } from "./useTaskExecution";
 import { useAutoReply } from "./useAutoReply";
-import { getMemberSettings } from "./teamClientContext";
+import { getMemberSettings, setTeamClientInstance } from "./teamClientContext";
 import { managerPost } from "../api";
 import { sendDesktopNotification } from "../utils/notification";
 
@@ -46,8 +46,20 @@ export function useTeamClient(
 
   // ─── Glue: bridge connection events to message layer ───
 
+  let isFirstConnect = true;
+
   conn.client.on("connected", () => {
+    if (isFirstConnect) {
+      isFirstConnect = false;
+      msg.loadHistory();
+      return;
+    }
+
+    // Reconnect recovery: rejoin team + sync missed data
+    const joinRole = role === "leader" ? "leader" : "member";
+    conn.client.send("team:join", { role: joinRole });
     msg.loadHistory();
+    conn.loadConfiguredMembers();
   });
 
   conn.client.on("message", (msgObj: Message) => {
@@ -137,17 +149,25 @@ export function useTeamClient(
     }, { team: conn.teamName });
   }
 
+  function logout() {
+    conn.disconnect();
+    autoReply.dispose();
+    setTeamClientInstance(null);
+  }
+
   return {
     myId: conn.myId,
     role,
     teamName: conn.teamName,
     status: conn.status,
+    reconnectAttempt: conn.reconnectAttempt,
     members: conn.members,
     client: conn.client,
     messages: msg.messages,
     unreadCounts: msg.unreadCounts,
     connect: conn.connect,
     disconnect: conn.disconnect,
+    logout,
     sendChat: msg.sendChat,
     dispatchTask,
     getConversation: msg.getConversation,

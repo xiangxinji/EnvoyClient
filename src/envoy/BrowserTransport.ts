@@ -17,6 +17,8 @@ export class ClientTransport extends EventEmitter {
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private connected = false;
+  private reconnectFailed = false;
+  private slowReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private options: ClientTransportOptions) {
     super();
@@ -34,6 +36,11 @@ export class ClientTransport extends EventEmitter {
         this.ws = ws;
         this.connected = true;
         this.reconnectAttempts = 0;
+        this.reconnectFailed = false;
+        if (this.slowReconnectTimer) {
+          clearTimeout(this.slowReconnectTimer);
+          this.slowReconnectTimer = null;
+        }
         this.emit("open");
         resolve();
       };
@@ -76,7 +83,12 @@ export class ClientTransport extends EventEmitter {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    if (this.slowReconnectTimer) {
+      clearTimeout(this.slowReconnectTimer);
+      this.slowReconnectTimer = null;
+    }
     this.options.reconnect = false;
+    this.reconnectFailed = false;
     if (this.ws) {
       this.ws.close();
       this.ws = null;
@@ -88,20 +100,36 @@ export class ClientTransport extends EventEmitter {
     if (!this.options.reconnect) return;
 
     const max = this.options.maxReconnectAttempts ?? 10;
-    if (this.reconnectAttempts >= max) {
+
+    if (this.reconnectAttempts < max) {
+      // Fast phase: exponential backoff
+      const interval = this.options.reconnectInterval ?? 3000;
+      const delay = interval * Math.min(this.reconnectAttempts + 1, 5);
+      this.reconnectAttempts++;
+
+      this.reconnectTimer = setTimeout(() => {
+        this.emit("reconnecting", this.reconnectAttempts);
+        this.connect().catch(() => {});
+      }, delay);
+    } else if (!this.reconnectFailed) {
+      // Transition to slow infinite retry
+      this.reconnectFailed = true;
       this.emit("reconnect_failed");
-      return;
+      this.scheduleSlowReconnect();
     }
+    // If already in slow phase, scheduleSlowReconnect handles itself
+  }
 
-    const interval = this.options.reconnectInterval ?? 3000;
-    const delay = interval * Math.min(this.reconnectAttempts + 1, 5);
-    this.reconnectAttempts++;
+  private scheduleSlowReconnect(): void {
+    if (!this.options.reconnect) return;
 
-    this.reconnectTimer = setTimeout(() => {
+    this.slowReconnectTimer = setTimeout(() => {
+      if (!this.options.reconnect) return;
+      this.reconnectAttempts++;
       this.emit("reconnecting", this.reconnectAttempts);
       this.connect().catch(() => {
-        // reconnect will be tried again on close
+        // onclose will trigger tryReconnect → scheduleSlowReconnect again
       });
-    }, delay);
+    }, 30000);
   }
 }

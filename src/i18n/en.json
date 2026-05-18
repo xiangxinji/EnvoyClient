@@ -58,7 +58,10 @@
     "shortcuts": "Shortcuts",
     "settings": "Settings",
     "aiAutoReply": "AI Auto Reply",
-    "aiTaskMode": "AI Task Mode"
+    "aiTaskMode": "AI Task Mode",
+    "searchPlaceholder": "Search tools or members...",
+    "noResults": "No results",
+    "searchClear": "Clear search"
   },
   "chat": {
     "selectPeer": "Select a member to start chatting",
@@ -255,5 +258,11 @@
     "select": "Select",
     "selectedCount": "{count} selected",
     "confirmBatchDelete": "Are you sure you want to delete {count} selected items? This action cannot be undone."
+  },
+  "reconnect": {
+    "title": "Connection Lost",
+    "attempt": "Reconnecting... (attempt {attempt})",
+    "slowRetry": "Reconnect failed, still trying...",
+    "backToLogin": "Back to Login"
   }
 }

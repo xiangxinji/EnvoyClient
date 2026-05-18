@@ -9,7 +9,8 @@ export type ConnectionStatus =
   | "disconnected"
   | "connecting"
   | "connected"
-  | "reconnecting";
+  | "reconnecting"
+  | "reconnect_failed";
 
 export interface ConnectionClientOptions extends ClientOptions {
   teamName: string;
@@ -27,6 +28,7 @@ export function useConnection(
   const myId = options.id;
 
   const status = ref<ConnectionStatus>("disconnected");
+  const reconnectAttempt = ref(0);
   const configuredMembers = ref<MemberInfo[]>([]);
   const onlineIds = ref<Set<string>>(new Set());
 
@@ -68,14 +70,20 @@ export function useConnection(
 
   client.on("connected", () => {
     status.value = "connected";
+    reconnectAttempt.value = 0;
   });
 
   client.on("disconnected", () => {
     status.value = "disconnected";
   });
 
-  client.on("reconnecting", (_attempt: number) => {
+  client.on("reconnecting", (attempt: number) => {
     status.value = "reconnecting";
+    reconnectAttempt.value = attempt;
+  });
+
+  client.on("reconnect_failed", () => {
+    status.value = "reconnect_failed";
   });
 
   async function connect() {
@@ -98,10 +106,12 @@ export function useConnection(
     role,
     teamName,
     status,
+    reconnectAttempt,
     configuredMembers,
     onlineIds,
     members,
     connect,
     disconnect,
+    loadConfiguredMembers,
   };
 }

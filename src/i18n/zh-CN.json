@@ -58,7 +58,10 @@
     "shortcuts": "快捷键",
     "settings": "设置",
     "aiAutoReply": "AI 自动回复",
-    "aiTaskMode": "AI 托管任务"
+    "aiTaskMode": "AI 托管任务",
+    "searchPlaceholder": "搜索工具或成员...",
+    "noResults": "无匹配结果",
+    "searchClear": "清除搜索"
   },
   "chat": {
     "selectPeer": "选择一位成员开始聊天",
@@ -255,5 +258,11 @@
     "select": "多选",
     "selectedCount": "已选 {count} 项",
     "confirmBatchDelete": "确定要删除选中的 {count} 项吗？此操作不可撤销。"
+  },
+  "reconnect": {
+    "title": "连接已断开",
+    "attempt": "正在重新连接... (第 {attempt} 次)",
+    "slowRetry": "重连失败，正在持续尝试中...",
+    "backToLogin": "返回登录页"
   }
 }

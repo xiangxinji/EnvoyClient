@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { inject, computed, onMounted, onUnmounted } from "vue";
+import { inject, computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { TeamClientKey, getMemberSettings } from "../composables/teamClientContext";
+import GlassInput from "./GlassInput.vue";
+import { useSidebarSearch } from "../composables/useSidebarSearch";
 import type { TaskExecutionMode } from "../composables/useMemberSettings";
 
 const { t } = useI18n();
@@ -21,7 +23,18 @@ const { settings: memberSettings, saveSettings } = getMemberSettings();
 const isAutoMode = computed(() => memberSettings.value.task_execution_mode === "auto");
 const isAutoReply = computed(() => memberSettings.value.ai_auto_reply);
 
-/** Ordered list of all selectable peer IDs in the sidebar */
+const {
+  searchQuery,
+  filteredTools,
+  filteredMembers,
+  matchHints,
+  filteredNavItems,
+  isEmpty,
+} = useSidebarSearch(members, ctx.role, t);
+
+const searchInputRef = ref<InstanceType<typeof GlassInput> | null>(null);
+
+/** Ordered list of all selectable peer IDs in the sidebar (unfiltered, for reference) */
 const navItems = computed(() => {
   const items: string[] = ["__cloud__"];
   items.push("__tasks__");
@@ -38,7 +51,7 @@ function handleKeyDown(e: KeyboardEvent) {
   if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
 
   e.preventDefault();
-  const items = navItems.value;
+  const items = searchQuery.value.trim() ? filteredNavItems.value : navItems.value;
   if (items.length === 0) return;
 
   const idx = items.indexOf(props.selectedPeer);
@@ -53,8 +66,36 @@ function handleKeyDown(e: KeyboardEvent) {
   emit("select", peerId);
 }
 
-onMounted(() => window.addEventListener("keydown", handleKeyDown));
-onUnmounted(() => window.removeEventListener("keydown", handleKeyDown));
+function handleGlobalKeyDown(e: KeyboardEvent) {
+  // Ctrl+K: focus search
+  if (e.ctrlKey && e.code === "KeyK" && !e.shiftKey && !e.altKey && !e.metaKey) {
+    const target = e.target as HTMLElement;
+    if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+      // Don't intercept if user is already in an input (unless it's the search itself)
+      if (!target.closest(".sidebar-search")) return;
+    }
+    e.preventDefault();
+    searchInputRef.value?.focus();
+  }
+
+  // Escape: clear and blur search (only when search input is focused)
+  if (e.key === "Escape") {
+    const inputEl = searchInputRef.value?.inputRef;
+    if (inputEl && document.activeElement === inputEl) {
+      searchQuery.value = "";
+      searchInputRef.value?.blur();
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("keydown", handleGlobalKeyDown);
+});
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeyDown);
+  window.removeEventListener("keydown", handleGlobalKeyDown);
+});
 
 async function toggleExecutionMode() {
   const next: TaskExecutionMode = isAutoMode.value ? "manual" : "auto";
@@ -101,97 +142,86 @@ function getInitial(name: string): string {
 
 <template>
   <aside class="sidebar">
-    <div class="sidebar-header">
-      <h3>{{ t('sidebar.tools') }}</h3>
+    <div class="sidebar-search">
+      <GlassInput
+        ref="searchInputRef"
+        v-model="searchQuery"
+        :placeholder="t('sidebar.searchPlaceholder')"
+        clearable
+        @clear="searchQuery = ''"
+      >
+        <template #prefix>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+        </template>
+      </GlassInput>
     </div>
-    <ul class="nav-group">
-      <!-- Cloud resources entry -->
-      <li
-        class="task-center-entry"
-        :class="{ active: selectedPeer === '__cloud__' }"
-        @click="emit('select', '__cloud__')"
-      >
-        <div class="avatar cloud-avatar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-          </svg>
-        </div>
-        <div class="member-info">
-          <span class="member-name">{{ t('sidebar.cloudResources') }}</span>
-        </div>
-      </li>
 
-      <!-- Task center entry -->
-      <li
-        class="task-center-entry"
-        :class="{ active: selectedPeer === '__tasks__' }"
-        @click="emit('select', '__tasks__')"
-      >
-        <div class="avatar task-center-avatar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-            <rect x="9" y="3" width="6" height="4" rx="1" />
-            <path d="M9 14l2 2 4-4" />
-          </svg>
-        </div>
-        <div class="member-info">
-          <span class="member-name">{{ t('sidebar.taskCenter') }}</span>
-        </div>
-        <span v-if="taskCount > 0" class="badge badge-task">
-          {{ formatBadge(taskCount) }}
-        </span>
-      </li>
-
-      <!-- Dispatch task entry (leader only) -->
-      <li
-        v-if="ctx.role === 'leader'"
-        class="task-center-entry"
-        :class="{ active: selectedPeer === '__dispatch__' }"
-        @click="emit('select', '__dispatch__')"
-      >
-        <div class="avatar dispatch-avatar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-          </svg>
-        </div>
-        <div class="member-info">
-          <span class="member-name">{{ t('sidebar.taskDispatch') }}</span>
-        </div>
-      </li>
-    </ul>
-
-    <div class="sidebar-header">
-      <h3>{{ t('sidebar.members') }}</h3>
+    <div v-if="isEmpty" class="empty-state">
+      <span>{{ t('sidebar.noResults') }}</span>
     </div>
-    <ul class="nav-group">
-      <li
-        v-for="m in members"
-        :key="m.id"
-        :class="{ active: m.id === selectedPeer }"
-        @click="handleClick(m.id)"
-      >
-        <div class="avatar">
-          {{ getInitial(m.id) }}
-          <span class="status-dot" :class="m.status"></span>
-        </div>
-        <div class="member-info">
-          <span class="member-name">{{ m.id }}</span>
-          <span class="member-role" :class="m.role">{{ m.role }}</span>
-        </div>
-        <span v-if="(unreadCounts.get(m.id) ?? 0) > 0" class="badge">
-          {{ formatBadge(unreadCounts.get(m.id) ?? 0) }}
-        </span>
-      </li>
-      <li v-if="members.length === 0" class="empty">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-        <span>{{ t('sidebar.noMembers') }}</span>
-      </li>
-    </ul>
+
+    <template v-else>
+      <div v-if="filteredTools.length > 0" class="sidebar-header">
+        <h3>{{ t('sidebar.tools') }}</h3>
+      </div>
+      <ul v-if="filteredTools.length > 0" class="nav-group">
+        <li
+          v-for="tool in filteredTools"
+          :key="tool.id"
+          class="task-center-entry"
+          :class="{ active: tool.id === selectedPeer }"
+          @click="markRead(tool.id); emit('select', tool.id)"
+        >
+          <div class="avatar" :class="tool.id === '__cloud__' ? 'cloud-avatar' : tool.id === '__dispatch__' ? 'dispatch-avatar' : 'task-center-avatar'">
+            <svg v-if="tool.id === '__cloud__'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+            </svg>
+            <svg v-else-if="tool.id === '__tasks__'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+              <rect x="9" y="3" width="6" height="4" rx="1" />
+              <path d="M9 14l2 2 4-4" />
+            </svg>
+            <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+          </div>
+          <div class="member-info">
+            <span class="member-name">{{ tool.label }}</span>
+          </div>
+          <span v-if="tool.id === '__tasks__' && taskCount > 0" class="badge badge-task">
+            {{ formatBadge(taskCount) }}
+          </span>
+        </li>
+      </ul>
+
+      <div v-if="filteredMembers.length > 0" class="sidebar-header">
+        <h3>{{ t('sidebar.members') }}</h3>
+      </div>
+      <ul v-if="filteredMembers.length > 0" class="nav-group">
+        <li
+          v-for="m in filteredMembers"
+          :key="m.id"
+          :class="{ active: m.id === selectedPeer }"
+          @click="handleClick(m.id)"
+        >
+          <div class="avatar">
+            {{ getInitial(m.id) }}
+            <span class="status-dot" :class="m.status"></span>
+          </div>
+          <div class="member-info">
+            <span class="member-name">{{ m.id }}</span>
+            <span class="member-role" :class="m.role">{{ m.role }}</span>
+            <span v-if="matchHints.get(m.id)" class="member-hint" :title="matchHints.get(m.id)">{{ matchHints.get(m.id) }}</span>
+          </div>
+          <span v-if="(unreadCounts.get(m.id) ?? 0) > 0" class="badge">
+            {{ formatBadge(unreadCounts.get(m.id) ?? 0) }}
+          </span>
+        </li>
+      </ul>
+    </template>
 
     <div class="sidebar-footer">
       <div class="user-menu-wrapper">
@@ -253,6 +283,10 @@ function getInitial(name: string): string {
   -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 
+.sidebar-search {
+  padding: var(--space-sm) var(--space-sm) 0;
+}
+
 .sidebar-header {
   padding: var(--space-md) var(--space-md);
   padding-bottom: var(--space-xs);
@@ -285,6 +319,12 @@ h3 {
 }
 
 .nav-group:last-of-type {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.nav-group:only-of-type {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
@@ -345,6 +385,7 @@ li.active {
 .member-info {
   flex: 1;
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-xs);
   min-width: 0;
@@ -400,6 +441,26 @@ li.active {
 
 .empty svg {
   color: var(--empty-icon);
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: var(--space-lg) var(--space-md);
+  color: var(--text-muted);
+  font-size: 0.8em;
+}
+
+.member-hint {
+  font-size: 0.7em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-basis: 100%;
+  margin-top: 1px;
 }
 
 /* Task center / dispatch entries */
