@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from "vue-router";
-import RoleSelect from "./views/RoleSelect.vue";
-import ChatView from "./views/ChatView.vue";
-import LoginSettings from "./views/LoginSettings.vue";
+import RoleSelect from "./views/RoleSelect";
+import ChatView from "./views/ChatView";
+import LoginSettings from "./views/LoginSettings";
 
 export const router = createRouter({
   history: createWebHashHistory(),

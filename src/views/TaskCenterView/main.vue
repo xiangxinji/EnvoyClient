@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { inject, computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { TeamClientKey } from "../composables/teamClientContext";
-import { managerFetch } from "../api";
-import TaskCard from "../components/TaskCard";
-import type { TaskMessage, TaskResource } from "../types";
-import type { Task } from "../../envoy/packages/core/task.js";
+import { TeamClientKey } from "../../composables/teamClientContext";
+import { managerFetch } from "../../api";
+import TaskCard from "../../components/TaskCard";
+import type { TaskMessage, TaskResource } from "../../types";
+import type { Task } from "../../../envoy/packages/core/task.js";
 
 const { t } = useI18n();
 
@@ -172,81 +172,5 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.task-center {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: transparent;
-}
-
-.task-center-header {
-  position: relative;
-  z-index: 10;
-  height: 52px;
-  box-sizing: border-box;
-  padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid var(--glass-border);
-  background: var(--glass-bg-heavy);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.header-name {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.empty-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-md);
-  color: var(--text-muted);
-}
-
-.empty-state svg {
-  color: var(--empty-icon);
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 0.9em;
-}
-
-.task-groups {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-}
-
-.task-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.group-header {
-  font-size: 0.8em;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding-bottom: var(--space-xs);
-  border-bottom: 1px solid var(--border-light);
-}
-
-.group-tasks {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
+@import './styles.css';
 </style>

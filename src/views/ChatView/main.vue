@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, provide } from "vue";
 import { useRouter } from "vue-router";
-import MemberSidebar from "../components/MemberSidebar";
-import ChatPanel from "../components/ChatPanel";
-import TaskCenterView from "./TaskCenterView.vue";
-import TaskDispatchPanel from "./TaskDispatchPanel.vue";
-import SettingsPanel from "../components/SettingsPanel";
-import QuickSettingsPanel from "../components/QuickSettingsPanel";
-import TaskDetailPanel from "../components/TaskDetailPanel";
-import CloudResourcesPanel from "../components/CloudResourcesPanel";
-import ReconnectOverlay from "../components/ReconnectOverlay";
-import { TeamClientKey, getTeamClientInstance } from "../composables/teamClientContext";
-import { useGlobalShortcuts } from "../composables/useGlobalShortcuts";
-import type { TaskMessage } from "../types";
+import MemberSidebar from "../../components/MemberSidebar";
+import ChatPanel from "../../components/ChatPanel";
+import TaskCenterView from "../TaskCenterView";
+import TaskDispatchPanel from "../TaskDispatchPanel";
+import SettingsPanel from "../../components/SettingsPanel";
+import QuickSettingsPanel from "../../components/QuickSettingsPanel";
+import TaskDetailPanel from "../../components/TaskDetailPanel";
+import CloudResourcesPanel from "../../components/CloudResourcesPanel";
+import ReconnectOverlay from "../../components/ReconnectOverlay";
+import { TeamClientKey, getTeamClientInstance } from "../../composables/teamClientContext";
+import { useGlobalShortcuts } from "../../composables/useGlobalShortcuts";
+import type { TaskMessage } from "../../types";
 
 const router = useRouter();
 const ctx = getTeamClientInstance();
@@ -117,9 +117,5 @@ function handleLogout() {
 </template>
 
 <style scoped>
-.chat-view {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
+@import './styles.css';
 </style>
