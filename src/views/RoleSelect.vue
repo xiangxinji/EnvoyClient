@@ -127,7 +127,8 @@ async function handleLogin() {
       }
     }
 
-    const teamsRes = await fetch(`${base}/api/teams`);
+    const user = username.value.trim();
+    const teamsRes = await fetch(`${base}/api/teams?username=${encodeURIComponent(user)}`);
     const teamsData = await teamsRes.json();
     teams.value = teamsData.map((t: { name: string; port: number }) => ({ name: t.name, port: t.port }));
 
