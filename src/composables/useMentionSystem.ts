@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import type { MemberInfo } from "../types";
-import type RichEditor from "../components/RichEditor.vue";
-import type MentionPopup from "../components/MentionPopup.vue";
+import type RichEditor from "../components/RichEditor";
+import type MentionPopup from "../components/MentionPopup";
 
 export function useMentionSystem(
   isChannel: () => boolean,

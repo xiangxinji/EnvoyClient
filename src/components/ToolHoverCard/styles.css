@@ -1,0 +1,59 @@
+.hover-card {
+  position: fixed;
+  z-index: 1000;
+  min-width: 180px;
+  max-width: 240px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--glass-shadow-heavy);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  pointer-events: auto;
+}
+
+.hover-card-enter-active,
+.hover-card-leave-active {
+  transition: opacity 0.12s, transform 0.12s;
+}
+
+.hover-card-enter-from,
+.hover-card-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.hover-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.hover-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hover-card-name {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--text-primary);
+}
+
+.hover-card-desc {
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  word-break: break-word;
+}

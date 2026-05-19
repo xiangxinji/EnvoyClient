@@ -1,0 +1,53 @@
+.glass-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.glass-checkbox input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.box {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--input-border);
+  border-radius: 5px;
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.box.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.box .check {
+  color: var(--text-on-accent);
+}
+
+.glass-checkbox input:focus-visible + .box {
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.label-text {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.glass-checkbox.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

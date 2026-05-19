@@ -7,7 +7,7 @@ import { useTeamClient } from "../composables/useTeamClient";
 import { setTeamClientInstance } from "../composables/teamClientContext";
 import { setManagerUrl, setClientToken } from "../api";
 import { rsaEncrypt } from "../utils/rsa";
-import GlassSelect from "../components/GlassSelect.vue";
+import GlassSelect from "../components/GlassSelect";
 import logo from "../assets/logo.png";
 const { t } = useI18n();
 const { locale, switchLocale, loadFromSettings } = useLocale();

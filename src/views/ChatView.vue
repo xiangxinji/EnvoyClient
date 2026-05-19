@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, provide } from "vue";
 import { useRouter } from "vue-router";
-import MemberSidebar from "../components/MemberSidebar.vue";
-import ChatPanel from "../components/ChatPanel.vue";
+import MemberSidebar from "../components/MemberSidebar";
+import ChatPanel from "../components/ChatPanel";
 import TaskCenterView from "./TaskCenterView.vue";
 import TaskDispatchPanel from "./TaskDispatchPanel.vue";
-import SettingsPanel from "../components/SettingsPanel.vue";
-import QuickSettingsPanel from "../components/QuickSettingsPanel.vue";
-import TaskDetailPanel from "../components/TaskDetailPanel.vue";
-import CloudResourcesPanel from "../components/CloudResourcesPanel.vue";
-import ReconnectOverlay from "../components/ReconnectOverlay.vue";
+import SettingsPanel from "../components/SettingsPanel";
+import QuickSettingsPanel from "../components/QuickSettingsPanel";
+import TaskDetailPanel from "../components/TaskDetailPanel";
+import CloudResourcesPanel from "../components/CloudResourcesPanel";
+import ReconnectOverlay from "../components/ReconnectOverlay";
 import { TeamClientKey, getTeamClientInstance } from "../composables/teamClientContext";
 import { useGlobalShortcuts } from "../composables/useGlobalShortcuts";
 import type { TaskMessage } from "../types";

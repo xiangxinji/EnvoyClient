@@ -1,0 +1,100 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import { useTheme } from "../../composables/useTheme";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
+
+const emit = defineEmits<{
+  (e: "close-requested"): void;
+}>();
+
+defineProps<{ username?: string }>();
+
+const isTauri = "__TAURI_INTERNALS__" in window;
+
+const appWindow = ref<any>(null);
+
+if (isTauri) {
+  import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
+    appWindow.value = getCurrentWindow();
+  });
+}
+
+const { theme, toggle } = useTheme();
+
+const isPinned = ref(false);
+
+function minimize() {
+  appWindow.value?.minimize();
+}
+
+function toggleMaximize() {
+  appWindow.value?.toggleMaximize();
+}
+
+async function togglePin() {
+  if (!appWindow.value) return;
+  const pinned = await appWindow.value.isAlwaysOnTop();
+  await appWindow.value.setAlwaysOnTop(!pinned);
+  isPinned.value = !pinned;
+}
+
+function close() {
+  emit("close-requested");
+}
+</script>
+
+<template>
+  <div class="titlebar" data-tauri-drag-region>
+    <div class="traffic-lights">
+      <button class="light close" @click="close" :title="t('titlebar.close')">
+        <svg width="8" height="8" viewBox="0 0 8 8">
+          <line x1="1" y1="1" x2="7" y2="7" stroke="#4d0000" stroke-width="1.2" />
+          <line x1="7" y1="1" x2="1" y2="7" stroke="#4d0000" stroke-width="1.2" />
+        </svg>
+      </button>
+      <button class="light minimize" @click="minimize" :title="t('titlebar.minimize')">
+        <svg width="8" height="8" viewBox="0 0 8 8">
+          <line x1="1" y1="4" x2="7" y2="4" stroke="#995700" stroke-width="1.2" />
+        </svg>
+      </button>
+      <button class="light maximize" @click="toggleMaximize" :title="t('titlebar.maximize')">
+        <svg width="8" height="8" viewBox="0 0 8 8">
+          <path d="M1 3 L4 6 L7 3" fill="none" stroke="#006500" stroke-width="1.2" />
+        </svg>
+      </button>
+    </div>
+    <div class="title" data-tauri-drag-region>
+      <span>{{ username ? `Envoy · ${username}` : 'Envoy' }}</span>
+    </div>
+    <div class="titlebar-actions">
+      <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? t('titlebar.lightMode') : t('titlebar.darkMode')">
+        <svg v-if="theme === 'dark'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+        <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+      <button class="pin-toggle" :class="{ active: isPinned }" @click="togglePin" :title="isPinned ? t('titlebar.unpin') : t('titlebar.pin')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 17v5" />
+          <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76z" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+@import './styles.css';
+</style>

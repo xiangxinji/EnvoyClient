@@ -1,0 +1,589 @@
+<script setup lang="ts">
+import { computed, ref, onMounted, onUnmounted } from "vue";
+import { useI18n } from "vue-i18n";
+import type { TaskMessage, TaskResource } from "../../types";
+import type { Task } from "../../../envoy/packages/core/task.js";
+import { apiUrl, managerFetch, managerPost } from "../../api";
+import { downloadFileWithDialog } from "../../utils/notification";
+import { renderMarkdown } from "../../utils/markdown";
+import { getResultText, formatFileSize, formatTimestamp, formatTime, getTaskFileUrl, getTraceSteps, formatToolArgs, formatToolResult } from "../../utils/taskFormatters";
+import { useTaskResources } from "../../composables/useTaskResources";
+import { useTaskPermissions } from "../../composables/useTaskPermissions";
+import { inject } from "vue";
+import { TeamClientKey } from "../../composables/teamClientContext";
+import ConfirmDialog from "../ConfirmDialog";
+import Toast from "../Toast";
+import BackButton from "../BackButton";
+
+const { t } = useI18n();
+
+const ctx = inject(TeamClientKey)!;
+
+const props = defineProps<{
+  task: TaskMessage;
+  teamName?: string;
+  myId?: string;
+}>();
+
+const emit = defineEmits<{
+  close: [];
+}>();
+
+// Maintain a fresh copy of the task by fetching from API + listening to WebSocket
+const liveTask = ref<TaskMessage>({ ...props.task });
+
+async function fetchTask() {
+  try {
+    const res = await managerFetch(`/api/teams/${encodeURIComponent(ctx.teamName)}/tasks/${liveTask.value.taskId}`);
+    if (!res.ok) return;
+    const t = await res.json() as Record<string, unknown>;
+    liveTask.value = {
+      type: "task",
+      id: `task-${t.id}`,
+      seq: 0,
+      taskId: t.id as string,
+      from: t.createBy as string,
+      content: t.content as string,
+      status: t.status as TaskMessage["status"],
+      resources: t.resources as TaskResource[],
+      subscribe: t.subscribe as string[],
+      timestamp: t.createdAt as number,
+    };
+  } catch { /* ignore */ }
+}
+
+function onTaskUpdate(task: Task) {
+  if (task.id === liveTask.value.taskId) {
+    liveTask.value = {
+      type: "task",
+      id: `task-${task.id}`,
+      seq: 0,
+      taskId: task.id,
+      from: task.createBy,
+      content: task.content,
+      status: task.status,
+      resources: task.resources as TaskResource[],
+      subscribe: task.subscribe,
+      timestamp: task.createdAt,
+    };
+  }
+}
+
+onMounted(async () => {
+  await fetchTask();
+  ctx.client?.on("task", onTaskUpdate);
+});
+
+onUnmounted(() => {
+  ctx.client?.off("task", onTaskUpdate);
+});
+
+const statusLabels: Record<TaskMessage["status"], string> = {
+  pending: t('task.status.pending'),
+  running: t('task.status.running'),
+  reviewing: t('task.status.reviewing'),
+  completed: t('task.status.completed'),
+  failed: t('task.status.failed'),
+};
+
+const modeLabels: Record<string, string> = {
+  serial: t('task.mode.serial'),
+  parallel: t('task.mode.parallel'),
+};
+
+// ─── Group resources by type ───
+
+const resources = computed(() => liveTask.value.resources ?? []);
+const { clientResults, fileResources, traceResources, leaderReviews, isAIExecuted } = useTaskResources(resources);
+
+// ─── Timeline ───
+
+interface TimelineEvent {
+  time: number | undefined;
+  label: string;
+  by: string;
+  icon: "create" | "result" | "review" | "file";
+  success?: boolean;
+}
+
+const timelineEvents = computed<TimelineEvent[]>(() => {
+  const events: TimelineEvent[] = [];
+
+  events.push({
+    time: liveTask.value.timestamp,
+    label: t('task.createTask'),
+    by: liveTask.value.from,
+    icon: "create",
+  });
+
+  for (const r of clientResults.value) {
+    events.push({
+      time: r.timestamp,
+      label: t('task.executionDone'),
+      by: r.by,
+      icon: "result",
+    });
+  }
+
+  for (const r of leaderReviews.value) {
+    const success = (r.data as Record<string, unknown>)?.success as boolean;
+    events.push({
+      time: r.timestamp,
+      label: success ? t('task.reviewApprovedLabel') : t('task.reviewRejectedLabel'),
+      by: r.by,
+      icon: "review",
+      success,
+    });
+  }
+
+  for (const r of fileResources.value) {
+    events.push({
+      time: r.timestamp,
+      label: t('task.uploadFile'),
+      by: r.by,
+      icon: "file",
+    });
+  }
+
+  events.sort((a, b) => {
+    if (a.time !== undefined && b.time !== undefined) return a.time - b.time;
+    if (a.time !== undefined) return -1;
+    if (b.time !== undefined) return 1;
+    return 0;
+  });
+
+  return events;
+});
+
+// ─── Duration ───
+
+const duration = computed<string | null>(() => {
+  if (!liveTask.value.timestamp) return null;
+  const lastTs = timelineEvents.value.filter((e) => e.time !== undefined).pop()?.time;
+  if (!lastTs) return null;
+  const diff = lastTs - liveTask.value.timestamp;
+  if (diff <= 0) return null;
+  const minutes = Math.floor(diff / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+});
+
+// ─── Member entries ───
+
+interface MemberEntry {
+  id: string;
+  hasResult: boolean;
+}
+
+const memberEntries = computed<MemberEntry[]>(() => {
+  const resultMemberIds = new Set(clientResults.value.map((r) => r.by));
+
+  if (clientResults.value.length > 0) {
+    const entries: MemberEntry[] = clientResults.value.map((r) => ({
+      id: r.by,
+      hasResult: true,
+    }));
+    for (const id of liveTask.value.subscribe ?? []) {
+      if (!resultMemberIds.has(id)) {
+        entries.push({ id, hasResult: false });
+      }
+    }
+    return entries;
+  }
+
+  if (liveTask.value.subscribe?.length) {
+    return liveTask.value.subscribe.map((id) => ({ id, hasResult: false }));
+  }
+
+  return [];
+});
+
+// ─── Permissions ───
+
+const subscribe = computed(() => liveTask.value.subscribe);
+const from = computed(() => liveTask.value.from);
+const status = computed(() => liveTask.value.status);
+const { isAssignedToMe, canStart, canComplete, canUpload, canReview } = useTaskPermissions(subscribe, from, props.myId, status);
+
+// ─── ConfirmDialog state ───
+
+const confirmVisible = ref(false);
+const confirmTitle = ref(t('task.confirmDefault'));
+const confirmMessage = ref("");
+const confirmDanger = ref(false);
+const pendingAction = ref<(() => void) | null>(null);
+
+function showConfirm(title: string, message: string, action: () => void, danger = false) {
+  confirmTitle.value = title;
+  confirmMessage.value = message;
+  confirmDanger.value = danger;
+  pendingAction.value = action;
+  confirmVisible.value = true;
+}
+
+function onConfirm() {
+  confirmVisible.value = false;
+  pendingAction.value?.();
+  pendingAction.value = null;
+}
+
+function onCancel() {
+  confirmVisible.value = false;
+  pendingAction.value = null;
+}
+
+// ─── Toast state ───
+
+const toastVisible = ref(false);
+const toastMessage = ref("");
+const toastType = ref<"success" | "error" | "info">("info");
+
+function showToast(message: string, type: "success" | "error" | "info" = "info") {
+  toastMessage.value = message;
+  toastType.value = type;
+  toastVisible.value = true;
+}
+
+function onToastDone() {
+  toastVisible.value = false;
+}
+
+// ─── Task operations ───
+
+const starting = ref(false);
+const completing = ref(false);
+const uploading = ref(false);
+const reviewing = ref(false);
+
+async function handleStart() {
+  if (starting.value) return;
+  starting.value = true;
+  try {
+    const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/start`, { from: props.myId }, { team: props.teamName ?? "" });
+    if (res.ok) { /* WebSocket will update */ }
+    else showToast(t('common.operationFailed'), "error");
+  } catch {
+    showToast(t('common.operationFailed'), "error");
+  }
+  starting.value = false;
+}
+
+function requestComplete() {
+  showConfirm(t('task.confirmComplete'), t('task.confirmCompleteMsg'), doComplete);
+}
+
+async function doComplete() {
+  if (completing.value) return;
+  completing.value = true;
+  try {
+    const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/complete`, { from: props.myId, data: { note: t('task.manualComplete'), source: "manual" } }, { team: props.teamName ?? "" });
+    if (res.ok) { /* WebSocket will update */ }
+    else showToast(t('common.operationFailed'), "error");
+  } catch {
+    showToast(t('common.operationFailed'), "error");
+  }
+  completing.value = false;
+}
+
+function requestApprove() {
+  showConfirm(t('task.confirmApprove'), t('task.confirmApproveMsg'), doApprove);
+}
+
+async function doApprove() {
+  if (reviewing.value) return;
+  reviewing.value = true;
+  try {
+    const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/result`, {
+      from: props.myId,
+      success: true,
+      data: { review: t('task.approved'), source: "manual" },
+    }, { team: props.teamName ?? "" });
+    if (res.ok) {
+      showToast(t('task.reviewApproved'), "success");
+    } else {
+      showToast(t('common.operationFailed'), "error");
+    }
+  } catch {
+    showToast(t('common.operationFailed'), "error");
+  }
+  reviewing.value = false;
+}
+
+function requestReject() {
+  showConfirm(t('task.confirmReject'), t('task.confirmRejectMsg'), doReject, true);
+}
+
+async function doReject() {
+  if (reviewing.value) return;
+  reviewing.value = true;
+  try {
+    const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/result`, {
+      from: props.myId,
+      success: false,
+      error: t('task.reviewFailed'),
+    }, { team: props.teamName ?? "" });
+    if (res.ok) {
+      showToast(t('task.taskRejected'), "info");
+    } else {
+      showToast(t('common.operationFailed'), "error");
+    }
+  } catch {
+    showToast(t('common.operationFailed'), "error");
+  }
+  reviewing.value = false;
+}
+
+async function handleUpload() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    uploading.value = true;
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("from", props.myId ?? "");
+      const res = await fetch(apiUrl(`/api/tasks/${liveTask.value.taskId}/resources`), {
+        method: "POST",
+        headers: { team: props.teamName ?? "" },
+        body: formData,
+      });
+      if (!res.ok) throw new Error(t('common.uploadFailed'));
+      /* WebSocket will update */
+    } catch {
+      showToast(t('common.fileUploadFailed'), "error");
+    }
+    uploading.value = false;
+  };
+  input.click();
+}
+
+// ─── Helpers ───
+
+function getFileDownloadUrl(filename: string): string {
+  return getTaskFileUrl(liveTask.value.taskId, filename);
+}
+
+const downloading = ref("");
+
+async function downloadFile(filename: string) {
+  if (downloading.value) return;
+  downloading.value = filename;
+  try {
+    const url = getFileDownloadUrl(filename);
+    await downloadFileWithDialog(url, filename, { team: props.teamName ?? "" });
+    showToast(t('common.fileSaved'), "success");
+  } catch {
+    showToast(t('common.fileDownloadFailed'), "error");
+  } finally {
+    downloading.value = "";
+  }
+}
+
+// ─── Trace expand state ───
+const traceExpanded = ref(false);
+
+function toggleTrace(_by: string) {
+  traceExpanded.value = !traceExpanded.value;
+}
+
+function isTraceExpanded(_by: string): boolean {
+  return traceExpanded.value;
+}
+</script>
+
+<template>
+  <div class="detail-panel">
+    <!-- Header -->
+    <div class="detail-header">
+      <span class="detail-title">{{ $t('task.detail') }}</span>
+      <BackButton @click="emit('close')" />
+    </div>
+
+    <div class="detail-body">
+      <!-- Status + Meta -->
+      <div class="detail-meta-row">
+        <span class="status-badge" :class="liveTask.status">{{ statusLabels[liveTask.status] }}</span>
+        <span class="mode-badge">{{ modeLabels['serial'] ?? $t('task.mode.serial') }}</span>
+      </div>
+
+      <div class="detail-content">{{ liveTask.content }}</div>
+
+      <div class="detail-info-grid">
+        <div class="info-item">
+          <span class="info-label">{{ $t('task.creator') }}</span>
+          <span class="info-value">{{ liveTask.from }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">{{ $t('task.createdAt') }}</span>
+          <span class="info-value">{{ formatTimestamp(liveTask.timestamp) }}</span>
+        </div>
+        <div v-if="duration" class="info-item">
+          <span class="info-label">{{ $t('task.duration') }}</span>
+          <span class="info-value">{{ duration }}</span>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="detail-section">
+        <div class="section-title">{{ $t('task.timeline') }}</div>
+        <div class="timeline">
+          <div v-for="(evt, i) in timelineEvents" :key="i" class="timeline-item">
+            <div class="timeline-dot" :class="evt.icon">
+              <svg v-if="evt.icon === 'create'" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
+              <svg v-else-if="evt.icon === 'result'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg v-else-if="evt.icon === 'review'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 11l3 3L22 4"/></svg>
+              <svg v-else width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+            </div>
+            <div class="timeline-content">
+              <span class="timeline-label">{{ evt.label }}</span>
+              <span class="timeline-by">{{ evt.by }}</span>
+              <span v-if="evt.time !== undefined" class="timeline-time">{{ formatTime(evt.time) }}</span>
+              <span v-if="evt.success === false" class="timeline-reject">{{ $t('task.rejected') }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Member results grouped -->
+      <div v-if="memberEntries.length > 0" class="detail-section">
+        <div class="section-title">{{ $t('task.memberExecution') }}</div>
+        <div class="member-results">
+          <div v-for="entry in memberEntries" :key="entry.id" class="member-block">
+            <div class="member-block-header">
+              <span class="member-id">{{ entry.id }}</span>
+              <span v-if="entry.hasResult" class="member-status completed">{{ $t('task.status.completed') }}</span>
+              <span v-else class="member-status pending">{{ $t('task.pendingExecute') }}</span>
+            </div>
+
+            <!-- Client result -->
+            <template v-if="entry.hasResult">
+              <div v-for="res in clientResults.filter(r => r.by === entry.id)" :key="res.by" class="result-block">
+                <span v-if="isAIExecuted(res)" class="source-badge ai">AI</span>
+                <span v-else class="source-badge manual">{{ $t('task.manual') }}</span>
+                <div class="markdown-content" v-html="renderMarkdown(getResultText(res.data))" />
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Execution traces (standalone section, like TaskCard) -->
+      <div v-if="traceResources.length > 0" class="detail-section">
+        <div class="section-title clickable" @click="toggleTrace('__all__')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          {{ $t('task.executionTrace') }}
+          <span class="trace-count">{{ $t('task.steps', { count: traceResources.map(r => getTraceSteps(r).length).reduce((a, b) => a + b, 0) }) }}</span>
+          <span class="trace-expand">{{ isTraceExpanded('__all__') ? $t('task.collapse') : $t('task.expand') }}</span>
+        </div>
+        <template v-if="isTraceExpanded('__all__')">
+          <div v-for="trace in traceResources" :key="trace.by" class="trace-member-block">
+            <div class="trace-member-label">{{ trace.by }}</div>
+            <div class="trace-steps">
+              <div v-for="step in getTraceSteps(trace)" :key="step.index" class="trace-step">
+                <div class="trace-step-header">
+                  <span class="step-index">Step {{ step.index }}</span>
+                  <span v-for="(tc, ti) in step.toolCalls" :key="ti" class="tool-tag">{{ tc.name }}</span>
+                </div>
+                <div v-if="step.reasoning" class="step-reasoning">{{ step.reasoning }}</div>
+                <div v-if="step.toolCalls.length > 0" class="step-details">
+                  <div v-for="(tc, ti) in step.toolCalls" :key="ti" class="tool-call-block">
+                    <div class="tool-call-header">
+                      <span class="tool-name">{{ tc.name }}</span>
+                      <code class="tool-args">{{ formatToolArgs(tc.args) }}</code>
+                    </div>
+                    <div v-if="step.toolResults[ti]" class="tool-result">
+                      <pre class="tool-result-content">{{ formatToolResult(step.toolResults[ti].result) }}</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Leader reviews -->
+      <div v-if="leaderReviews.length > 0" class="detail-section">
+        <div class="section-title">{{ $t('task.reviewLog') }}</div>
+        <div v-for="(review, i) in leaderReviews" :key="`review-${i}`" class="review-item" :class="(review.data as Record<string, unknown>)?.success ? 'approved' : 'rejected'">
+          <span class="resource-by">{{ review.by }}</span>
+          <span class="review-status" :class="(review.data as Record<string, unknown>)?.success ? 'approved' : 'rejected'">
+            {{ (review.data as Record<string, unknown>)?.success ? $t('task.approved') : $t('task.rejected') }}
+          </span>
+          <div v-if="(review.data as Record<string, unknown>)?.data" class="review-data">
+            <div class="markdown-content" v-html="renderMarkdown(getResultText((review.data as Record<string, unknown>).data))" />
+          </div>
+          <div v-if="(review.data as Record<string, unknown>)?.error" class="review-error">{{ (review.data as Record<string, unknown>)?.error }}</div>
+        </div>
+      </div>
+
+      <!-- File resources -->
+      <div v-if="fileResources.length > 0" class="detail-section">
+        <div class="section-title">{{ $t('task.resourceFiles') }}</div>
+        <div v-for="(res, i) in fileResources" :key="`file-${i}`" class="file-item">
+          <span class="resource-by">{{ res.by }}</span>
+          <a class="file-link" :class="{ disabled: downloading === (res.data as Record<string, unknown>).filename }" href="javascript:void(0)" @click="downloadFile((res.data as Record<string, unknown>).filename as string)">
+            <template v-if="downloading === (res.data as Record<string, unknown>).filename">
+              <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              {{ $t('task.downloading') }}
+            </template>
+            <template v-else>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              {{ (res.data as Record<string, unknown>).filename }}
+            </template>
+          </a>
+          <span class="file-meta">{{ formatFileSize((res.data as Record<string, unknown>).size as number) }} · {{ formatTimestamp((res.data as Record<string, unknown>).uploadedAt as number) }}</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="detail-actions">
+        <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+          {{ starting ? $t('task.starting') : $t('task.startExecution') }}
+        </button>
+        <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="handleUpload">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          {{ uploading ? $t('task.uploading') : $t('task.uploadFile') }}
+        </button>
+        <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="requestComplete">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          {{ completing ? $t('task.submitting') : $t('task.markComplete') }}
+        </button>
+      </div>
+
+      <div v-if="canReview" class="detail-actions">
+        <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          {{ reviewing ? $t('task.processing') : $t('task.approve') }}
+        </button>
+        <button class="action-btn action-reject" :disabled="reviewing" @click="requestReject">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          {{ $t('task.reject') }}
+        </button>
+      </div>
+    </div>
+
+    <ConfirmDialog
+      :visible="confirmVisible"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :danger="confirmDanger"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
+    <Toast
+      :visible="toastVisible"
+      :message="toastMessage"
+      :type="toastType"
+      @done="onToastDone"
+    />
+  </div>
+</template>
+
+<style scoped>
+@import './styles.css';
+</style>

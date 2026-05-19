@@ -1,0 +1,56 @@
+.glass-input {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s;
+  gap: 6px;
+}
+
+.glass-input.focused {
+  border-color: var(--accent);
+}
+
+.glass-input-prefix {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.glass-input-field {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.85em;
+  height: 100%;
+  min-width: 0;
+}
+
+.glass-input-field::placeholder {
+  color: var(--text-muted);
+}
+
+.glass-input-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.75em;
+  flex-shrink: 0;
+  transition: color 0.1s;
+}
+
+.glass-input-clear:hover {
+  color: var(--text-secondary);
+}

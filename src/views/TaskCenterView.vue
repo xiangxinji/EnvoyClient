@@ -3,7 +3,7 @@ import { inject, computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { TeamClientKey } from "../composables/teamClientContext";
 import { managerFetch } from "../api";
-import TaskCard from "../components/TaskCard.vue";
+import TaskCard from "../components/TaskCard";
 import type { TaskMessage, TaskResource } from "../types";
 import type { Task } from "../../envoy/packages/core/task.js";
 

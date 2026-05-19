@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
-import TitleBar from "./components/TitleBar.vue";
-import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
+import TitleBar from "./components/TitleBar";
+import CloseConfirmDialog from "./components/CloseConfirmDialog";
 import { useTheme } from "./composables/useTheme";
 import { useTeamClientInstance } from "./composables/teamClientContext";
 import { cancelTaskbarAttention } from "./utils/notification";
