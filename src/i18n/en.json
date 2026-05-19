@@ -215,6 +215,9 @@
     "logoutDesc": "Will disconnect from the team and return to the login page",
     "saving": "Saving...",
     "changeAvatar": "Change Avatar",
+    "groupTask": "Task & Agent",
+    "groupAI": "AI Assistant",
+    "groupGeneral": "General",
     "nickname": "Nickname",
     "nicknamePlaceholder": "Enter nickname"
   },

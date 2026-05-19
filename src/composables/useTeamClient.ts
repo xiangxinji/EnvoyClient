@@ -55,6 +55,8 @@ export function useTeamClient(
     if (isFirstConnect) {
       isFirstConnect = false;
       msg.loadHistory();
+      // Load profiles for all configured members (including offline ones)
+      userProfile.loadProfiles(conn.configuredMembers.value.map((m) => m.id));
       return;
     }
 
@@ -62,7 +64,9 @@ export function useTeamClient(
     const joinRole = role === "leader" ? "leader" : "member";
     conn.client.send("team:join", { role: joinRole });
     msg.loadHistory();
-    conn.loadConfiguredMembers();
+    conn.loadConfiguredMembers().then(() => {
+      userProfile.loadProfiles(conn.configuredMembers.value.map((m) => m.id));
+    });
   });
 
   conn.client.on("message", (msgObj: Message) => {

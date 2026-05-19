@@ -153,6 +153,7 @@ async function handleLogout() {
     </div>
 
     <div class="settings-body">
+      <!-- Profile section (no group header, visual card already separates it) -->
       <div class="profile-section">
         <div class="profile-avatar-wrapper" @click="triggerAvatarUpload" :title="$t('settings.changeAvatar')">
           <img v-if="avatarUrl" :src="avatarUrl" class="profile-avatar-img" alt="" />
@@ -186,57 +187,75 @@ async function handleLogout() {
         </div>
       </div>
 
-      <div class="setting-group">
-        <label class="setting-label">{{ $t('settings.taskMode') }}</label>
-        <GlassSelect v-model="executionMode">
-          <option value="manual">{{ $t('settings.manual') }}</option>
-          <option value="auto">{{ $t('settings.auto') }}</option>
-        </GlassSelect>
-        <p class="setting-hint">
-          {{ executionMode === 'auto' ? $t('settings.autoHint') : $t('settings.manualHint') }}
-        </p>
-      </div>
+      <!-- Task & Agent -->
+      <section class="settings-section">
+        <h4 class="section-title">{{ $t('settings.groupTask') }}</h4>
+        <div class="section-body">
+          <div class="setting-group">
+            <label class="setting-label">{{ $t('settings.taskMode') }}</label>
+            <GlassSelect v-model="executionMode">
+              <option value="manual">{{ $t('settings.manual') }}</option>
+              <option value="auto">{{ $t('settings.auto') }}</option>
+            </GlassSelect>
+            <p class="setting-hint">
+              {{ executionMode === 'auto' ? $t('settings.autoHint') : $t('settings.manualHint') }}
+            </p>
+          </div>
 
-      <div class="setting-group">
-        <label class="setting-label">{{ $t('settings.aiAutoReply') }}</label>
-        <GlassCheckbox v-model="aiAutoReply">{{ $t('settings.aiAutoReplyDesc') }}</GlassCheckbox>
-        <p class="setting-hint">{{ $t('settings.aiAutoReplyHint') }}</p>
-      </div>
+          <div class="setting-group">
+            <label class="setting-label">{{ $t('settings.workingDirectory') }}</label>
+            <input
+              v-model="workingDirectory"
+              type="text"
+              class="setting-input"
+              :placeholder="$t('settings.workingDirectoryPlaceholder')"
+              @blur="saveWorkingDirectory"
+              @keydown.enter="saveWorkingDirectory"
+            />
+            <p class="setting-hint">{{ $t('settings.workingDirectoryHint') }}</p>
+          </div>
+        </div>
+      </section>
 
-      <div class="setting-group">
-        <label class="setting-label">{{ $t('settings.workingDirectory') }}</label>
-        <input
-          v-model="workingDirectory"
-          type="text"
-          class="setting-input"
-          :placeholder="$t('settings.workingDirectoryPlaceholder')"
-          @blur="saveWorkingDirectory"
-          @keydown.enter="saveWorkingDirectory"
-        />
-        <p class="setting-hint">{{ $t('settings.workingDirectoryHint') }}</p>
-      </div>
+      <!-- AI Assistant -->
+      <section class="settings-section">
+        <h4 class="section-title">{{ $t('settings.groupAI') }}</h4>
+        <div class="section-body">
+          <div class="setting-group">
+            <label class="setting-label">{{ $t('settings.aiAutoReply') }}</label>
+            <GlassCheckbox v-model="aiAutoReply">{{ $t('settings.aiAutoReplyDesc') }}</GlassCheckbox>
+            <p class="setting-hint">{{ $t('settings.aiAutoReplyHint') }}</p>
+          </div>
 
-      <div class="setting-group">
-        <label class="setting-label">{{ $t('settings.aiHistoryCount') }}</label>
-        <input
-          v-model.number="aiHistoryCount"
-          type="number"
-          class="setting-input"
-          min="1"
-          max="50"
-          @blur="saveAiHistoryCount"
-          @keydown.enter="saveAiHistoryCount"
-        />
-        <p class="setting-hint">{{ $t('settings.aiHistoryCountHint') }}</p>
-      </div>
+          <div class="setting-group">
+            <label class="setting-label">{{ $t('settings.aiHistoryCount') }}</label>
+            <input
+              v-model.number="aiHistoryCount"
+              type="number"
+              class="setting-input"
+              min="1"
+              max="50"
+              @blur="saveAiHistoryCount"
+              @keydown.enter="saveAiHistoryCount"
+            />
+            <p class="setting-hint">{{ $t('settings.aiHistoryCountHint') }}</p>
+          </div>
+        </div>
+      </section>
 
-      <div class="setting-group">
-        <label class="setting-label">{{ $t('settings.language') }}</label>
-        <GlassSelect v-model="currentLocale">
-          <option value="zh-CN">简体中文</option>
-          <option value="en">English</option>
-        </GlassSelect>
-      </div>
+      <!-- General -->
+      <section class="settings-section">
+        <h4 class="section-title">{{ $t('settings.groupGeneral') }}</h4>
+        <div class="section-body">
+          <div class="setting-group">
+            <label class="setting-label">{{ $t('settings.language') }}</label>
+            <GlassSelect v-model="currentLocale">
+              <option value="zh-CN">简体中文</option>
+              <option value="en">English</option>
+            </GlassSelect>
+          </div>
+        </div>
+      </section>
     </div>
 
     <div class="settings-footer">
@@ -318,7 +337,34 @@ async function handleLogout() {
   padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--space-xl);
+  gap: var(--space-lg);
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.section-title {
+  margin: 0;
+  font-size: 0.78em;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-md);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
 }
 
 .setting-group {

@@ -215,6 +215,9 @@
     "logoutDesc": "将断开与团队的连接并返回登录页",
     "saving": "保存中...",
     "changeAvatar": "更换头像",
+    "groupTask": "任务与 Agent",
+    "groupAI": "AI 助手",
+    "groupGeneral": "通用",
     "nickname": "昵称",
     "nicknamePlaceholder": "输入昵称"
   },

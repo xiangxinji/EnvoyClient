@@ -104,11 +104,44 @@ npm run manager:web            # 仅启动前端
 6. 消息通过 `invoke("save_message")` 持久化到本地文件
 7. 若开启 AI 自动回复 → 5s 防抖后自动生成并发送 AI 回复（`source: "ai-auto"`）
 
+### 综合频道（群聊）流程
+
+1. **虚拟 Peer**: 使用 `"__team__"` 作为虚拟 peer ID，侧边栏固定入口，当前频道名为 `"general"`
+2. **发送**: `sendChat("__team__", text, { channel: "general", mentions })` — 不指定 `to`，由服务端设置 `to_user = "__team__"`
+3. **服务端广播**: Manager 检测到 `body.channel` → 调用 `team.broadcastChat()` 遍历所有在线角色，逐个 `relay()` 跳过发送者
+4. **接收路由**: 客户端 `handleIncomingMessage` 检测 `payload.channel` → 路由到 `"__team__"` 会话桶
+5. **离线同步**: SQLite `queryMessages()` 使用 `channel = 'general'` 条件，所有用户同步时都能拉到频道消息
+6. **@提及**: 频道模式输入 `@` 触发 MentionPopup（含 `@all` 选项），选中后记入 `currentMentions`；发送后服务端向被提及者发送 `channel-mention` 通知 → 桌面通知
+7. **UI 差异**: 频道模式每条消息显示发送者头像和昵称，气泡更宽，支持 `@mention` 高亮渲染
+8. **撤回**: 频道消息撤回通过 `team.broadcastChat()` 广播 `chat-revoke` 子类型
+9. **自动回复跳过**: 频道消息不触发 AI 自动回复（`if (payload.channel) return`）
+
+### 消息引用（Quote/Reply）流程
+
+1. 用户右键消息 → 上下文菜单选择"引用" → 设置 `quotingMsg` ref → 编辑器上方显示引用预览条
+2. 生成快照文本 `generateSnapshotText(msg)`：截取原文前 100 字符，图片/文件/转发消息使用占位文案
+3. 发送时构建 `QuoteInfo { id, from, text, timestamp }` → 通过 `sendChat` 的 `quote` 字段传递
+4. 服务端存入 SQLite `extra.quote` JSON 字段 + WebSocket payload 转发
+5. 接收端渲染为 `.quote-card`：显示引用者昵称 + 快照文本
+6. **点击跳转**: 点击引用卡片 → `scrollToQuote(id)` → 定位到原始消息 + 高亮动画（1.5s 脉冲）
+7. **撤回检测**: `isQuoteRevoked` 检查被引消息是否已撤回，已撤回则显示占位文案 + 淡化样式
+
+### 消息转发流程
+
+1. 用户通过头部下拉菜单"多选"或右键菜单"转发"进入多选模式（`selectMode`）
+2. 点击消息气泡的圆形复选框切换选中状态（`selectedIds: Set<string>`）
+3. 底部操作栏显示选中数量 + "转发"按钮 → 打开 ForwardDialog 选择目标成员
+4. 确认后构建 `ForwardedRecord[]`（包含每条消息的 from/text/timestamp/attachments）
+5. 以摘要文本 `"聊天记录 (N)"` 作为消息正文，`forwarded` 字段携带记录数组 → `sendChat(targetId, summary, { forwarded: records })`
+6. 服务端存入 SQLite `extra.forwarded` + WebSocket 转发
+7. 接收端渲染：隐藏正文，显示可点击的转发摘要条 → 点击展开详情弹窗（逐条显示原始发送者、时间、文本、附件）
+8. 转发完成后退出多选模式 + 成功 Toast
+
 ### 消息撤回流程
 
 1. 用户点击自己发送的消息的撤回按钮
 2. `revokeMessage(id)` → DELETE `/api/messages/{id}?from={userId}`
-3. Manager 验证发送者身份 → 从 SQLite 删除 → 通过 relay 发送 `chat-rvoke` 子类型
+3. Manager 验证发送者身份 → 从 SQLite 删除 → 1:1 消息通过 `relay()`、频道消息通过 `broadcastChat()` 发送 `chat-revoke` 子类型
 4. 本地和接收端将 timeline 中的消息替换为 `RevokedNotice`（显示"消息已撤回"）
 
 ### AI 自动回复流程
@@ -198,7 +231,7 @@ npm run manager:web            # 仅启动前端
 - **任务详情面板 (TaskDetailPanel)**: 任务 timeline、成员执行结果、Agent trace、Leader 审批、资源文件下载
 - **任务分派面板 (TaskDispatchPanel)**: 输入任务描述 → AI 匹配成员 → 预览 → 确认分派
 - **聊天面板 (ChatPanel)**: 1:1 对话，支持 Markdown 渲染（marked + DOMPurify），AI 建议回复，消息撤回，文件下载
-- **设置面板 (SettingsPanel)**: 任务执行模式(auto/manual)、AI 自动回复、工作目录、AI 建议历史条数、登出
+- **设置面板 (SettingsPanel)**: 分组配置（个人资料 / 任务与 Agent / AI 助手 / 通用），包含任务执行模式、工作目录、AI 自动回复、AI 建议历史条数、语言切换、登出
 
 ## Core Mechanisms
 
@@ -266,11 +299,11 @@ npm run manager:web            # 仅启动前端
 |------|------|
 | `src/App.vue` | 根组件：TitleBar + router-view（page transition 动画），全局 CSS 变量（light/dark 主题） |
 | `src/router.ts` | 路由定义：`/` → RoleSelect, `/chat` → ChatView |
-| `src/types.ts` | 类型定义：MemberInfo, ChatMessage, TaskMessage, TaskResource, TaskPlan, TimelineItem, RevokedNotice, AgentStep, AgentResult, ExecutionTraceData, TaskExecutionMode, MemberSettings |
+| `src/types.ts` | 类型定义：MemberInfo, ChatMessage(channel/mentions/quote/forwarded), QuoteInfo, ForwardedRecord, MessageAttachment, TaskMessage, TaskResource, TaskPlan, TimelineItem, RevokedNotice, AgentStep, AgentResult, ExecutionTraceData, TaskExecutionMode, MemberSettings |
 | `src/api.ts` | Manager REST API 封装：setManagerUrl, managerFetch, managerPost |
 | `src/envoy/BrowserTransport.ts` | 浏览器兼容 WebSocket Transport |
-| `src/composables/useTeamClient.ts` | **核心 composable**: 连接管理、消息收发、任务更新、auto-reply 集成、桌面通知 |
-| `src/composables/useMessages.ts` | 消息管理 composable：消息收发、撤回（DELETE + RevokedNotice）、离线同步 |
+| `src/composables/useTeamClient.ts` | **核心 composable**: 连接管理、消息收发、任务更新、auto-reply 集成、桌面通知、频道提及通知 |
+| `src/composables/useMessages.ts` | 消息管理 composable：消息收发、撤回、离线同步、频道消息路由（`__team__` 桶）、引用/转发字段处理 |
 | `src/composables/useAI.ts` | AI composable: SSE 流式聊天、任务规划、结果分析、智能分派、任务审批 |
 | `src/composables/useAutoReply.ts` | AI 自动回复 composable：5s 防抖、调用 Manager auto-reply API、发送 AI 生成消息 |
 | `src/composables/useMemberSettings.ts` | 成员设置 composable：per-user 设置读写（执行模式、AI 自动回复、工作目录） |
@@ -285,16 +318,18 @@ npm run manager:web            # 仅启动前端
 | `src/views/TaskCenterView.vue` | 任务中心：按状态聚合显示所有任务（含 reviewing 分组） |
 | `src/views/TaskDispatchPanel.vue` | 任务分派：AI 辅助匹配成员、预览、确认 |
 | `src/components/TitleBar.vue` | macOS 风格标题栏：traffic lights + logo + 主题切换 |
-| `src/components/MemberSidebar.vue` | 侧边栏：任务中心、分派入口、成员列表（在线/离线）、设置入口 |
-| `src/components/ChatPanel.vue` | 聊天面板：消息列表、AI 建议回复、输入控制、文件附件下载、图片查看器 |
-| `src/components/MessageBubble.vue` | 消息气泡：Markdown 渲染、撤回按钮、AI auto reply 徽章、附件卡片 |
+| `src/components/MemberSidebar.vue` | 侧边栏：工具区（云端资源/任务中心/分派）、频道入口（`__team__`）、成员列表（在线/离线）、设置入口 |
+| `src/components/ChatPanel.vue` | 聊天面板：消息列表、AI 建议回复、输入控制、文件附件下载、图片查看器、@提及弹窗、引用预览条、多选转发、上下文菜单 |
+| `src/components/MessageBubble.vue` | 消息气泡：Markdown 渲染、撤回按钮、AI auto reply 徽章、附件卡片、频道布局（头像+发送者）、引用卡片（点击跳转+高亮）、转发摘要+详情弹窗、@mention 高亮 |
 | `src/components/TaskCard.vue` | 任务卡片：状态徽章、成员、资源、时间戳 |
 | `src/components/TaskDetailPanel.vue` | 任务详情面板：timeline、成员结果、Agent trace、Leader 审批、资源下载、操作按钮 |
-| `src/components/SettingsPanel.vue` | 成员设置面板：执行模式、AI 自动回复、工作目录、建议历史条数、登出 |
+| `src/components/SettingsPanel.vue` | 成员设置面板：分组展示（个人资料 / 任务与 Agent / AI 助手 / 通用），含执行模式、工作目录、AI 自动回复、建议历史条数、语言、登出 |
 | `src/components/GlassButton.vue` | 基础按钮控件：default/primary/danger 变体，36px，毛玻璃样式 |
 | `src/components/GlassSelect.vue` | 基础下拉选择控件：36px，毛玻璃样式 |
 | `src/components/GlassCheckbox.vue` | 基础复选框控件：36px，毛玻璃样式 |
 | `src/components/BackButton.vue` | 通用返回按钮：左箭头 + 文字，用于面板头部导航 |
+| `src/components/MentionPopup.vue` | @提及选择弹窗：成员列表 + `@all` 选项，键盘导航（Arrow/Enter/Escape） |
+| `src/components/ForwardDialog.vue` | 转发目标选择对话框：成员列表（排除当前对话），单选确认 |
 
 ### Tauri 后端 (`src-tauri/`)
 
@@ -314,14 +349,14 @@ npm run manager:web            # 仅启动前端
 |------|------|
 | `manager/server/index.ts` | Hono 入口：CORS、RSA 初始化、Team 恢复、路由注册、任务持久化监听 |
 | `manager/server/crypto.ts` | RSA 密钥对生成/加载、加密/解密 |
-| `manager/server/db.ts` | SQLite 数据库操作 (better-sqlite3)：消息增删查、附件存储 |
+| `manager/server/db.ts` | SQLite 数据库操作 (better-sqlite3)：消息增删查、附件存储、channel/mentions 列 + extra JSON 字段（quote/forwarded） |
 | `manager/server/settings.ts` | 管理员设置 + AI 配置持久化 (`manager.json`) + resolveForScene scene/preset 解析 |
 | `manager/server/team-registry.ts` | 团队 CRUD：meta.json 读写、端口分配、目录管理 |
 | `manager/server/user-registry.ts` | 用户 CRUD：users.json 读写、bcrypt 认证 |
 | `manager/server/routes/admin.ts` | 管理员认证：session token，24h 过期 |
 | `manager/server/routes/ai.ts` | AI 路由：health、agent reason、task dispatch、auto-reply generate、task review、config CRUD |
 | `manager/server/routes/teams.ts` | 团队 CRUD、成员管理、任务查询、实时统计 |
-| `manager/server/routes/messages.ts` | 消息中转/撤回/同步/对话列表、任务提交/结果、附件上传下载、资源管理 |
+| `manager/server/routes/messages.ts` | 消息中转/撤回/同步/对话列表、频道广播（broadcastChat）、@提及通知（channel-mention）、任务提交/结果、附件上传下载、资源管理 |
 | `manager/server/routes/users.ts` | 用户管理：增删查、RSA 加密密码认证 |
 | `manager/server/routes/dashboard.ts` | 仪表盘：全局统计（团队/成员/任务） |
 | `manager/server/services/ai/index.ts` | `createAIRoutes()` — AI HTTP 路由挂载 |
@@ -359,7 +394,7 @@ npm run manager:web            # 仅启动前端
 | `envoy/packages/server/connection-manager.ts` | 客户端状态管理 + 心跳超时 |
 | `envoy/packages/client/client.ts` | Client：doing() 注册处理器、submit() 提交任务、串行任务队列、自动结果发送 |
 | `envoy/packages/client/watcher-client.ts` | Watcher 客户端：观察任务和客户端事件 |
-| `envoy/packages/teams/team.ts` | Team：封装 Server，角色管理，成员广播 |
+| `envoy/packages/teams/team.ts` | Team：封装 Server，角色管理，成员广播，`broadcastChat()` 频道消息广播 |
 | `envoy/packages/teams/leader.ts` | Leader：Client 子类，team:join(role=leader) |
 | `envoy/packages/teams/member.ts` | Member：Client 子类，team:join(role=member) |
 

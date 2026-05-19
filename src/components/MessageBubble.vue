@@ -3,6 +3,7 @@ import { computed, ref, onUnmounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ChatMessage, MemberInfo, MessageAttachment, TimelineItem } from "../types";
 import { downloadFileWithDialog } from "../utils/notification";
 import { useUserProfile } from "../composables/useUserProfile";
@@ -59,6 +60,18 @@ const renderer = {
   },
 };
 marked.use({ renderer });
+
+function onBubbleClick(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  const anchor = target.closest("a[href]");
+  if (anchor) {
+    const href = anchor.getAttribute("href");
+    if (href && !href.startsWith("#")) {
+      e.preventDefault();
+      openUrl(href);
+    }
+  }
+}
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -222,10 +235,11 @@ function getMember(id: string): MemberInfo | null {
 function onAvatarEnter(e: MouseEvent) {
   const member = getMember(props.message.from);
   if (!member) return;
+  const target = e.currentTarget as HTMLElement;
   if (hoverTimer) clearTimeout(hoverTimer);
   hoverTimer = setTimeout(() => {
     hoverMember.value = member;
-    hoverRect.value = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    hoverRect.value = target.getBoundingClientRect();
     hoverVisible.value = true;
   }, 150);
 }
@@ -271,7 +285,7 @@ onUnmounted(() => {
         ref="bubbleRef"
         class="bubble channel-bubble"
         :class="{ selected: selected && selectMode }"
-        @click="selectMode && emit('toggleSelect', message.id)"
+        @click="!selectMode ? onBubbleClick($event) : emit('toggleSelect', message.id)"
         @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)"
       >
         <!-- Quote card -->
@@ -330,7 +344,7 @@ onUnmounted(() => {
           ref="bubbleRef"
           class="bubble mine channel-bubble"
           :class="{ selected: selected && selectMode }"
-          @click="selectMode && emit('toggleSelect', message.id)"
+          @click="!selectMode ? onBubbleClick($event) : emit('toggleSelect', message.id)"
           @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)"
         >
           <div v-if="message.quote" class="quote-card" :class="{ revoked: isQuoteRevoked }" @click.stop="handleQuoteClick">
@@ -364,7 +378,7 @@ onUnmounted(() => {
           </template>
         </div>
         </div>
-        <div class="channel-avatar mine-avatar" @mouseenter="onAvatarEnter" @mouseleave="onAvatarLeave">
+        <div class="channel-avatar mine-avatar">
           <img v-if="getAvatarUrl(message.from)" :src="getAvatarUrl(message.from)!" class="channel-avatar-img" />
           <template v-else>{{ getDisplayName(message.from).charAt(0).toUpperCase() }}</template>
         </div>
@@ -382,7 +396,7 @@ onUnmounted(() => {
       ref="bubbleRef"
       class="bubble"
       :class="{ mine: message.mine, selected: selected && selectMode }"
-      @click="selectMode && emit('toggleSelect', message.id)"
+      @click="!selectMode ? onBubbleClick($event) : emit('toggleSelect', message.id)"
       @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)"
     >
       <span v-if="showSender" class="sender-name">{{ getDisplayName(message.from) }}</span>
@@ -1142,10 +1156,13 @@ onUnmounted(() => {
 
 .channel-msg-row.mine {
   flex-direction: row;
+  justify-content: flex-end;
 }
 
 .channel-avatar.mine-avatar {
   margin-top: 2px;
+  cursor: default;
+  pointer-events: none;
 }
 
 .channel-avatar {
@@ -1161,6 +1178,14 @@ onUnmounted(() => {
   font-size: 0.8em;
   flex-shrink: 0;
   margin-top: 2px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.channel-avatar:hover {
+  border-color: var(--accent);
+  transform: scale(1.08);
 }
 
 .channel-avatar-img {
