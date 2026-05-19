@@ -10,6 +10,7 @@ import { useTaskExecution } from "./useTaskExecution";
 import { useAutoReply } from "./useAutoReply";
 import { getMemberSettings, setTeamClientInstance } from "./teamClientContext";
 import { managerPost } from "../api";
+import { useUserProfile } from "./useUserProfile";
 import { sendDesktopNotification, requestTaskbarAttention, updateDockBadge, cancelTaskbarAttention, resetNotificationState } from "../utils/notification";
 
 export type { ConnectionStatus };
@@ -44,6 +45,7 @@ export function useTeamClient(
   });
 
   const { settings: memberSettings } = getMemberSettings();
+  const userProfile = useUserProfile();
 
   // ─── Glue: bridge connection events to message layer ───
 
@@ -68,6 +70,8 @@ export function useTeamClient(
     if (msgObj.type === "notify" && msgObj.subtype === "team:members") {
       const payload = msgObj.payload as { members: MemberInfo[] };
       conn.onlineIds.value = new Set(payload.members.map((m) => m.id));
+      // Load profiles for online members
+      userProfile.loadProfiles(payload.members.map((m) => m.id));
       if (conn.configuredMembers.value.length === 0) {
         conn.configuredMembers.value = payload.members.map((m) => ({
           ...m,
@@ -208,5 +212,6 @@ export function useTeamClient(
     clearConversation: msg.clearConversation,
     revokeMessage: msg.revokeMessage,
     autoReplyDispose: autoReply.dispose,
+    userProfile,
   };
 }

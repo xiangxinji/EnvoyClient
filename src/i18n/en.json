@@ -210,7 +210,10 @@
     "logout": "Logout",
     "logoutTitle": "Logout",
     "logoutDesc": "Will disconnect from the team and return to the login page",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "changeAvatar": "Change Avatar",
+    "nickname": "Nickname",
+    "nicknamePlaceholder": "Enter nickname"
   },
   "notification": {
     "newTask": "New Task",

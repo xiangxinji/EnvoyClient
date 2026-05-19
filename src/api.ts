@@ -40,6 +40,43 @@ export async function managerPost(path: string, body: unknown, headers?: Record<
   });
 }
 
+// ─── User Profile ──────────────────────────────────────────
+
+export interface UserProfile {
+  username: string;
+  nickname: string | null;
+  avatar_url: string | null;
+}
+
+export async function fetchProfiles(names: string[]): Promise<UserProfile[]> {
+  const res = await managerFetch(`/api/users/profiles?names=${encodeURIComponent(names.join(","))}`);
+  return res.json();
+}
+
+export async function updateProfile(username: string, data: { nickname?: string | null }): Promise<{ ok: boolean; nickname: string | null; avatar_url: string | null }> {
+  const res = await managerFetch(`/api/users/${username}/profile`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+export async function uploadAvatar(username: string, file: File): Promise<{ avatar_url: string }> {
+  const formData = new FormData();
+  formData.append("avatar", file);
+  const res = await fetch(apiUrl(`/api/users/${username}/avatar`), {
+    method: "POST",
+    headers: { ...(_clientToken ? { "X-Envoy-Token": _clientToken } : {}) },
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || "Upload failed");
+  }
+  return res.json();
+}
+
 // ─── Cloud Resources ──────────────────────────────────────────
 
 export interface CloudFileItem {

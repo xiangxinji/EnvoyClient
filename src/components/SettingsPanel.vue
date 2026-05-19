@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, inject } from "vue";
+import { ref, computed, onMounted, watch, inject } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useLocale } from "../i18n";
 import { getMemberSettings, TeamClientKey, setTeamClientInstance } from "../composables/teamClientContext";
 import type { TaskExecutionMode } from "../composables/useMemberSettings";
+import { useUserProfile } from "../composables/useUserProfile";
 import GlassSelect from "./GlassSelect.vue";
 import GlassCheckbox from "./GlassCheckbox.vue";
+import GlassButton from "./GlassButton.vue";
 import BackButton from "./BackButton.vue";
 
 useI18n();
@@ -24,6 +26,14 @@ const router = useRouter();
 
 const username = ctx.myId;
 
+const { updateMyProfile, uploadMyAvatar, getAvatarUrl, getDisplayName } = useUserProfile();
+const avatarUrl = computed(() => getAvatarUrl(username));
+const displayName = computed(() => getDisplayName(username));
+const nickname = ref("");
+const nicknameSaving = ref(false);
+const avatarUploading = ref(false);
+let avatarInput: HTMLInputElement | null = null;
+
 const executionMode = ref<TaskExecutionMode>("auto");
 const workingDirectory = ref("");
 const aiHistoryCount = ref(5);
@@ -37,7 +47,44 @@ onMounted(async () => {
   workingDirectory.value = settings.value.working_directory;
   aiHistoryCount.value = settings.value.ai_suggestion_history_count;
   aiAutoReply.value = settings.value.ai_auto_reply;
+  nickname.value = getDisplayName(username);
 });
+
+async function saveNickname() {
+  const trimmed = nickname.value.trim();
+  if (trimmed === getDisplayName(username)) return;
+  nicknameSaving.value = true;
+  try {
+    await updateMyProfile(username, { nickname: trimmed || null });
+  } catch {
+    nickname.value = getDisplayName(username);
+  }
+  nicknameSaving.value = false;
+}
+
+function triggerAvatarUpload() {
+  if (!avatarInput) {
+    avatarInput = document.createElement("input");
+    avatarInput.type = "file";
+    avatarInput.accept = "image/*";
+    avatarInput.addEventListener("change", handleAvatarFile);
+  }
+  avatarInput.value = "";
+  avatarInput.click();
+}
+
+async function handleAvatarFile(e: Event) {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+  avatarUploading.value = true;
+  try {
+    await uploadMyAvatar(username, file);
+  } catch {
+    // silently fail
+  }
+  avatarUploading.value = false;
+}
 
 watch(executionMode, async (val) => {
   if (val === settings.value.task_execution_mode) return;
@@ -106,6 +153,39 @@ async function handleLogout() {
     </div>
 
     <div class="settings-body">
+      <div class="profile-section">
+        <div class="profile-avatar-wrapper" @click="triggerAvatarUpload" :title="$t('settings.changeAvatar')">
+          <img v-if="avatarUrl" :src="avatarUrl" class="profile-avatar-img" alt="" />
+          <div v-else class="profile-avatar-fallback">{{ username.charAt(0).toUpperCase() }}</div>
+          <div v-if="avatarUploading" class="profile-avatar-overlay">{{ $t('common.loading') }}</div>
+          <div class="profile-avatar-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          </div>
+        </div>
+        <div class="profile-fields">
+          <div class="setting-group">
+            <label class="setting-label">{{ $t('settings.nickname') }}</label>
+            <div class="nickname-row">
+              <input
+                v-model="nickname"
+                type="text"
+                class="setting-input"
+                :placeholder="$t('settings.nicknamePlaceholder')"
+                @keydown.enter="saveNickname"
+              />
+              <GlassButton
+                variant="primary"
+                :disabled="nicknameSaving || nickname.trim() === displayName"
+                @click="saveNickname"
+              >{{ $t('common.save') }}</GlassButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="setting-group">
         <label class="setting-label">{{ $t('settings.taskMode') }}</label>
         <GlassSelect v-model="executionMode">
@@ -161,9 +241,10 @@ async function handleLogout() {
 
     <div class="settings-footer">
       <div class="user-card">
-        <div class="user-avatar">{{ username.charAt(0).toUpperCase() }}</div>
+        <img v-if="avatarUrl" :src="avatarUrl" class="user-avatar user-avatar-img" alt="" />
+        <div v-else class="user-avatar">{{ username.charAt(0).toUpperCase() }}</div>
         <div class="user-meta">
-          <span class="user-name">{{ username }}</span>
+          <span class="user-name">{{ displayName }}</span>
           <span class="user-role" :class="ctx.role">{{ ctx.role }}</span>
         </div>
         <button class="logout-btn" :title="$t('settings.logout')" @click="showLogoutConfirm = true">
@@ -280,6 +361,108 @@ async function handleLogout() {
   line-height: 1.4;
 }
 
+.profile-section {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 2px solid var(--glass-border);
+  transition: border-color 0.15s;
+}
+
+.profile-avatar-wrapper:hover {
+  border-color: var(--accent);
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.5em;
+}
+
+.profile-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay-bg);
+  color: var(--text-secondary);
+  font-size: 0.65em;
+  font-weight: 500;
+}
+
+.profile-avatar-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--glass-bg-heavy);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: color 0.15s;
+}
+
+.profile-avatar-wrapper:hover .profile-avatar-badge {
+  color: var(--accent);
+}
+
+.profile-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.profile-fields .setting-group {
+  gap: var(--space-xs);
+}
+
+.nickname-row {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.nickname-row .setting-input {
+  flex: 1;
+  min-width: 0;
+}
+
 .saving-indicator {
   position: absolute;
   bottom: var(--space-md);
@@ -318,6 +501,12 @@ async function handleLogout() {
   font-weight: 600;
   font-size: 0.8em;
   flex-shrink: 0;
+}
+
+.user-avatar.user-avatar-img {
+  background: none;
+  padding: 0;
+  object-fit: cover;
 }
 
 .user-meta {

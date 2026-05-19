@@ -20,7 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const ctx = inject(TeamClientKey)!;
-const { members, unreadCounts, markRead, messages, myId } = ctx;
+const { members, unreadCounts, markRead, messages, myId, userProfile } = ctx;
 const { settings: memberSettings, saveSettings } = getMemberSettings();
 
 const isAutoMode = computed(() => memberSettings.value.task_execution_mode === "auto");
@@ -338,11 +338,12 @@ function getInitial(name: string): string {
           @mouseleave="handleMemberLeave"
         >
           <div class="avatar">
-            {{ getInitial(m.id) }}
+            <img v-if="userProfile.getAvatarUrl(m.id)" :src="userProfile.getAvatarUrl(m.id)" class="avatar-img" />
+            <template v-else>{{ getInitial(m.id) }}</template>
             <span class="status-dot" :class="m.status"></span>
           </div>
           <div class="member-info">
-            <span class="member-name">{{ m.id }}</span>
+            <span class="member-name" :title="m.id">{{ userProfile.getDisplayName(m.id) }}</span>
             <span class="member-role" :class="m.role">{{ m.role }}</span>
             <span v-if="matchHints.get(m.id)" class="member-hint" :title="matchHints.get(m.id)">{{ matchHints.get(m.id) }}</span>
           </div>
@@ -356,7 +357,8 @@ function getInitial(name: string): string {
     <div class="sidebar-footer">
       <div class="user-menu-wrapper">
         <div class="user-avatar-btn" :title="myId">
-          {{ getInitial(myId) }}
+          <img v-if="userProfile.getAvatarUrl(myId)" :src="userProfile.getAvatarUrl(myId)!" class="avatar-img" />
+          <template v-else>{{ getInitial(myId) }}</template>
         </div>
         <div class="user-menu" @click.stop>
           <button class="user-menu-item" :class="{ active: selectedPeer === '__quick__' }" @click="emit('select', '__quick__')">
@@ -771,5 +773,12 @@ li.active {
   background: var(--accent-light);
   color: var(--accent);
   border-color: var(--accent);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 </style>

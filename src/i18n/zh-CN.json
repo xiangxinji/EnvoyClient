@@ -210,7 +210,10 @@
     "logout": "退出登录",
     "logoutTitle": "退出登录",
     "logoutDesc": "将断开与团队的连接并返回登录页",
-    "saving": "保存中..."
+    "saving": "保存中...",
+    "changeAvatar": "更换头像",
+    "nickname": "昵称",
+    "nicknamePlaceholder": "输入昵称"
   },
   "notification": {
     "newTask": "新任务",

@@ -5,6 +5,7 @@ import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
 import type { ChatMessage, MessageAttachment, TimelineItem } from "../types";
 import { downloadFileWithDialog } from "../utils/notification";
+import { useUserProfile } from "../composables/useUserProfile";
 
 const props = defineProps<{
   message: ChatMessage;
@@ -23,6 +24,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { getDisplayName } = useUserProfile();
 
 const isQuoteRevoked = computed(() => {
   if (!props.message.quote || !props.timeline) return false;
@@ -220,10 +222,10 @@ onUnmounted(() => {
       @click="selectMode && emit('toggleSelect', message.id)"
       @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)"
     >
-      <span v-if="showSender" class="sender-name">{{ message.from }}</span>
+      <span v-if="showSender" class="sender-name">{{ getDisplayName(message.from) }}</span>
       <!-- Quote card -->
       <div v-if="message.quote" class="quote-card" :class="{ revoked: isQuoteRevoked }" @click.stop="handleQuoteClick">
-        <span class="quote-sender">{{ message.quote.from }}</span>
+        <span class="quote-sender">{{ getDisplayName(message.quote.from) }}</span>
         <span class="quote-text">{{ quoteDisplayText }}</span>
       </div>
 
@@ -321,7 +323,7 @@ onUnmounted(() => {
           </div>
           <div class="forwarded-dialog-body">
             <div v-for="(rec, i) in message.forwarded" :key="i" class="fd-record">
-              <div class="fd-meta">{{ rec.from }} · {{ formatTime(rec.timestamp) }}</div>
+              <div class="fd-meta">{{ getDisplayName(rec.from) }} · {{ formatTime(rec.timestamp) }}</div>
               <div v-if="rec.text" class="fd-text">{{ rec.text }}</div>
               <div v-if="rec.attachments?.length" class="fd-attachments">
                 <template v-for="(att, j) in rec.attachments" :key="j">

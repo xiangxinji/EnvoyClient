@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import { TeamClientKey, getMemberSettings } from "../composables/teamClientContext";
 import { useAI } from "../composables/useAI";
 import MessageBubble from "./MessageBubble.vue";
+import { useUserProfile } from "../composables/useUserProfile";
 import TaskCard from "./TaskCard.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
@@ -15,6 +16,7 @@ import { isImageMime, formatFileSize, compressImage } from "../utils/imageCompre
 import { apiUrl } from "../api";
 
 const { t } = useI18n();
+const { getDisplayName } = useUserProfile();
 
 const props = defineProps<{ peerId: string }>();
 
@@ -30,7 +32,7 @@ const memberIds = computed(() => members.value.map(m => m.id));
 
 const headerTitle = computed(() => {
   if (isChannel.value) return "# General";
-  return props.peerId;
+  return getDisplayName(props.peerId);
 });
 
 const peerStatus = computed(() => {
@@ -676,7 +678,7 @@ onBeforeUnmount(() => {
         <!-- Quote reply preview -->
         <div v-if="quotingMsg" class="quote-preview">
           <div class="quote-preview-content">
-            <span class="quote-preview-sender">{{ quotingMsg.from }}</span>
+            <span class="quote-preview-sender">{{ getDisplayName(quotingMsg.from) }}</span>
             <span class="quote-preview-text">{{ generateSnapshotText(quotingMsg) }}</span>
           </div>
           <button class="quote-preview-close" @click="clearQuotingMsg">
