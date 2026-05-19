@@ -1,0 +1,20 @@
+{
+  "name": "envoy-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "nuxt": "^3.16",
+    "@nuxt/content": "^3.5",
+    "@nuxtjs/i18n": "^9.5",
+    "@nuxtjs/color-mode": "^3.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.8"
+  }
+}
