@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import type { Message } from "@envoy/core";
-import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, RevokedNotice, ForwardedRecord, QuoteInfo } from "../types";
+import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, RevokedNotice, ForwardedRecord, QuoteInfo, StickerInfo } from "../types";
 import { managerPost, managerFetch, apiUrl } from "../api";
 import { syncMessageToTimeline, type SyncResponse, type SyncMessage } from "../utils/messageMapper";
 
@@ -85,7 +85,7 @@ export function useMessages(
     }
 
     if (msg.type === "message" && msg.subtype === "chat") {
-      const payload = msg.payload as { text: string; id?: string; seq?: number; source?: string; attachments?: MessageAttachment[]; forwarded?: ForwardedRecord[]; quote?: QuoteInfo; channel?: string; mentions?: string[] };
+      const payload = msg.payload as { text: string; id?: string; seq?: number; source?: string; attachments?: MessageAttachment[]; forwarded?: ForwardedRecord[]; quote?: QuoteInfo; sticker?: StickerInfo; channel?: string; mentions?: string[] };
       if (payload.attachments) {
         for (const att of payload.attachments) {
           if (att.url.startsWith("/")) att.url = apiUrl(att.url);
@@ -104,6 +104,7 @@ export function useMessages(
         attachments: payload.attachments,
         forwarded: payload.forwarded,
         quote: payload.quote,
+        sticker: payload.sticker,
         channel: payload.channel,
         mentions: payload.mentions,
       };
@@ -159,11 +160,12 @@ export function useMessages(
     }
   }
 
-  async function sendChat(targetId: string, text: string, options?: { attachments?: MessageAttachment[]; source?: "human" | "ai-auto"; forwarded?: ForwardedRecord[]; quote?: QuoteInfo; channel?: string; mentions?: string[] }) {
+  async function sendChat(targetId: string, text: string, options?: { attachments?: MessageAttachment[]; source?: "human" | "ai-auto"; forwarded?: ForwardedRecord[]; quote?: QuoteInfo; sticker?: StickerInfo; channel?: string; mentions?: string[] }) {
     const attachments = options?.attachments;
     const source = options?.source;
     const forwarded = options?.forwarded;
     const quote = options?.quote;
+    const sticker = options?.sticker;
     const channel = options?.channel;
     const mentions = options?.mentions;
     const isChannel = !!channel;
@@ -173,6 +175,7 @@ export function useMessages(
     if (source) body.source = source;
     if (forwarded?.length) body.forwarded = forwarded;
     if (quote) body.quote = quote;
+    if (sticker) body.sticker = sticker;
     if (channel) body.channel = channel;
     if (mentions?.length) body.mentions = mentions;
 
@@ -193,6 +196,7 @@ export function useMessages(
         attachments: attachments?.length ? attachments : undefined,
         forwarded: forwarded?.length ? forwarded : undefined,
         quote,
+        sticker,
         channel,
         mentions,
       };
@@ -212,6 +216,7 @@ export function useMessages(
         attachments: attachments?.length ? attachments : undefined,
         forwarded: forwarded?.length ? forwarded : undefined,
         quote,
+        sticker,
         channel,
         mentions,
       };

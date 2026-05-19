@@ -7,6 +7,10 @@
 .bubble:not(.mine) { border-bottom-left-radius: 4px; }
 .bubble.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
+.bubble.sticker-mode { background: transparent; border: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 4px; box-shadow: none; }
+.sticker-image { display: flex; justify-content: center; }
+.sticker-image img { max-width: 150px; max-height: 150px; object-fit: contain; border-radius: var(--radius-sm); cursor: pointer; }
+
 .forwarded-summary { display: flex; align-items: center; gap: var(--space-xs); cursor: pointer; font-size: 0.88em; opacity: 0.75; transition: opacity 0.15s; white-space: nowrap; }
 .forwarded-summary:hover { opacity: 1; }
 .forwarded-summary .arrow { margin-left: auto; }

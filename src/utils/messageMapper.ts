@@ -1,4 +1,4 @@
-import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, ForwardedRecord, QuoteInfo } from "../types";
+import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, ForwardedRecord, QuoteInfo, StickerInfo } from "../types";
 
 export interface SyncResponse {
   messages: SyncMessage[];
@@ -52,6 +52,7 @@ export function syncMessageToTimeline(msg: SyncMessage, myId: string): TimelineI
     attachments: extra.attachments as MessageAttachment[] | undefined,
     forwarded: extra.forwarded as ForwardedRecord[] | undefined,
     quote: extra.quote as QuoteInfo | undefined,
+    sticker: extra.sticker as StickerInfo | undefined,
     channel: msg.channel ?? undefined,
     mentions: msg.mentions ? JSON.parse(msg.mentions) as string[] : undefined,
   } satisfies ChatMessage;

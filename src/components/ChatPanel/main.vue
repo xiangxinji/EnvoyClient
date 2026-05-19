@@ -16,6 +16,7 @@ import Toast from "../Toast";
 import RichEditor from "../RichEditor";
 import ForwardDialog from "../ForwardDialog";
 import MentionPopup from "../MentionPopup";
+import StickerPanel from "../StickerPanel";
 import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, QuoteInfo } from "../../types";
 import { formatFileSize } from "../../utils/imageCompress";
 
@@ -42,6 +43,7 @@ const toastVisible = ref(false);
 const toastMessage = ref("");
 const toastType = ref<"success" | "error">("success");
 const richEditorRef = ref<InstanceType<typeof RichEditor> | null>(null);
+const stickerPanelVisible = ref(false);
 
 function showToast(msg: string, type: "success" | "error") { toastMessage.value = msg; toastType.value = type; toastVisible.value = true; }
 
@@ -91,7 +93,12 @@ function handleAISuggest() { const chatMsgs = conversation.value.filter((m): m i
 function handleAcceptSuggestion() { const text = acceptSuggestion(); if (text) sendChat(props.peerId, text); }
 function handleForwardConfirmWrapper(targetId: string) { handleForwardConfirm(targetId, t('chat.chatHistory')); }
 
-function closeMenuOnClickOutside(e: MouseEvent) { if (!(e.target as HTMLElement).closest(".header-actions")) menuOpen.value = false; }
+function handleStickerSend(stickerUrl: string, stickerName: string) {
+  sendChat(props.peerId, " ", { sticker: { url: stickerUrl, name: stickerName } });
+  stickerPanelVisible.value = false;
+}
+
+function closeMenuOnClickOutside(e: MouseEvent) { if (!(e.target as HTMLElement).closest(".header-actions")) menuOpen.value = false; if (stickerPanelVisible.value && !(e.target as HTMLElement).closest(".input-area")) stickerPanelVisible.value = false; }
 function handleSelectModeKeydown(e: KeyboardEvent) { if (e.key === "Escape") { if (selectMode.value) exitSelectMode(); else if (quotingMsg.value) quotingMsg.value = null; } }
 
 onMounted(() => { document.addEventListener("click", closeMenuOnClickOutside); document.addEventListener("click", closeContextMenu); document.addEventListener("keydown", handleSelectModeKeydown); });
@@ -182,10 +189,12 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
           <button class="quote-preview-close" @click="clearQuotingMsg"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
 
+        <StickerPanel v-if="stickerPanelVisible" :my-id="myId" :team-name="teamName" @send="handleStickerSend" />
         <div class="toolbar">
           <div class="toolbar-left">
             <button v-if="role === 'leader'" class="btn-tool" @click="taskInputVisible = !taskInputVisible" :title="$t('chat.dispatchTask')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg></button>
             <button class="btn-tool" @click="handlePickAttachment((f: File) => richEditorRef?.insertImage(f))" :title="$t('chat.addAttachment')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+            <button class="btn-tool" :class="{ active: stickerPanelVisible }" @click="stickerPanelVisible = !stickerPanelVisible" :title="$t('chat.sticker')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></button>
             <button class="btn-tool" @click="handleAISuggest" :title="$t('chat.aiSuggestReply')" :disabled="!aiAvailable || isStreaming"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg></button>
           </div>
           <button class="btn-send-toolbar" @click="richEditorRef?.send()" :title="$t('common.send')" :disabled="uploading">{{ $t('common.send') }}</button>

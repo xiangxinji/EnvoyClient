@@ -31,6 +31,9 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { getDisplayName, getAvatarUrl } = useUserProfile();
 
+const isSticker = computed(() => !!props.message.sticker);
+const stickerUrl = computed(() => props.message.sticker?.url ?? "");
+
 const isQuoteRevoked = computed(() => {
   if (!props.message.quote || !props.timeline) return false;
   const found = props.timeline.find(item => item.id === props.message.quote!.id);
@@ -139,7 +142,9 @@ onUnmounted(() => {
         <span class="channel-sender">{{ getDisplayName(message.from) }}</span>
         <span class="channel-time">{{ formatTime(message.timestamp) }}</span>
       </div>
-      <div ref="bubbleRef" class="bubble channel-bubble" :class="{ selected: selected && selectMode }" @click="!selectMode ? onBubbleClick($event) : emit('toggleSelect', message.id)" @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)">
+      <div ref="bubbleRef" class="bubble channel-bubble" :class="{ selected: selected && selectMode, 'sticker-mode': isSticker }" @click="!selectMode ? onBubbleClick($event) : emit('toggleSelect', message.id)" @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)">
+        <div v-if="isSticker" class="sticker-image"><img :src="stickerUrl" :alt="message.sticker?.name" loading="lazy" /></div>
+        <template v-else>
         <div v-if="message.quote" class="quote-card" :class="{ revoked: isQuoteRevoked }" @click.stop="handleQuoteClick">
           <span class="quote-sender">{{ getDisplayName(message.quote.from) }}</span>
           <span class="quote-text">{{ quoteDisplayText }}</span>
@@ -160,6 +165,7 @@ onUnmounted(() => {
             </a>
           </template>
         </div>
+        </template>
       </div>
     </div>
     <span v-if="message.source === 'ai-auto'" class="ai-badge-inline">{{ $t('chat.aiAutoReply') }}</span>
@@ -175,7 +181,9 @@ onUnmounted(() => {
         <span class="channel-time">{{ formatTime(message.timestamp) }}</span>
       </div>
       <div class="channel-msg-row mine">
-        <div ref="bubbleRef" class="bubble mine channel-bubble" :class="{ selected: selected && selectMode }" @click="!selectMode ? onBubbleClick($event) : emit('toggleSelect', message.id)" @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)">
+        <div ref="bubbleRef" class="bubble mine channel-bubble" :class="{ selected: selected && selectMode, 'sticker-mode': isSticker }" @click="!selectMode ? onBubbleClick($event) : emit('toggleSelect', message.id)" @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)">
+          <div v-if="isSticker" class="sticker-image"><img :src="stickerUrl" :alt="message.sticker?.name" loading="lazy" /></div>
+          <template v-else>
           <div v-if="message.quote" class="quote-card" :class="{ revoked: isQuoteRevoked }" @click.stop="handleQuoteClick">
             <span class="quote-sender">{{ getDisplayName(message.quote.from) }}</span>
             <span class="quote-text">{{ quoteDisplayText }}</span>
@@ -196,6 +204,7 @@ onUnmounted(() => {
               </a>
             </template>
           </div>
+          </template>
         </div>
         <div class="channel-avatar mine-avatar">
           <img v-if="getAvatarUrl(message.from)" :src="getAvatarUrl(message.from)!" class="channel-avatar-img" />
@@ -210,7 +219,9 @@ onUnmounted(() => {
     <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
       <svg v-if="selected" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
-    <div ref="bubbleRef" class="bubble" :class="{ mine: message.mine, selected: selected && selectMode }" @click="!selectMode ? onBubbleClick($event) : emit('toggleSelect', message.id)" @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)">
+    <div ref="bubbleRef" class="bubble" :class="{ mine: message.mine, selected: selected && selectMode, 'sticker-mode': isSticker }" @click="!selectMode ? onBubbleClick($event) : emit('toggleSelect', message.id)" @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)">
+      <div v-if="isSticker" class="sticker-image"><img :src="stickerUrl" :alt="message.sticker?.name" loading="lazy" /></div>
+      <template v-else>
       <span v-if="showSender" class="sender-name">{{ getDisplayName(message.from) }}</span>
       <div v-if="message.quote" class="quote-card" :class="{ revoked: isQuoteRevoked }" @click.stop="handleQuoteClick">
         <span class="quote-sender">{{ getDisplayName(message.quote.from) }}</span>
@@ -232,6 +243,7 @@ onUnmounted(() => {
           </a>
         </template>
       </div>
+      </template>
     </div>
   </div>
   <div class="time-row" :class="{ mine: message.mine }">

@@ -92,8 +92,8 @@ onMounted(async () => {
     setTimeout(() => splash.classList.add("gone"), 600);
   }
 
-  window.addEventListener("contextmenu", preventContextMenu);
-  window.addEventListener("focus", cancelTaskbarAttention);
+  // window.addEventListener("contextmenu", preventContextMenu);
+  // window.addEventListener("focus", cancelTaskbarAttention);
 
   if (isTauri) {
     window.addEventListener("keydown", preventRefresh);

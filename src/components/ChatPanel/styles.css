@@ -44,7 +44,7 @@
 .btn-select-forward:hover { background: var(--accent-hover); }
 .btn-select-forward:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.input-area { padding: var(--space-md) var(--space-lg); background: transparent; }
+.input-area { position: relative; padding: var(--space-md) var(--space-lg); background: transparent; }
 .task-input { display: flex; gap: var(--space-sm); margin-bottom: var(--space-sm); padding: var(--space-sm); background: var(--glass-bg-light); border-radius: var(--radius-md); }
 .task-input input { flex: 1; padding: 8px var(--space-md); border: 1px solid var(--input-border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-primary); outline: none; }
 .task-input input:focus { border-color: var(--accent); }
@@ -55,6 +55,7 @@
 .btn-tool { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--radius-sm); border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
 .btn-tool:hover { background: var(--bg-tertiary); color: var(--accent); }
 .btn-tool:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-tool.active { background: var(--bg-tertiary); color: var(--accent); }
 .btn-send-toolbar { padding: 6px 20px; border-radius: var(--radius-sm); border: none; background: var(--accent); color: var(--text-on-accent); font-size: 0.85em; font-weight: 500; cursor: pointer; transition: all 0.15s; }
 .btn-send-toolbar:hover { background: var(--accent-hover); }
 .btn-send-toolbar:disabled { opacity: 0.5; cursor: not-allowed; }

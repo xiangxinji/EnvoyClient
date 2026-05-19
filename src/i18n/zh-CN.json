@@ -86,6 +86,7 @@
     "enterTask": "输入任务描述...",
     "dispatchTask": "分派任务",
     "addAttachment": "添加附件",
+    "sticker": "贴纸",
     "aiSuggestReply": "AI 建议回复",
     "cleared": "已清除与 {peer} 的聊天记录",
     "confirmClearTitle": "清除聊天记录",
@@ -115,6 +116,14 @@
     "quotePlaceholderImage": "[图片]",
     "quotePlaceholderFile": "[文件]",
     "quotePlaceholderForwarded": "[聊天记录]"
+  },
+  "sticker": {
+    "empty": "还没有贴纸",
+    "add": "添加贴纸",
+    "delete": "删除",
+    "imageFiles": "图片文件",
+    "confirmDeleteTitle": "删除贴纸",
+    "confirmDeleteMsg": "确定要删除此贴纸吗？此操作不可撤销。"
   },
   "task": {
     "status": {

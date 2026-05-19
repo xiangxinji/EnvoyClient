@@ -21,6 +21,11 @@ export interface ForwardedRecord {
   attachments?: MessageAttachment[];
 }
 
+export interface StickerInfo {
+  url: string;
+  name: string;
+}
+
 export interface QuoteInfo {
   id: string;
   from: string;
@@ -41,6 +46,7 @@ export interface ChatMessage {
   attachments?: MessageAttachment[];
   forwarded?: ForwardedRecord[];
   quote?: QuoteInfo;
+  sticker?: StickerInfo;
   channel?: string;
   mentions?: string[];
 }
