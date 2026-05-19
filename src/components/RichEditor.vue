@@ -24,6 +24,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   send: [text: string, images: PendingImage[]];
+  input: [];
 }>();
 
 const pendingImages = ref<PendingImage[]>([]);
@@ -61,6 +62,13 @@ const editor = useEditor({
           return true;
         }
       }
+
+      const text = event.clipboardData?.getData("text/plain");
+      if (text) {
+        event.preventDefault();
+        insertPlainText(text);
+        return true;
+      }
       return false;
     },
     handleDrop(_view, event) {
@@ -78,7 +86,17 @@ const editor = useEditor({
       return handled;
     },
   },
+  onUpdate() {
+    emit("input");
+  },
 });
+
+function insertPlainText(text: string) {
+  if (!editor.value) return;
+  const paragraphs = text.split("\n");
+  const content = paragraphs.map((p) => ({ type: "text", text: p }));
+  editor.value.chain().focus().insertContent(content).run();
+}
 
 function insertImageBlob(file: File) {
   if (!editor.value) return;

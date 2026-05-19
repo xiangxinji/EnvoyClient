@@ -31,7 +31,7 @@ const isChannel = computed(() => props.peerId === "__team__");
 const memberIds = computed(() => members.value.map(m => m.id));
 
 const headerTitle = computed(() => {
-  if (isChannel.value) return "# General";
+  if (isChannel.value) return `# ${t('sidebar.channelGeneral')}`;
   return getDisplayName(props.peerId);
 });
 
@@ -567,7 +567,7 @@ onBeforeUnmount(() => {
     <template v-else>
       <div class="header">
         <span class="header-name">{{ headerTitle }}</span>
-        <span v-if="isChannel" class="header-subtitle">{{ members.length }} {{ $t('chat.members', 'members') }}</span>
+        <span v-if="isChannel" class="header-subtitle">{{ members.length }} {{ t('chat.members') }}</span>
         <span v-else-if="peerStatus === 'offline'" class="header-status offline">{{ $t('chat.offline') }}</span>
         <div class="header-actions">
           <button class="btn-menu" @click="menuOpen = !menuOpen" :title="$t('chat.actions')">
@@ -601,6 +601,8 @@ onBeforeUnmount(() => {
             :my-id="myId"
             :show-sender="isChannel"
             :member-ids="isChannel ? memberIds : undefined"
+            :is-channel="isChannel"
+            :members="isChannel ? members : undefined"
             :select-mode="selectMode"
             :selected="selectedIds.has(item.id)"
             :timeline="conversation"
@@ -823,6 +825,19 @@ onBeforeUnmount(() => {
 .header-name {
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.header-subtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+  background: var(--glass-bg-light);
+  color: var(--text-muted);
+  border: 1px solid var(--glass-border);
 }
 
 .header-status {

@@ -62,12 +62,15 @@
     "searchPlaceholder": "Search tools or members...",
     "noResults": "No results",
     "searchClear": "Clear search",
+    "channel": "Channel",
+    "channelGeneral": "General",
     "cloudResourcesDesc": "Upload, download and manage shared team files in the cloud.",
     "taskCenterDesc": "View all tasks by status, track progress, and review task details.",
     "taskDispatchDesc": "Create new tasks with AI-assisted member matching and smart dispatch."
   },
   "chat": {
     "selectPeer": "Select a member to start chatting",
+    "members": "members",
     "offline": "Offline",
     "actions": "Actions",
     "clearHistory": "Clear chat history",
@@ -225,6 +228,7 @@
     "aiAutoReplyOn": "enabled",
     "aiAutoReplyOff": "disabled",
     "taskModeChanged": "Task execution mode switched to \"{mode}\"",
+    "channelMention": "mentioned you in #General",
     "modeAuto": "Auto",
     "modeManual": "Manual"
   },

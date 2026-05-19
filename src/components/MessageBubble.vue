@@ -3,9 +3,10 @@ import { computed, ref, onUnmounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { marked, type Tokens } from "marked";
 import DOMPurify from "dompurify";
-import type { ChatMessage, MessageAttachment, TimelineItem } from "../types";
+import type { ChatMessage, MemberInfo, MessageAttachment, TimelineItem } from "../types";
 import { downloadFileWithDialog } from "../utils/notification";
 import { useUserProfile } from "../composables/useUserProfile";
+import MemberHoverCard from "./MemberHoverCard.vue";
 
 const props = defineProps<{
   message: ChatMessage;
@@ -15,6 +16,8 @@ const props = defineProps<{
   timeline?: TimelineItem[];
   showSender?: boolean;
   memberIds?: string[];
+  isChannel?: boolean;
+  members?: MemberInfo[];
 }>();
 
 const emit = defineEmits<{
@@ -24,7 +27,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { getDisplayName } = useUserProfile();
+const { getDisplayName, getAvatarUrl } = useUserProfile();
 
 const isQuoteRevoked = computed(() => {
   if (!props.message.quote || !props.timeline) return false;
@@ -68,7 +71,8 @@ const renderedHtml = computed(() => {
       m === "all" && props.memberIds ? props.memberIds : [m]
     );
     for (const m of expanded) {
-      rawText = rawText.replace(new RegExp(`@${escapeRegex(m)}(?!\\w)`, "g"), `<span class="mention-highlight">@${m}</span>`);
+      const displayName = getDisplayName(m);
+      rawText = rawText.replace(new RegExp(`@${escapeRegex(m)}(?!\\w)`, "g"), `<span class="mention-highlight">@${escapeRegex(displayName)}</span>`);
     }
   }
   const raw = marked.parse(rawText) as string;
@@ -205,12 +209,171 @@ watch([fullscreenUrl, forwardedDialogVisible], ([url, dialog]) => {
   }
 });
 
+// Avatar hover card
+const hoverVisible = ref(false);
+const hoverRect = ref<DOMRect | null>(null);
+const hoverMember = ref<MemberInfo | null>(null);
+let hoverTimer: ReturnType<typeof setTimeout> | null = null;
+
+function getMember(id: string): MemberInfo | null {
+  return props.members?.find(m => m.id === id) ?? null;
+}
+
+function onAvatarEnter(e: MouseEvent) {
+  const member = getMember(props.message.from);
+  if (!member) return;
+  if (hoverTimer) clearTimeout(hoverTimer);
+  hoverTimer = setTimeout(() => {
+    hoverMember.value = member;
+    hoverRect.value = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    hoverVisible.value = true;
+  }, 150);
+}
+
+function onAvatarLeave() {
+  if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+  hoverTimer = setTimeout(() => { hoverVisible.value = false; }, 100);
+}
+
+function onCardEnter() {
+  if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
+}
+
+function onCardLeave() {
+  hoverTimer = setTimeout(() => { hoverVisible.value = false; }, 100);
+}
+
 onUnmounted(() => {
   document.removeEventListener("keydown", handleFullscreenKey);
+  if (hoverTimer) clearTimeout(hoverTimer);
 });
 </script>
 
 <template>
+  <div
+    v-if="isChannel && !message.mine"
+    class="bubble-row channel-row"
+    :data-id="message.id"
+  >
+    <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
+      <svg v-if="selected" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="channel-avatar" @mouseenter="onAvatarEnter" @mouseleave="onAvatarLeave">
+      <img v-if="getAvatarUrl(message.from)" :src="getAvatarUrl(message.from)!" class="channel-avatar-img" />
+      <template v-else>{{ getDisplayName(message.from).charAt(0).toUpperCase() }}</template>
+    </div>
+    <div class="channel-body">
+      <div class="channel-meta">
+        <span class="channel-sender">{{ getDisplayName(message.from) }}</span>
+        <span class="channel-time">{{ formatTime(message.timestamp) }}</span>
+      </div>
+      <div
+        ref="bubbleRef"
+        class="bubble channel-bubble"
+        :class="{ selected: selected && selectMode }"
+        @click="selectMode && emit('toggleSelect', message.id)"
+        @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)"
+      >
+        <!-- Quote card -->
+        <div v-if="message.quote" class="quote-card" :class="{ revoked: isQuoteRevoked }" @click.stop="handleQuoteClick">
+          <span class="quote-sender">{{ getDisplayName(message.quote.from) }}</span>
+          <span class="quote-text">{{ quoteDisplayText }}</span>
+        </div>
+
+        <div v-if="!message.forwarded?.length" class="content" v-html="renderedHtml"></div>
+
+        <!-- Forwarded -->
+        <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>
+          <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+        <!-- Attachments -->
+        <div v-if="message.attachments?.length" class="attachments">
+        <template v-for="(att, i) in message.attachments" :key="i">
+          <div v-if="att.type === 'image'" class="image-card" @click="openFullscreen(att)">
+            <img :src="att.url" :alt="att.name" loading="lazy" />
+          </div>
+          <a v-else :href="att.url" class="file-card" target="_blank" rel="noopener">
+            <div class="file-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+            </div>
+            <div class="file-info">
+              <span class="file-name">{{ att.name }}</span>
+              <span class="file-size">{{ formatSize(att.size) }}</span>
+            </div>
+            <svg class="file-download" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </a>
+        </template>
+      </div>
+      </div>
+    </div>
+    <span v-if="message.source === 'ai-auto'" class="ai-badge-inline">{{ $t('chat.aiAutoReply') }}</span>
+  </div>
+
+  <div
+    v-else-if="isChannel && message.mine"
+    class="bubble-row channel-row mine"
+    :data-id="message.id"
+  >
+    <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
+      <svg v-if="selected" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="channel-body mine">
+      <div class="channel-meta mine">
+        <span v-if="message.source === 'ai-auto'" class="ai-badge-inline">{{ $t('chat.aiAutoReply') }}</span>
+        <span class="channel-time">{{ formatTime(message.timestamp) }}</span>
+      </div>
+      <div class="channel-msg-row mine">
+        <div
+          ref="bubbleRef"
+          class="bubble mine channel-bubble"
+          :class="{ selected: selected && selectMode }"
+          @click="selectMode && emit('toggleSelect', message.id)"
+          @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)"
+        >
+          <div v-if="message.quote" class="quote-card" :class="{ revoked: isQuoteRevoked }" @click.stop="handleQuoteClick">
+            <span class="quote-sender">{{ getDisplayName(message.quote.from) }}</span>
+            <span class="quote-text">{{ quoteDisplayText }}</span>
+          </div>
+
+          <div v-if="!message.forwarded?.length" class="content" v-html="renderedHtml"></div>
+
+          <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>
+            <svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+
+          <div v-if="message.attachments?.length" class="attachments">
+          <template v-for="(att, i) in message.attachments" :key="i">
+            <div v-if="att.type === 'image'" class="image-card" @click="openFullscreen(att)">
+              <img :src="att.url" :alt="att.name" loading="lazy" />
+            </div>
+            <a v-else :href="att.url" class="file-card" target="_blank" rel="noopener">
+              <div class="file-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+              </div>
+              <div class="file-info">
+                <span class="file-name">{{ att.name }}</span>
+                <span class="file-size">{{ formatSize(att.size) }}</span>
+              </div>
+              <svg class="file-download" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </a>
+          </template>
+        </div>
+        </div>
+        <div class="channel-avatar mine-avatar" @mouseenter="onAvatarEnter" @mouseleave="onAvatarLeave">
+          <img v-if="getAvatarUrl(message.from)" :src="getAvatarUrl(message.from)!" class="channel-avatar-img" />
+          <template v-else>{{ getDisplayName(message.from).charAt(0).toUpperCase() }}</template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Original non-channel layout -->
+  <template v-else>
   <div class="bubble-row" :class="{ mine: message.mine }" :data-id="message.id">
     <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
       <svg v-if="selected" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
@@ -264,6 +427,7 @@ onUnmounted(() => {
     <span v-if="message.source === 'ai-auto'" class="ai-badge">{{ $t('chat.aiAutoReply') }}</span>
     <span class="time">{{ formatTime(message.timestamp) }}</span>
   </div>
+  </template>
 
   <!-- Fullscreen image overlay -->
   <Teleport to="body">
@@ -347,6 +511,16 @@ onUnmounted(() => {
       </div>
     </Transition>
   </Teleport>
+
+  <!-- Avatar hover card -->
+  <MemberHoverCard
+    v-if="hoverMember"
+    :member="hoverMember"
+    :rect="hoverRect"
+    :visible="hoverVisible"
+    @mouseenter="onCardEnter"
+    @mouseleave="onCardLeave"
+  />
 </template>
 
 <style scoped>
@@ -669,6 +843,16 @@ onUnmounted(() => {
   text-decoration: underline;
 }
 
+.bubble.mine .content :deep(a) {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+.bubble.mine .content :deep(a:hover) {
+  color: #fff;
+}
+
 .content :deep(ul),
 .content :deep(ol) {
   margin: 0.4em 0;
@@ -936,6 +1120,111 @@ onUnmounted(() => {
 .viewer-leave-to .fullscreen-toolbar {
   transform: translateX(-50%) translateY(6px);
   opacity: 0;
+}
+
+/* Channel group chat layout */
+.channel-row {
+  max-width: 90%;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.channel-row.mine {
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.channel-msg-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.channel-msg-row.mine {
+  flex-direction: row;
+}
+
+.channel-avatar.mine-avatar {
+  margin-top: 2px;
+}
+
+.channel-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.8em;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.channel-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.channel-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.channel-body.mine {
+  align-items: flex-end;
+}
+
+.channel-meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding: 0 4px;
+}
+
+.channel-meta.mine {
+  justify-content: flex-end;
+}
+
+.channel-sender {
+  font-size: 0.78em;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.channel-time {
+  font-size: 0.68em;
+  color: var(--text-muted);
+}
+
+.channel-bubble {
+  border-radius: 12px;
+}
+
+.channel-bubble.mine {
+  border-bottom-right-radius: 4px;
+}
+
+.channel-bubble:not(.mine) {
+  border-bottom-left-radius: 4px;
+}
+
+.ai-badge-inline {
+  font-size: 0.68em;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  white-space: nowrap;
+  align-self: center;
 }
 
 .sender-name {

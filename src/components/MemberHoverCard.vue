@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import type { MemberInfo } from "../types";
+import { useUserProfile } from "../composables/useUserProfile";
+
+const { t } = useI18n();
+const { getDisplayName, getAvatarUrl } = useUserProfile();
 
 const props = defineProps<{
   member: MemberInfo;
@@ -19,10 +24,6 @@ const position = computed(() => {
   const top = `${props.rect.top}px`;
   return { left, top };
 });
-
-function getInitial(name: string): string {
-  return name.charAt(0).toUpperCase();
-}
 </script>
 
 <template>
@@ -32,26 +33,31 @@ function getInitial(name: string): string {
         v-if="visible && rect"
         class="hover-card"
         :style="position"
+        @mouseenter="$emit('mouseenter')"
+        @mouseleave="$emit('mouseleave')"
       >
         <div class="hover-card-header">
-          <div class="hover-card-avatar">{{ getInitial(member.id) }}</div>
+          <div class="hover-card-avatar">
+            <img v-if="getAvatarUrl(member.id)" :src="getAvatarUrl(member.id)!" class="hover-card-avatar-img" />
+            <template v-else>{{ getDisplayName(member.id).charAt(0).toUpperCase() }}</template>
+          </div>
           <div class="hover-card-identity">
-            <span class="hover-card-name">{{ member.id }}</span>
+            <span class="hover-card-name">{{ getDisplayName(member.id) }}</span>
             <div class="hover-card-meta">
               <span class="hover-card-role" :class="member.role">{{ member.role }}</span>
               <span class="hover-card-status">
                 <span class="status-indicator" :class="member.status"></span>
-                {{ member.status === 'online' ? 'Online' : 'Offline' }}
+                {{ member.status === 'online' ? t('sidebar.members') + ' Online' : 'Offline' }}
               </span>
             </div>
           </div>
         </div>
         <div v-if="member.responsibilities" class="hover-card-section">
-          <span class="hover-card-label">Responsibilities</span>
+          <span class="hover-card-label">{{ t('task.dispatch.responsibilities', 'Responsibilities') }}</span>
           <span class="hover-card-text">{{ member.responsibilities }}</span>
         </div>
         <div v-if="member.capabilities" class="hover-card-section">
-          <span class="hover-card-label">Capabilities</span>
+          <span class="hover-card-label">{{ t('task.dispatch.capabilities', 'Capabilities') }}</span>
           <span class="hover-card-text">{{ member.capabilities }}</span>
         </div>
       </div>
@@ -107,6 +113,13 @@ function getInitial(name: string): string {
   font-weight: 600;
   font-size: 0.85em;
   flex-shrink: 0;
+}
+
+.hover-card-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .hover-card-identity {

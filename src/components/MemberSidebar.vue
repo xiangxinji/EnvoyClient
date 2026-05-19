@@ -303,7 +303,7 @@ function getInitial(name: string): string {
       </ul>
 
       <div class="sidebar-header">
-        <h3>{{ t('sidebar.channel', '# General') }}</h3>
+        <h3>{{ t('sidebar.channel') }}</h3>
       </div>
       <ul class="nav-group">
         <li
@@ -317,7 +317,7 @@ function getInitial(name: string): string {
             </svg>
           </div>
           <div class="member-info">
-            <span class="member-name">General</span>
+            <span class="member-name">{{ t('sidebar.channelGeneral') }}</span>
           </div>
           <span v-if="channelUnread > 0" class="badge">
             {{ formatBadge(channelUnread) }}

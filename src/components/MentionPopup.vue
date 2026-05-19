@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from "vue";
 import type { MemberInfo } from "../types";
+import { useUserProfile } from "../composables/useUserProfile";
 
 const props = defineProps<{
   visible: boolean;
@@ -14,6 +15,8 @@ const emit = defineEmits<{
   close: [];
 }>();
 
+const { getDisplayName, getAvatarUrl } = useUserProfile();
+
 const listRef = ref<HTMLDivElement | null>(null);
 const selectedIndex = ref(0);
 
@@ -25,7 +28,7 @@ const filteredOptions = computed(() => {
   for (const m of props.members) {
     if (m.id === props.myId) continue;
     if (!props.query || m.id.toLowerCase().includes(props.query.toLowerCase())) {
-      options.push({ id: m.id, label: m.id });
+      options.push({ id: m.id, label: getDisplayName(m.id) });
     }
   }
   return options;
@@ -79,6 +82,7 @@ defineExpose({ handleKeydown });
       @mouseenter="selectedIndex = idx"
     >
       <span v-if="opt.id === 'all'" class="mention-icon">@</span>
+      <img v-else-if="getAvatarUrl(opt.id)" :src="getAvatarUrl(opt.id)!" class="mention-avatar-img" />
       <span v-else class="mention-avatar">{{ opt.label.charAt(0).toUpperCase() }}</span>
       <span class="mention-label">{{ opt.id === 'all' ? 'all' : opt.label }}</span>
     </div>
@@ -129,6 +133,14 @@ defineExpose({ handleKeydown });
   justify-content: center;
   font-size: 0.65em;
   font-weight: 600;
+  flex-shrink: 0;
+}
+
+.mention-avatar-img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
   flex-shrink: 0;
 }
 

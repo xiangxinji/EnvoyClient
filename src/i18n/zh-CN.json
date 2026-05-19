@@ -62,12 +62,15 @@
     "searchPlaceholder": "搜索工具或成员...",
     "noResults": "无匹配结果",
     "searchClear": "清除搜索",
+    "channel": "频道",
+    "channelGeneral": "综合频道",
     "cloudResourcesDesc": "上传、下载和管理团队共享的云端文件资源。",
     "taskCenterDesc": "按状态查看所有任务，追踪进度并查看任务详情。",
     "taskDispatchDesc": "创建新任务，AI 辅助匹配合适成员并智能分派。"
   },
   "chat": {
     "selectPeer": "选择一位成员开始聊天",
+    "members": "位成员",
     "offline": "离线",
     "actions": "操作",
     "clearHistory": "清除聊天记录",
@@ -225,6 +228,7 @@
     "aiAutoReplyOn": "开启",
     "aiAutoReplyOff": "关闭",
     "taskModeChanged": "任务执行模式切换为「{mode}」",
+    "channelMention": "在群聊中提到了你",
     "modeAuto": "自动",
     "modeManual": "手动"
   },
