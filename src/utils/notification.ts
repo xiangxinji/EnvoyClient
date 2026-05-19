@@ -32,6 +32,48 @@ export async function sendDesktopNotification(title: string, body: string): Prom
   }
 }
 
+let attentionRequested = false;
+
+/** Flash the taskbar button (Windows) / bounce the dock icon (macOS) to alert the user. */
+export async function requestTaskbarAttention(): Promise<void> {
+  if (!isTauri || attentionRequested) return;
+  try {
+    const { getCurrentWindow, UserAttentionType } = await import("@tauri-apps/api/window");
+    await getCurrentWindow().requestUserAttention(UserAttentionType.Critical);
+    attentionRequested = true;
+  } catch {
+    // Silently skip if not supported
+  }
+}
+
+/** Stop taskbar flashing — call when the window gains focus. */
+export async function cancelTaskbarAttention(): Promise<void> {
+  if (!isTauri || !attentionRequested) return;
+  try {
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    await getCurrentWindow().requestUserAttention(null);
+    attentionRequested = false;
+  } catch {
+    // Silently skip
+  }
+}
+
+/** Update the dock/taskbar badge with the total unread count (macOS Dock / Windows 10+). */
+export async function updateDockBadge(count: number): Promise<void> {
+  if (!isTauri) return;
+  try {
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    await getCurrentWindow().setBadgeCount(count > 0 ? count : undefined);
+  } catch {
+    // Silently skip if not supported
+  }
+}
+
+/** Reset all notification state (call on logout). */
+export function resetNotificationState(): void {
+  attentionRequested = false;
+}
+
 export async function downloadFileWithDialog(
   url: string,
   filename: string,

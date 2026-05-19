@@ -4,6 +4,7 @@ import TitleBar from "./components/TitleBar.vue";
 import CloseConfirmDialog from "./components/CloseConfirmDialog.vue";
 import { useTheme } from "./composables/useTheme";
 import { useTeamClientInstance } from "./composables/teamClientContext";
+import { cancelTaskbarAttention } from "./utils/notification";
 
 useTheme();
 
@@ -92,6 +93,7 @@ onMounted(async () => {
   }
 
   window.addEventListener("contextmenu", preventContextMenu);
+  window.addEventListener("focus", cancelTaskbarAttention);
 
   if (isTauri) {
     window.addEventListener("keydown", preventRefresh);
@@ -111,6 +113,7 @@ onMounted(async () => {
 onUnmounted(() => {
   unlisten?.();
   window.removeEventListener("contextmenu", preventContextMenu);
+  window.removeEventListener("focus", cancelTaskbarAttention);
   if (isTauri) {
     window.removeEventListener("keydown", preventRefresh);
   }

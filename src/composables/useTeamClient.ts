@@ -1,4 +1,5 @@
 import { i18n } from "../i18n";
+import { watch } from "vue";
 import type { MemberInfo } from "../types";
 import type { Message } from "@envoy/core";
 import type { Task } from "../../envoy/packages/core/task.js";
@@ -9,7 +10,7 @@ import { useTaskExecution } from "./useTaskExecution";
 import { useAutoReply } from "./useAutoReply";
 import { getMemberSettings, setTeamClientInstance } from "./teamClientContext";
 import { managerPost } from "../api";
-import { sendDesktopNotification } from "../utils/notification";
+import { sendDesktopNotification, requestTaskbarAttention, updateDockBadge, cancelTaskbarAttention, resetNotificationState } from "../utils/notification";
 
 export type { ConnectionStatus };
 export type { ConnectionClientOptions as TeamClientOptions };
@@ -83,10 +84,16 @@ export function useTeamClient(
         `${payload.from} ${i18n.global.t('notification.channelMention', 'mentioned you in #General')}`,
         payload.text,
       );
+      requestTaskbarAttention();
       return;
     }
 
     msg.handleIncomingMessage(msgObj);
+
+    // Flash taskbar if message is from someone else (window likely unfocused)
+    if (msgObj.type === "message" && msgObj.from !== conn.myId) {
+      requestTaskbarAttention();
+    }
 
     // Trigger auto-reply if enabled and message is from someone else (exclude channel messages)
     if (msgObj.type === "message" && msgObj.subtype === "chat" && msgObj.from !== conn.myId) {
@@ -151,6 +158,15 @@ export function useTeamClient(
   // Register task execution handler
   taskExec.registerHandler(conn.client);
 
+  // Sync unread counts to dock/taskbar badge (macOS Dock, Windows 10+)
+  watch(msg.unreadCounts, (counts) => {
+    let total = 0;
+    for (const count of counts.values()) {
+      total += count;
+    }
+    updateDockBadge(total);
+  });
+
   // ─── Public interface ───
 
   function dispatchTask(targetIds: string[], content: string) {
@@ -165,6 +181,9 @@ export function useTeamClient(
   function logout() {
     conn.disconnect();
     autoReply.dispose();
+    updateDockBadge(0);
+    cancelTaskbarAttention();
+    resetNotificationState();
     setTeamClientInstance(null);
   }
 
