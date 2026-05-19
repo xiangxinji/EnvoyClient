@@ -75,10 +75,23 @@ export function useTeamClient(
       }
       return;
     }
+
+    // channel-mention notification
+    if (msgObj.type === "notify" && msgObj.subtype === "channel-mention") {
+      const payload = msgObj.payload as { from: string; channel: string; text: string };
+      sendDesktopNotification(
+        `${payload.from} ${i18n.global.t('notification.channelMention', 'mentioned you in #General')}`,
+        payload.text,
+      );
+      return;
+    }
+
     msg.handleIncomingMessage(msgObj);
 
-    // Trigger auto-reply if enabled and message is from someone else
+    // Trigger auto-reply if enabled and message is from someone else (exclude channel messages)
     if (msgObj.type === "message" && msgObj.subtype === "chat" && msgObj.from !== conn.myId) {
+      const payload = msgObj.payload as { channel?: string };
+      if (payload.channel) return; // Skip auto-reply for channel messages
       if (memberSettings.value.ai_auto_reply) {
         autoReply.trigger(msgObj.from, memberSettings.value.ai_suggestion_history_count);
       }

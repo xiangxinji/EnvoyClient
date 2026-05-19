@@ -12,6 +12,8 @@ const props = defineProps<{
   selectMode?: boolean;
   selected?: boolean;
   timeline?: TimelineItem[];
+  showSender?: boolean;
+  memberIds?: string[];
 }>();
 
 const emit = defineEmits<{
@@ -53,9 +55,22 @@ const renderer = {
 };
 marked.use({ renderer });
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 const renderedHtml = computed(() => {
-  const raw = marked.parse(props.message.text) as string;
-  return DOMPurify.sanitize(raw);
+  let rawText = props.message.text;
+  if (props.message.mentions && props.message.mentions.length > 0) {
+    const expanded = props.message.mentions.flatMap(m =>
+      m === "all" && props.memberIds ? props.memberIds : [m]
+    );
+    for (const m of expanded) {
+      rawText = rawText.replace(new RegExp(`@${escapeRegex(m)}(?!\\w)`, "g"), `<span class="mention-highlight">@${m}</span>`);
+    }
+  }
+  const raw = marked.parse(rawText) as string;
+  return DOMPurify.sanitize(raw, { ADD_TAGS: ["span"], ADD_ATTR: ["class"] });
 });
 
 function formatTime(ts: number): string {
@@ -205,6 +220,7 @@ onUnmounted(() => {
       @click="selectMode && emit('toggleSelect', message.id)"
       @contextmenu.prevent="!selectMode && bubbleRef && emit('contextmenu', bubbleRef.getBoundingClientRect(), message)"
     >
+      <span v-if="showSender" class="sender-name">{{ message.from }}</span>
       <!-- Quote card -->
       <div v-if="message.quote" class="quote-card" :class="{ revoked: isQuoteRevoked }" @click.stop="handleQuoteClick">
         <span class="quote-sender">{{ message.quote.from }}</span>
@@ -918,5 +934,21 @@ onUnmounted(() => {
 .viewer-leave-to .fullscreen-toolbar {
   transform: translateX(-50%) translateY(6px);
   opacity: 0;
+}
+
+.sender-name {
+  display: block;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+:deep(.mention-highlight) {
+  color: var(--accent);
+  font-weight: 600;
+  background: var(--accent-light);
+  padding: 0 3px;
+  border-radius: 3px;
 }
 </style>

@@ -41,6 +41,8 @@ export interface ChatMessage {
   attachments?: MessageAttachment[];
   forwarded?: ForwardedRecord[];
   quote?: QuoteInfo;
+  channel?: string;
+  mentions?: string[];
 }
 
 export interface ToolCallRecord {

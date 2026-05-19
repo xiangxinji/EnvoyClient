@@ -139,11 +139,14 @@ const navItems = computed(() => {
   const items: string[] = ["__cloud__"];
   items.push("__tasks__");
   if (ctx.role === "leader") items.push("__dispatch__");
+  items.push("__team__");
   for (const m of members.value) {
     items.push(m.id);
   }
   return items;
 });
+
+const channelUnread = computed(() => unreadCounts.value.get("__team__") ?? 0);
 
 function handleKeyDown(e: KeyboardEvent) {
   if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
@@ -295,6 +298,29 @@ function getInitial(name: string): string {
           </div>
           <span v-if="tool.id === '__tasks__' && taskCount > 0" class="badge badge-task">
             {{ formatBadge(taskCount) }}
+          </span>
+        </li>
+      </ul>
+
+      <div class="sidebar-header">
+        <h3>{{ t('sidebar.channel', '# General') }}</h3>
+      </div>
+      <ul class="nav-group">
+        <li
+          class="channel-entry"
+          :class="{ active: '__team__' === selectedPeer }"
+          @click="handleClick('__team__')"
+        >
+          <div class="avatar channel-avatar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </div>
+          <div class="member-info">
+            <span class="member-name">General</span>
+          </div>
+          <span v-if="channelUnread > 0" class="badge">
+            {{ formatBadge(channelUnread) }}
           </span>
         </li>
       </ul>
@@ -588,6 +614,21 @@ li.active {
 /* Task center / dispatch entries */
 .task-center-entry {
   padding: 6px var(--space-sm);
+}
+
+/* Channel entry */
+.channel-entry {
+  padding: 6px var(--space-sm);
+}
+
+.channel-avatar {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.channel-avatar svg {
+  width: 14px;
+  height: 14px;
 }
 
 .task-center-avatar {

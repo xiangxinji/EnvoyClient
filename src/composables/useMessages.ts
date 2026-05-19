@@ -19,6 +19,8 @@ interface SyncMessage {
   content: string;
   extra: string | null;
   source: string;
+  channel: string | null;
+  mentions: string | null;
   created_at: number;
 }
 
@@ -35,6 +37,7 @@ export function useMessages(
 
   function addToConversation(peerId: string, item: TimelineItem) {
     const conv = messages.value.get(peerId) ?? [];
+    if (item.id && conv.some(t => t.id === item.id)) return;
     conv.push(item);
     messages.value.set(peerId, conv);
   }
@@ -78,6 +81,8 @@ export function useMessages(
       attachments: extra.attachments as MessageAttachment[] | undefined,
       forwarded: extra.forwarded as ForwardedRecord[] | undefined,
       quote: extra.quote as QuoteInfo | undefined,
+      channel: msg.channel ?? undefined,
+      mentions: msg.mentions ? JSON.parse(msg.mentions) as string[] : undefined,
     } satisfies ChatMessage;
   }
 
@@ -95,7 +100,7 @@ export function useMessages(
 
         for (const msg of data.messages) {
           const item = syncMessageToTimeline(msg);
-          const peerId = msg.from_user === myId ? msg.to_user : msg.from_user;
+          const peerId = msg.channel ? "__team__" : (msg.from_user === myId ? msg.to_user : msg.from_user);
           addToConversation(peerId, item);
         }
 
@@ -132,7 +137,7 @@ export function useMessages(
     }
 
     if (msg.type === "message" && msg.subtype === "chat") {
-      const payload = msg.payload as { text: string; id?: string; seq?: number; source?: string; attachments?: MessageAttachment[]; forwarded?: ForwardedRecord[]; quote?: QuoteInfo };
+      const payload = msg.payload as { text: string; id?: string; seq?: number; source?: string; attachments?: MessageAttachment[]; forwarded?: ForwardedRecord[]; quote?: QuoteInfo; channel?: string; mentions?: string[] };
       if (payload.attachments) {
         for (const att of payload.attachments) {
           if (att.url.startsWith("/")) att.url = apiUrl(att.url);
@@ -151,8 +156,10 @@ export function useMessages(
         attachments: payload.attachments,
         forwarded: payload.forwarded,
         quote: payload.quote,
+        channel: payload.channel,
+        mentions: payload.mentions,
       };
-      const peerId = msg.from === myId ? msg.to : msg.from;
+      const peerId = payload.channel ? "__team__" : (msg.from === myId ? msg.to : msg.from);
       addToConversation(peerId, chatMsg);
       if (msg.from !== myId) {
         incrementUnread(peerId);
@@ -204,16 +211,22 @@ export function useMessages(
     }
   }
 
-  async function sendChat(targetId: string, text: string, options?: { attachments?: MessageAttachment[]; source?: "human" | "ai-auto"; forwarded?: ForwardedRecord[]; quote?: QuoteInfo }) {
+  async function sendChat(targetId: string, text: string, options?: { attachments?: MessageAttachment[]; source?: "human" | "ai-auto"; forwarded?: ForwardedRecord[]; quote?: QuoteInfo; channel?: string; mentions?: string[] }) {
     const attachments = options?.attachments;
     const source = options?.source;
     const forwarded = options?.forwarded;
     const quote = options?.quote;
-    const body: Record<string, unknown> = { from: myId, to: targetId, text };
+    const channel = options?.channel;
+    const mentions = options?.mentions;
+    const isChannel = !!channel;
+    const body: Record<string, unknown> = { from: myId, text };
+    if (!isChannel) body.to = targetId;
     if (attachments?.length) body.attachments = attachments;
     if (source) body.source = source;
     if (forwarded?.length) body.forwarded = forwarded;
     if (quote) body.quote = quote;
+    if (channel) body.channel = channel;
+    if (mentions?.length) body.mentions = mentions;
 
     try {
       const res = await managerPost("/api/messages", body, { team: teamName });
@@ -224,7 +237,7 @@ export function useMessages(
         id: data.id,
         seq: data.seq,
         from: myId,
-        to: targetId,
+        to: isChannel ? "__team__" : targetId,
         text,
         timestamp: Date.now(),
         mine: true,
@@ -232,8 +245,10 @@ export function useMessages(
         attachments: attachments?.length ? attachments : undefined,
         forwarded: forwarded?.length ? forwarded : undefined,
         quote,
+        channel,
+        mentions,
       };
-      addToConversation(targetId, chatMsg);
+      addToConversation(isChannel ? "__team__" : targetId, chatMsg);
     } catch {
       // Fallback: show message optimistically with temp ID
       const chatMsg: ChatMessage = {
@@ -241,7 +256,7 @@ export function useMessages(
         id: `${Date.now()}-local`,
         seq: 0,
         from: myId,
-        to: targetId,
+        to: isChannel ? "__team__" : targetId,
         text,
         timestamp: Date.now(),
         mine: true,
@@ -249,8 +264,10 @@ export function useMessages(
         attachments: attachments?.length ? attachments : undefined,
         forwarded: forwarded?.length ? forwarded : undefined,
         quote,
+        channel,
+        mentions,
       };
-      addToConversation(targetId, chatMsg);
+      addToConversation(isChannel ? "__team__" : targetId, chatMsg);
     }
   }
 

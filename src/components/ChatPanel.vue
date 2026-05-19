@@ -9,6 +9,7 @@ import ConfirmDialog from "./ConfirmDialog.vue";
 import Toast from "./Toast.vue";
 import RichEditor from "./RichEditor.vue";
 import ForwardDialog from "./ForwardDialog.vue";
+import MentionPopup from "./MentionPopup.vue";
 import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, ForwardedRecord, QuoteInfo } from "../types";
 import { isImageMime, formatFileSize, compressImage } from "../utils/imageCompress";
 import { apiUrl } from "../api";
@@ -24,7 +25,16 @@ const emit = defineEmits<{
 const ctx = inject(TeamClientKey)!;
 const { getConversation, sendChat, dispatchTask, role, myId, markRead, members, teamName, clearConversation, revokeMessage } = ctx;
 
+const isChannel = computed(() => props.peerId === "__team__");
+const memberIds = computed(() => members.value.map(m => m.id));
+
+const headerTitle = computed(() => {
+  if (isChannel.value) return "# General";
+  return props.peerId;
+});
+
 const peerStatus = computed(() => {
+  if (isChannel.value) return undefined;
   const m = members.value.find((m) => m.id === props.peerId);
   return m?.status;
 });
@@ -34,6 +44,60 @@ const taskContent = ref("");
 const messageList = ref<HTMLDivElement | null>(null);
 const menuOpen = ref(false);
 const confirmVisible = ref(false);
+
+// @mention state for channel mode
+const currentMentions = ref<string[]>([]);
+const mentionPopupVisible = ref(false);
+const mentionQuery = ref("");
+const mentionPopupRef = ref<InstanceType<typeof MentionPopup> | null>(null);
+
+function handleEditorInput() {
+  if (!isChannel.value) return;
+  const editor = richEditorRef.value?.editor;
+  if (!editor) return;
+  const text = editor.getText();
+  const cursorPos = editor.state.selection.from;
+  const textBefore = text.substring(0, Math.min(cursorPos, text.length));
+  const atMatch = textBefore.match(/@(\w*)$/);
+  if (atMatch) {
+    mentionQuery.value = atMatch[1] ?? "";
+    mentionPopupVisible.value = true;
+  } else {
+    mentionPopupVisible.value = false;
+  }
+}
+
+function handleMentionSelect(memberId: string) {
+  const editor = richEditorRef.value?.editor;
+  if (!editor) return;
+  const text = editor.getText();
+  const cursorPos = editor.state.selection.from;
+  const textBefore = text.substring(0, Math.min(cursorPos, text.length));
+  const atMatch = textBefore.match(/@(\w*)$/);
+  if (atMatch) {
+    const from = cursorPos - (atMatch[0]?.length ?? 0);
+    editor.chain().focus().deleteRange({ from, to: cursorPos }).insertContent(`@${memberId} `).run();
+  }
+  if (!currentMentions.value.includes(memberId)) {
+    currentMentions.value.push(memberId);
+  }
+  mentionPopupVisible.value = false;
+}
+
+function handleMentionClose() {
+  mentionPopupVisible.value = false;
+}
+
+function handleEditorKeydown(e: KeyboardEvent) {
+  if (mentionPopupVisible.value) {
+    const handled = ["ArrowDown", "ArrowUp", "Enter", "Tab", "Escape"];
+    if (handled.includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    mentionPopupRef.value?.handleKeydown(e);
+  }
+}
 const toastVisible = ref(false);
 const toastMessage = ref("");
 const richEditorRef = ref<InstanceType<typeof RichEditor> | null>(null);
@@ -235,8 +299,10 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
     ? { id: quotingMsg.value.id, from: quotingMsg.value.from, text: generateSnapshotText(quotingMsg.value), timestamp: quotingMsg.value.timestamp }
     : undefined;
 
-  sendChat(props.peerId, text || " ", { attachments: attachments.length > 0 ? attachments : undefined, quote: quoteInfo });
+  sendChat(props.peerId, text || " ", { attachments: attachments.length > 0 ? attachments : undefined, quote: quoteInfo, channel: isChannel.value ? "general" : undefined, mentions: isChannel.value ? currentMentions.value : undefined });
 
+  currentMentions.value = [];
+  mentionPopupVisible.value = false;
   if (quoteInfo) quotingMsg.value = null;
 }
 
@@ -498,8 +564,9 @@ onBeforeUnmount(() => {
 
     <template v-else>
       <div class="header">
-        <span class="header-name">{{ peerId }}</span>
-        <span v-if="peerStatus === 'offline'" class="header-status offline">{{ $t('chat.offline') }}</span>
+        <span class="header-name">{{ headerTitle }}</span>
+        <span v-if="isChannel" class="header-subtitle">{{ members.length }} {{ $t('chat.members', 'members') }}</span>
+        <span v-else-if="peerStatus === 'offline'" class="header-status offline">{{ $t('chat.offline') }}</span>
         <div class="header-actions">
           <button class="btn-menu" @click="menuOpen = !menuOpen" :title="$t('chat.actions')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
@@ -530,6 +597,8 @@ onBeforeUnmount(() => {
             v-else-if="item.type === 'chat'"
             :message="item"
             :my-id="myId"
+            :show-sender="isChannel"
+            :member-ids="isChannel ? memberIds : undefined"
             :select-mode="selectMode"
             :selected="selectedIds.has(item.id)"
             :timeline="conversation"
@@ -641,7 +710,19 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Rich text editor -->
-        <RichEditor ref="richEditorRef" @send="handleRichSend" />
+        <div class="editor-wrapper" style="position: relative;">
+          <MentionPopup
+            v-if="isChannel"
+            ref="mentionPopupRef"
+            :visible="mentionPopupVisible"
+            :members="members"
+            :query="mentionQuery"
+            :my-id="myId"
+            @select="handleMentionSelect"
+            @close="handleMentionClose"
+          />
+          <RichEditor ref="richEditorRef" @send="handleRichSend" @input="handleEditorInput" @keydown="handleEditorKeydown" />
+        </div>
       </div>
     </template>
 
