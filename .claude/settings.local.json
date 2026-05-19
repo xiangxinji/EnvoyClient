@@ -93,7 +93,14 @@
       "Bash(openspec done *)",
       "Bash(openspec --help)",
       "Bash(openspec change *)",
-      "Skill(opsx:continue)"
+      "Skill(opsx:continue)",
+      "Bash(cd C:\\\\Users\\\\xiangxj\\\\Desktop\\\\workspace\\\\EnvoyClient *)",
+      "Bash(cd *)",
+      "Bash(python *)",
+      "Bash(sed -i '27s/^n//' src/components/MessageBubble.vue)",
+      "Bash(sed -i '26a\\\\\\\\' src/components/MessageBubble.vue)",
+      "Bash(git commit *)",
+      "Skill(superpowers:brainstorming)"
     ]
   },
   "enabledPlugins": {
