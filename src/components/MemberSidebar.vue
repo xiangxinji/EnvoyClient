@@ -6,6 +6,7 @@ import GlassInput from "./GlassInput.vue";
 import MemberHoverCard from "./MemberHoverCard.vue";
 import ToolHoverCard from "./ToolHoverCard.vue";
 import { useSidebarSearch } from "../composables/useSidebarSearch";
+import { useHoverCard } from "../composables/useHoverCard";
 import type { TaskExecutionMode } from "../composables/useMemberSettings";
 import type { MemberInfo } from "../types";
 
@@ -37,102 +38,21 @@ const {
 
 const searchInputRef = ref<InstanceType<typeof GlassInput> | null>(null);
 
-// Hover card state
-const hoveredMember = ref<MemberInfo | null>(null);
-const hoverRect = ref<DOMRect | null>(null);
-const hoverCardVisible = ref(false);
-let showTimer: ReturnType<typeof setTimeout> | null = null;
-let hideTimer: ReturnType<typeof setTimeout> | null = null;
+const memberHover = useHoverCard<MemberInfo>();
+const toolHover = useHoverCard<string>();
 
-function handleMemberEnter(m: MemberInfo, e: MouseEvent) {
-  if (hideTimer) {
-    clearTimeout(hideTimer);
-    hideTimer = null;
-  }
-  const target = e.currentTarget as HTMLElement;
-  showTimer = setTimeout(() => {
-    hoveredMember.value = m;
-    hoverRect.value = target.getBoundingClientRect();
-    hoverCardVisible.value = true;
-  }, 150);
-}
+function handleMemberEnter(m: MemberInfo, e: MouseEvent) { memberHover.show(m, e.currentTarget as HTMLElement); }
+function handleMemberLeave() { memberHover.scheduleHide(); }
+function handleCardEnter() { memberHover.cancelHide(); }
+function handleCardLeave() { memberHover.scheduleHide(); }
 
-function handleMemberLeave() {
-  if (showTimer) {
-    clearTimeout(showTimer);
-    showTimer = null;
-  }
-  hideTimer = setTimeout(() => {
-    hoverCardVisible.value = false;
-  }, 100);
-}
+const toolDescMap: Record<string, string> = { __cloud__: "sidebar.cloudResourcesDesc", __tasks__: "sidebar.taskCenterDesc", __dispatch__: "sidebar.taskDispatchDesc" };
+const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch"> = { __cloud__: "cloud", __tasks__: "tasks", __dispatch__: "dispatch" };
 
-function handleCardEnter() {
-  if (hideTimer) {
-    clearTimeout(hideTimer);
-    hideTimer = null;
-  }
-}
-
-function handleCardLeave() {
-  hideTimer = setTimeout(() => {
-    hoverCardVisible.value = false;
-  }, 100);
-}
-
-// Tool hover card state
-const toolDescMap: Record<string, string> = {
-  __cloud__: "sidebar.cloudResourcesDesc",
-  __tasks__: "sidebar.taskCenterDesc",
-  __dispatch__: "sidebar.taskDispatchDesc",
-};
-const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch"> = {
-  __cloud__: "cloud",
-  __tasks__: "tasks",
-  __dispatch__: "dispatch",
-};
-
-const hoveredToolId = ref<string | null>(null);
-const toolHoverRect = ref<DOMRect | null>(null);
-const toolCardVisible = ref(false);
-let toolShowTimer: ReturnType<typeof setTimeout> | null = null;
-let toolHideTimer: ReturnType<typeof setTimeout> | null = null;
-
-function handleToolEnter(toolId: string, e: MouseEvent) {
-  if (toolHideTimer) {
-    clearTimeout(toolHideTimer);
-    toolHideTimer = null;
-  }
-  const target = e.currentTarget as HTMLElement;
-  toolShowTimer = setTimeout(() => {
-    hoveredToolId.value = toolId;
-    toolHoverRect.value = target.getBoundingClientRect();
-    toolCardVisible.value = true;
-  }, 150);
-}
-
-function handleToolLeave() {
-  if (toolShowTimer) {
-    clearTimeout(toolShowTimer);
-    toolShowTimer = null;
-  }
-  toolHideTimer = setTimeout(() => {
-    toolCardVisible.value = false;
-  }, 100);
-}
-
-function handleToolCardEnter() {
-  if (toolHideTimer) {
-    clearTimeout(toolHideTimer);
-    toolHideTimer = null;
-  }
-}
-
-function handleToolCardLeave() {
-  toolHideTimer = setTimeout(() => {
-    toolCardVisible.value = false;
-  }, 100);
-}
+function handleToolEnter(toolId: string, e: MouseEvent) { toolHover.show(toolId, e.currentTarget as HTMLElement); }
+function handleToolLeave() { toolHover.scheduleHide(); }
+function handleToolCardEnter() { toolHover.cancelHide(); }
+function handleToolCardLeave() { toolHover.scheduleHide(); }
 
 /** Ordered list of all selectable peer IDs in the sidebar (unfiltered, for reference) */
 const navItems = computed(() => {
@@ -401,20 +321,20 @@ function getInitial(name: string): string {
       </div>
     </div>
     <MemberHoverCard
-      v-if="hoveredMember"
-      :member="hoveredMember"
-      :rect="hoverRect"
-      :visible="hoverCardVisible"
+      v-if="memberHover.hoveredItem.value"
+      :member="memberHover.hoveredItem.value"
+      :rect="memberHover.hoverRect.value"
+      :visible="memberHover.visible.value"
       @mouseenter="handleCardEnter"
       @mouseleave="handleCardLeave"
     />
     <ToolHoverCard
-      v-if="hoveredToolId"
-      :icon="toolIconMap[hoveredToolId]!"
-      :name="t(`sidebar.${hoveredToolId === '__cloud__' ? 'cloudResources' : hoveredToolId === '__tasks__' ? 'taskCenter' : 'taskDispatch'}`)"
-      :description="t(toolDescMap[hoveredToolId]!)"
-      :rect="toolHoverRect"
-      :visible="toolCardVisible"
+      v-if="toolHover.hoveredItem.value"
+      :icon="toolIconMap[toolHover.hoveredItem.value]!"
+      :name="t(`sidebar.${toolHover.hoveredItem.value === '__cloud__' ? 'cloudResources' : toolHover.hoveredItem.value === '__tasks__' ? 'taskCenter' : 'taskDispatch'}`)"
+      :description="t(toolDescMap[toolHover.hoveredItem.value]!)"
+      :rect="toolHover.hoverRect.value"
+      :visible="toolHover.visible.value"
       @mouseenter="handleToolCardEnter"
       @mouseleave="handleToolCardLeave"
     />

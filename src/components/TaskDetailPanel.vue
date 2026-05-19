@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { marked, type Tokens } from "marked";
-import DOMPurify from "dompurify";
-import type { TaskMessage, TaskResource, AgentStep } from "../types";
+import type { TaskMessage, TaskResource } from "../types";
 import type { Task } from "../../envoy/packages/core/task.js";
 import { apiUrl, managerFetch, managerPost } from "../api";
 import { downloadFileWithDialog } from "../utils/notification";
+import { renderMarkdown } from "../utils/markdown";
+import { getResultText, formatFileSize, formatTimestamp, formatTime, getTaskFileUrl, getTraceSteps, formatToolArgs, formatToolResult } from "../utils/taskFormatters";
+import { useTaskResources } from "../composables/useTaskResources";
+import { useTaskPermissions } from "../composables/useTaskPermissions";
 import { inject } from "vue";
 import { TeamClientKey } from "../composables/teamClientContext";
 import ConfirmDialog from "./ConfirmDialog.vue";
@@ -14,16 +16,6 @@ import Toast from "./Toast.vue";
 import BackButton from "./BackButton.vue";
 
 const { t } = useI18n();
-
-marked.setOptions({ gfm: true, breaks: true });
-
-const linkRenderer = {
-  link({ href, title, text }: Tokens.Link) {
-    const titleAttr = title ? ` title="${title}"` : "";
-    return `<a target="_blank" rel="noopener noreferrer" href="${href}"${titleAttr}>${text}</a>`;
-  },
-};
-marked.use({ renderer: linkRenderer });
 
 const ctx = inject(TeamClientKey)!;
 
@@ -101,34 +93,8 @@ const modeLabels: Record<string, string> = {
 
 // ─── Group resources by type ───
 
-const clientResults = computed<TaskResource[]>(() =>
-  liveTask.value.resources?.filter((r) => r.type === "client-result") ?? []
-);
-
-const fileResources = computed<TaskResource[]>(() =>
-  liveTask.value.resources?.filter((r) => r.type === "file-resource") ?? []
-);
-
-const traceResources = computed<TaskResource[]>(() =>
-  liveTask.value.resources?.filter((r) => r.type === "execution-trace") ?? []
-);
-
-const leaderReviews = computed<TaskResource[]>(() =>
-  liveTask.value.resources?.filter((r) => r.type === "leader-review") ?? []
-);
-
-const traceByMember = computed(() => {
-  const map = new Map<string, boolean>();
-  for (const r of traceResources.value) {
-    map.set(r.by, true);
-  }
-  return map;
-});
-
-function isAIExecuted(res: TaskResource): boolean {
-  if ((res.data as Record<string, unknown>)?.source === "ai") return true;
-  return traceByMember.value.has(res.by);
-}
+const resources = computed(() => liveTask.value.resources ?? []);
+const { clientResults, fileResources, traceResources, leaderReviews, isAIExecuted } = useTaskResources(resources);
 
 // ─── Timeline ───
 
@@ -235,18 +201,10 @@ const memberEntries = computed<MemberEntry[]>(() => {
 
 // ─── Permissions ───
 
-const isAssignedToMe = computed(() => {
-  return props.myId && (liveTask.value.subscribe ?? []).includes(props.myId);
-});
-
-const isCreatedByMe = computed(() => {
-  return props.myId && liveTask.value.from === props.myId;
-});
-
-const canStart = computed(() => isAssignedToMe.value && liveTask.value.status === "pending");
-const canComplete = computed(() => isAssignedToMe.value && liveTask.value.status === "running");
-const canUpload = computed(() => isAssignedToMe.value && (liveTask.value.status === "running" || liveTask.value.status === "pending"));
-const canReview = computed(() => isCreatedByMe.value && liveTask.value.status === "reviewing");
+const subscribe = computed(() => liveTask.value.subscribe);
+const from = computed(() => liveTask.value.from);
+const status = computed(() => liveTask.value.status);
+const { isAssignedToMe, canStart, canComplete, canUpload, canReview } = useTaskPermissions(subscribe, from, props.myId, status);
 
 // ─── ConfirmDialog state ───
 
@@ -404,42 +362,8 @@ async function handleUpload() {
 
 // ─── Helpers ───
 
-function getResultText(data: unknown): string {
-  if (!data) return "";
-  if (typeof data === "string") return data;
-  if (typeof data === "object") {
-    const obj = data as Record<string, unknown>;
-    if ("result" in obj) {
-      const val = obj.result;
-      return typeof val === "string" ? val : JSON.stringify(val, null, 2);
-    }
-    if ("error" in obj) return `**Error:** ${obj.error}`;
-  }
-  return JSON.stringify(data, null, 2);
-}
-
-function renderMarkdown(text: string): string {
-  return DOMPurify.sanitize(marked.parse(text) as string);
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatTimestamp(ts: number): string {
-  return new Date(ts).toLocaleString();
-}
-
-function formatTime(ts: number | undefined): string {
-  if (ts === undefined) return "";
-  const d = new Date(ts);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
 function getFileDownloadUrl(filename: string): string {
-  return apiUrl(`/api/tasks/${liveTask.value.taskId}/resources/${encodeURIComponent(filename)}`);
+  return getTaskFileUrl(liveTask.value.taskId, filename);
 }
 
 const downloading = ref("");
@@ -456,36 +380,6 @@ async function downloadFile(filename: string) {
   } finally {
     downloading.value = "";
   }
-}
-
-function getTraceSteps(traceRes: TaskResource): AgentStep[] {
-  const data = traceRes.data as { steps?: AgentStep[] };
-  return data?.steps ?? [];
-}
-
-function formatToolArgs(args: unknown): string {
-  if (!args || typeof args !== "object") return String(args);
-  const obj = args as Record<string, unknown>;
-  if ("command" in obj) return String(obj.command);
-  if ("path" in obj) return String(obj.path);
-  return JSON.stringify(args);
-}
-
-function formatToolResult(result: unknown): string {
-  if (typeof result === "string") return result;
-  if (result && typeof result === "object") {
-    const obj = result as Record<string, unknown>;
-    if ("stdout" in obj || "stderr" in obj) {
-      const parts: string[] = [];
-      if (obj.stdout) parts.push(String(obj.stdout));
-      if (obj.stderr) parts.push(`[stderr] ${obj.stderr}`);
-      return parts.join("\n");
-    }
-    if ("content" in obj) return String(obj.content);
-    if ("ok" in obj && "path" in obj) return `uploaded: ${obj.path}`;
-    if ("done" in obj) return String((result as Record<string, unknown>).result ?? "done");
-  }
-  return JSON.stringify(result);
 }
 
 // ─── Trace expand state ───

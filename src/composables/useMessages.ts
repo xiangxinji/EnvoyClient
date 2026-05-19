@@ -2,27 +2,7 @@ import { ref } from "vue";
 import type { Message } from "@envoy/core";
 import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, RevokedNotice, ForwardedRecord, QuoteInfo } from "../types";
 import { managerPost, managerFetch, apiUrl } from "../api";
-
-interface SyncResponse {
-  messages: SyncMessage[];
-  has_more: boolean;
-  last_seq: number;
-}
-
-interface SyncMessage {
-  seq: number;
-  id: string;
-  type: string;
-  subtype: string | null;
-  from_user: string;
-  to_user: string;
-  content: string;
-  extra: string | null;
-  source: string;
-  channel: string | null;
-  mentions: string | null;
-  created_at: number;
-}
+import { syncMessageToTimeline, type SyncResponse, type SyncMessage } from "../utils/messageMapper";
 
 export function useMessages(
   myId: string,
@@ -50,40 +30,10 @@ export function useMessages(
     unreadCounts.value.set(peerId, 0);
   }
 
-  function syncMessageToTimeline(msg: SyncMessage): TimelineItem {
-    if (msg.type === "task") {
-      const extra = msg.extra ? JSON.parse(msg.extra) as Record<string, unknown> : {};
-      return {
-        type: "task",
-        id: `task-${extra.taskId ?? msg.id}`,
-        seq: msg.seq,
-        taskId: extra.taskId as string ?? msg.id,
-        from: msg.from_user,
-        content: msg.content,
-        status: (extra.status as TaskMessage["status"]) ?? "pending",
-        resources: (extra.resources as TaskResource[]) ?? [],
-        subscribe: extra.subscribe as string[] | undefined,
-        timestamp: msg.created_at,
-      } satisfies TaskMessage;
-    }
-
-    const extra = msg.extra ? JSON.parse(msg.extra) as Record<string, unknown> : {};
-    return {
-      type: "chat",
-      id: msg.id,
-      seq: msg.seq,
-      from: msg.from_user,
-      to: msg.to_user,
-      text: msg.content,
-      timestamp: msg.created_at,
-      mine: msg.from_user === myId,
-      source: (msg.source === "ai-auto" ? "ai-auto" : "human") as "human" | "ai-auto",
-      attachments: extra.attachments as MessageAttachment[] | undefined,
-      forwarded: extra.forwarded as ForwardedRecord[] | undefined,
-      quote: extra.quote as QuoteInfo | undefined,
-      channel: msg.channel ?? undefined,
-      mentions: msg.mentions ? JSON.parse(msg.mentions) as string[] : undefined,
-    } satisfies ChatMessage;
+  function syncAndRoute(msg: SyncMessage) {
+    const item = syncMessageToTimeline(msg, myId);
+    const peerId = msg.channel ? "__team__" : (msg.from_user === myId ? msg.to_user : msg.from_user);
+    addToConversation(peerId, item);
   }
 
   async function loadHistory() {
@@ -99,9 +49,7 @@ export function useMessages(
         const data = await res.json() as SyncResponse;
 
         for (const msg of data.messages) {
-          const item = syncMessageToTimeline(msg);
-          const peerId = msg.channel ? "__team__" : (msg.from_user === myId ? msg.to_user : msg.from_user);
-          addToConversation(peerId, item);
+          syncAndRoute(msg);
         }
 
         hasMore = data.has_more;
