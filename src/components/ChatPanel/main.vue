@@ -201,7 +201,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
 
         <div class="editor-wrapper" style="position: relative;">
           <MentionPopup v-if="isChannel" ref="mentionPopupRef" :visible="mentionPopupVisible" :members="members" :query="mentionQuery" :my-id="myId" @select="handleMentionSelect" @close="handleMentionClose" />
-          <RichEditor ref="richEditorRef" @send="handleRichSend" @input="handleEditorInput" @keydown="handleEditorKeydown" />
+          <RichEditor ref="richEditorRef" :enterSendDisabled="mentionPopupVisible" @send="handleRichSend" @input="handleEditorInput" @keydown="handleEditorKeydown" />
         </div>
       </div>
     </template>

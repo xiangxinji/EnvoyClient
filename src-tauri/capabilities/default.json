@@ -16,7 +16,7 @@
     "core:window:allow-is-always-on-top",
     "core:window:allow-request-user-attention",
     "core:window:allow-set-badge-count",
-    "core:tray:allow-new",
+    "core:tray:allow-new",那
     "core:tray:allow-set-icon",
     "core:tray:allow-set-menu",
     "core:tray:allow-set-tooltip",

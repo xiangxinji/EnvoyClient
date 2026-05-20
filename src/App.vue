@@ -93,7 +93,7 @@ onMounted(async () => {
   }
 
   // window.addEventListener("contextmenu", preventContextMenu);
-  // window.addEventListener("focus", cancelTaskbarAttention);
+  window.addEventListener("focus", cancelTaskbarAttention);
 
   if (isTauri) {
     window.addEventListener("keydown", preventRefresh);

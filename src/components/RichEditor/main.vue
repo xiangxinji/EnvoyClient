@@ -20,6 +20,7 @@ export interface PendingImage {
 const props = defineProps<{
   disabled?: boolean;
   placeholder?: string;
+  enterSendDisabled?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -45,7 +46,7 @@ const editor = useEditor({
     handleKeyDown(_view, event) {
       if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
         event.preventDefault();
-        handleSend();
+        if (!props.enterSendDisabled) handleSend();
         return true;
       }
       return false;
