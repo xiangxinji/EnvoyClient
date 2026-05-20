@@ -8,6 +8,7 @@ import { useHoverCard } from "../../composables/useHoverCard";
 import { formatTime } from "../../utils/taskFormatters";
 import BubbleContent from "../BubbleContent";
 import AttachmentList from "../AttachmentList";
+import CloudRefCard from "../CloudRefCard";
 import ForwardedDialog from "../ForwardedDialog";
 import MemberHoverCard from "../MemberHoverCard";
 import QuoteCard from "../QuoteCard";
@@ -40,6 +41,16 @@ const { hoveredItem: hoverMember, hoverRect, visible: hoverVisible, show: showHo
 const isSticker = computed(() => !!props.message.sticker);
 const stickerUrl = computed(() => props.message.sticker?.url ?? "");
 const noText = computed(() => !props.message.text?.trim());
+
+const isFlatMode = computed(() => {
+  if (isSticker.value) return false;
+  if (props.message.attachments?.length && noText.value) return true;
+  if (props.message.cloudRefs?.length) {
+    const stripped = (props.message.text || "").replace(/\{cloud:\d+\}/g, "").trim();
+    if (!stripped) return true;
+  }
+  return false;
+});
 
 const isQuoteRevoked = computed(() => {
   if (!props.message.quote || !props.timeline) return false;
@@ -110,10 +121,11 @@ function bubbleClick(e: MouseEvent) {
         <span class="channel-sender">{{ getDisplayName(message.from) }}</span>
         <span class="channel-time">{{ formatTime(message.timestamp) }}</span>
       </div>
-      <div ref="bubbleRef" class="bubble channel-bubble" :class="{ selected: selected && selectMode, 'sticker-mode': isSticker }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
+      <div ref="bubbleRef" class="bubble channel-bubble" :class="{ selected: selected && selectMode, 'sticker-mode': isSticker, 'flat-mode': isFlatMode }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
         <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
         <template v-else>
-          <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :cloud-refs="message.cloudRefs" :team-name="teamName" />
+          <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" />
+          <CloudRefCard v-for="(ref, ri) in message.cloudRefs" :key="'cr'+ri" :data="ref" :team-name="teamName" />
           <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
             <SvgIcon name="chat" :size="14" />
             <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>
@@ -138,10 +150,11 @@ function bubbleClick(e: MouseEvent) {
         <span class="channel-time">{{ formatTime(message.timestamp) }}</span>
       </div>
       <div class="channel-msg-row mine">
-        <div ref="bubbleRef" class="bubble mine channel-bubble" :class="{ selected: selected && selectMode, 'sticker-mode': isSticker }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
+        <div ref="bubbleRef" class="bubble mine channel-bubble" :class="{ selected: selected && selectMode, 'sticker-mode': isSticker, 'flat-mode': isFlatMode }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
           <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
           <template v-else>
-            <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :cloud-refs="message.cloudRefs" :team-name="teamName" />
+            <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" />
+            <CloudRefCard v-for="(ref, ri) in message.cloudRefs" :key="'cr'+ri" :data="ref" :team-name="teamName" />
             <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
               <SvgIcon name="chat" :size="14" />
               <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>
@@ -165,10 +178,11 @@ function bubbleClick(e: MouseEvent) {
     <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
       <SvgIcon v-if="selected" name="check" :size="14" />
     </div>
-    <div ref="bubbleRef" class="bubble" :class="{ mine: message.mine, selected: selected && selectMode, 'sticker-mode': isSticker }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
+    <div ref="bubbleRef" class="bubble" :class="{ mine: message.mine, selected: selected && selectMode, 'sticker-mode': isSticker, 'flat-mode': isFlatMode }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
       <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
       <template v-else>
-        <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :show-sender="showSender" :sender-name="showSender ? getDisplayName(message.from) : undefined" :cloud-refs="message.cloudRefs" :team-name="teamName" />
+        <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :show-sender="showSender" :sender-name="showSender ? getDisplayName(message.from) : undefined" />
+        <CloudRefCard v-for="(ref, ri) in message.cloudRefs" :key="'cr'+ri" :data="ref" :team-name="teamName" />
         <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
           <SvgIcon name="chat" :size="14" />
           <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>

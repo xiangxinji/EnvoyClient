@@ -1,0 +1,12 @@
+.cloud-ref-card { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; margin: 1px 2px; background: var(--glass-bg-light); border: 1px solid var(--glass-border); border-radius: 6px; font-size: 0.85em; vertical-align: middle; transition: border-color 0.15s, background 0.15s; }
+.cloud-ref-card.file, .cloud-ref-card.directory { cursor: pointer; text-decoration: none; color: var(--text-primary); }
+.cloud-ref-card.file:hover, .cloud-ref-card.directory:hover { border-color: var(--accent); background: var(--glass-bg); }
+.cloud-ref-card.expired { opacity: 0.5; cursor: default; background: transparent; border-style: dashed; }
+.cloud-ref-icon-fallback { font-size: 1em; flex-shrink: 0; }
+.cloud-ref-info { display: flex; flex-direction: column; min-width: 0; }
+.cloud-ref-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+.cloud-ref-size { font-size: 0.8em; color: var(--text-muted); }
+.cloud-ref-action { font-size: 0.78em; color: var(--accent); white-space: nowrap; }
+.cloud-ref-expired { font-size: 0.78em; color: var(--text-muted); font-style: italic; }
+.cloud-ref-download { color: var(--text-muted); flex-shrink: 0; }
+.cloud-ref-card.file:hover .cloud-ref-download { color: var(--accent); }
