@@ -140,6 +140,38 @@ const res = await managerPost("/api/path", { key: "value" });
 
 仅 SSE 流式请求（需读取 `response.body`）可使用 `managerFetch` 手动构造。
 
+### 头像初始字母 — `getInitial`
+
+**禁止内联 `.charAt(0).toUpperCase()`**，必须使用 `useUserProfile` 的 `getInitial`。
+
+```ts
+const { getInitial } = useUserProfile();
+{{ getInitial(username) }}
+```
+
+### 文件选择器 — `pickFiles`
+
+**禁止内联 `document.createElement("input")` 文件选择器**，必须使用 `pickFiles` 工具函数。
+
+```ts
+import { pickFiles } from "../utils/filePicker";
+
+const files = await pickFiles({ accept: "image/*", multiple: true });
+```
+
+### 任务映射 — `apiTaskToTaskMessage`
+
+**禁止内联 API task → TaskMessage 映射**，必须使用 `taskFormatters.ts` 的 `apiTaskToTaskMessage`。
+
+```ts
+import { apiTaskToTaskMessage, type ApiTask } from "../../utils/taskFormatters";
+const taskMsg = apiTaskToTaskMessage(apiTask);
+```
+
+### 资源类型安全 — `TypedTaskResource`
+
+`useTaskResources` 返回的 `leaderReviews` 和 `fileResources` 已是 `TypedTaskResource<LeaderReviewData>` 和 `TypedTaskResource<FileResourceData>` 类型，**禁止 `as any` 或 `as Record<string, unknown>` 类型转换**，直接访问 `review.data.success`、`res.data.filename` 等属性。
+
 ## SVG 图标使用规范
 
 ### 禁止内联 SVG
