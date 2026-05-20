@@ -26,6 +26,13 @@ export interface StickerInfo {
   name: string;
 }
 
+export interface CloudRef {
+  name: string;
+  path: string;
+  type: "file" | "directory";
+  size: number;
+}
+
 export interface QuoteInfo {
   id: string;
   from: string;
@@ -49,6 +56,7 @@ export interface ChatMessage {
   sticker?: StickerInfo;
   channel?: string;
   mentions?: string[];
+  cloudRefs?: CloudRef[];
 }
 
 export interface ToolCallRecord {

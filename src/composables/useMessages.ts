@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import type { Message } from "@envoy/core";
-import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, RevokedNotice, ForwardedRecord, QuoteInfo, StickerInfo } from "../types";
+import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, RevokedNotice, ForwardedRecord, QuoteInfo, StickerInfo, CloudRef } from "../types";
 import { managerPost, managerFetch, apiUrl } from "../api";
 import { syncMessageToTimeline, type SyncResponse, type SyncMessage } from "../utils/messageMapper";
 
@@ -85,7 +85,7 @@ export function useMessages(
     }
 
     if (msg.type === "message" && msg.subtype === "chat") {
-      const payload = msg.payload as { text: string; id?: string; seq?: number; source?: string; attachments?: MessageAttachment[]; forwarded?: ForwardedRecord[]; quote?: QuoteInfo; sticker?: StickerInfo; channel?: string; mentions?: string[] };
+      const payload = msg.payload as { text: string; id?: string; seq?: number; source?: string; attachments?: MessageAttachment[]; forwarded?: ForwardedRecord[]; quote?: QuoteInfo; sticker?: StickerInfo; channel?: string; mentions?: string[]; cloudRefs?: CloudRef[] };
       if (payload.attachments) {
         for (const att of payload.attachments) {
           if (att.url.startsWith("/")) att.url = apiUrl(att.url);
@@ -107,6 +107,7 @@ export function useMessages(
         sticker: payload.sticker,
         channel: payload.channel,
         mentions: payload.mentions,
+        cloudRefs: payload.cloudRefs,
       };
       const peerId = payload.channel ? "__team__" : (msg.from === myId ? msg.to : msg.from);
       addToConversation(peerId, chatMsg);
@@ -160,7 +161,7 @@ export function useMessages(
     }
   }
 
-  async function sendChat(targetId: string, text: string, options?: { attachments?: MessageAttachment[]; source?: "human" | "ai-auto"; forwarded?: ForwardedRecord[]; quote?: QuoteInfo; sticker?: StickerInfo; channel?: string; mentions?: string[] }) {
+  async function sendChat(targetId: string, text: string, options?: { attachments?: MessageAttachment[]; source?: "human" | "ai-auto"; forwarded?: ForwardedRecord[]; quote?: QuoteInfo; sticker?: StickerInfo; channel?: string; mentions?: string[]; cloudRefs?: CloudRef[] }) {
     const attachments = options?.attachments;
     const source = options?.source;
     const forwarded = options?.forwarded;
@@ -168,6 +169,7 @@ export function useMessages(
     const sticker = options?.sticker;
     const channel = options?.channel;
     const mentions = options?.mentions;
+    const cloudRefs = options?.cloudRefs;
     const isChannel = !!channel;
     const body: Record<string, unknown> = { from: myId, text };
     if (!isChannel) body.to = targetId;
@@ -178,6 +180,7 @@ export function useMessages(
     if (sticker) body.sticker = sticker;
     if (channel) body.channel = channel;
     if (mentions?.length) body.mentions = mentions;
+    if (cloudRefs?.length) body.cloudRefs = cloudRefs;
 
     try {
       const res = await managerPost("/api/messages", body, { team: teamName });
@@ -199,6 +202,7 @@ export function useMessages(
         sticker,
         channel,
         mentions,
+        cloudRefs: cloudRefs?.length ? cloudRefs : undefined,
       };
       addToConversation(isChannel ? "__team__" : targetId, chatMsg);
     } catch {
@@ -219,6 +223,7 @@ export function useMessages(
         sticker,
         channel,
         mentions,
+        cloudRefs: cloudRefs?.length ? cloudRefs : undefined,
       };
       addToConversation(isChannel ? "__team__" : targetId, chatMsg);
     }

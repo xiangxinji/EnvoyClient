@@ -8,6 +8,7 @@ import Text from "@tiptap/extension-text";
 import HardBreak from "@tiptap/extension-hard-break";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
+import { CloudReference } from "./cloudReferenceNode";
 
 const { t } = useI18n();
 
@@ -38,6 +39,7 @@ const editor = useEditor({
     HardBreak,
     Placeholder.configure({ placeholder: () => props.placeholder ?? t('chat.enterMessage') }),
     Image.configure({ inline: false, allowBase64: true }),
+    CloudReference,
   ],
   editorProps: {
     attributes: {
@@ -121,7 +123,11 @@ function extractText(html: string): string {
   const div = document.createElement("div");
   div.innerHTML = html;
   for (const img of div.querySelectorAll("img")) img.remove();
-  //innerText on detached elements doesn't preserve newlines, so we convert manually
+  let cloudIndex = 0;
+  for (const chip of Array.from(div.querySelectorAll("span[data-cloud-ref]"))) {
+    const textNode = document.createTextNode(`{cloud:${cloudIndex++}}`);
+    chip.replaceWith(textNode);
+  }
   let text = "";
   function walk(node: Node) {
     if (node.nodeType === Node.TEXT_NODE) {

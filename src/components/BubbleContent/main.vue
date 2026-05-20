@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import type { MessageAttachment } from "../../types";
+import type { MessageAttachment, CloudRef } from "../../types";
 import { renderMarkdown, escapeRegex, DOMPurify } from "../../utils/markdown";
 import { formatFileSize } from "../../utils/taskFormatters";
 import { useUserProfile } from "../../composables/useUserProfile";
 import { useFullscreenViewer } from "../../composables/useFullscreenViewer";
-import { computed, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { validateCloudPaths, cloudDownloadUrl } from "../../api";
 import SvgIcon from "../SvgIcon";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   text: string;
@@ -20,6 +24,8 @@ const props = defineProps<{
   stickerName?: string;
   showSender?: boolean;
   senderName?: string;
+  cloudRefs?: CloudRef[];
+  teamName?: string;
 }>();
 
 const emit = defineEmits<{
@@ -29,8 +35,24 @@ const emit = defineEmits<{
 
 const { getDisplayName } = useUserProfile();
 
+const validationMap = ref<Record<string, boolean>>({});
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 const renderedHtml = computed(() => {
   let rawText = props.text;
+
+  // Replace {cloud:N} markers with placeholders before markdown
+  const cloudMarkers: Array<{ marker: string; index: number }> = [];
+  rawText = rawText.replace(/\{cloud:(\d+)\}/g, (_match: string, idx: string) => {
+    const n = parseInt(idx, 10);
+    const placeholder = `__CLOUDREF_${n}__`;
+    cloudMarkers.push({ marker: placeholder, index: n });
+    return placeholder;
+  });
+
   if (props.mentions && props.mentions.length > 0) {
     const expanded = props.mentions.flatMap(m =>
       m === "all" && props.memberIds ? props.memberIds : [m]
@@ -40,9 +62,46 @@ const renderedHtml = computed(() => {
       rawText = rawText.replace(new RegExp(`@${escapeRegex(m)}(?!\\w)`, "g"), `<span class="mention-highlight">@${escapeRegex(displayName)}</span>`);
     }
   }
-  const raw = renderMarkdown(rawText);
-  return DOMPurify.sanitize(raw, { ADD_TAGS: ["span"], ADD_ATTR: ["class"] });
+  let raw = renderMarkdown(rawText);
+  let sanitized = DOMPurify.sanitize(raw, { ADD_TAGS: ["span"], ADD_ATTR: ["class"] });
+
+  // Replace placeholders with cloud ref cards
+  for (const { marker, index } of cloudMarkers) {
+    const cloudRef = props.cloudRefs?.[index];
+    if (!cloudRef) {
+      sanitized = sanitized.replace(marker, `{cloud:${index}}`);
+      continue;
+    }
+    const expired = validationMap.value[cloudRef.path] === false;
+    if (cloudRef.type === "directory") {
+      const cardHtml = expired
+        ? `<span class="cloud-ref-card expired"><span class="cloud-ref-icon-fallback">📁</span><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-expired">(${t("cloudMention.expired")})</span></span>`
+        : `<span class="cloud-ref-card directory" data-cloud-path="${escapeHtml(cloudRef.path)}"><span class="cloud-ref-icon-fallback">📁</span><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-action">${t("cloudMention.openInCloud")}</span></span>`;
+      sanitized = sanitized.replace(marker, cardHtml);
+    } else {
+      const dlUrl = props.teamName ? escapeHtml(cloudDownloadUrl(props.teamName, cloudRef.path)) : "#";
+      const cardHtml = expired
+        ? `<span class="cloud-ref-card expired"><span class="cloud-ref-icon-fallback">📄</span><span class="cloud-ref-info"><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-expired">(${t("cloudMention.expired")})</span></span></span>`
+        : `<a class="cloud-ref-card file" href="${dlUrl}" target="_blank" rel="noopener"><span class="cloud-ref-icon-fallback">📄</span><span class="cloud-ref-info"><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-size">${formatFileSize(cloudRef.size)}</span></span><span class="cloud-ref-download">⬇</span></a>`;
+      sanitized = sanitized.replace(marker, cardHtml);
+    }
+  }
+
+  return sanitized;
 });
+
+let cancelled = false;
+onMounted(async () => {
+  if (!props.cloudRefs?.length || !props.teamName) return;
+  const paths = props.cloudRefs.map(r => r.path);
+  try {
+    const result = await validateCloudPaths(props.teamName, paths);
+    if (!cancelled) validationMap.value = result;
+  } catch {
+    // silent fail — cards stay in valid state
+  }
+});
+onUnmounted(() => { cancelled = true; });
 
 const viewer = useFullscreenViewer();
 

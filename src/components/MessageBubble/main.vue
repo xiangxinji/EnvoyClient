@@ -21,6 +21,7 @@ const props = defineProps<{
   memberIds?: string[];
   isChannel?: boolean;
   members?: MemberInfo[];
+  teamName?: string;
 }>();
 
 const emit = defineEmits<{
@@ -134,6 +135,8 @@ function bubbleClick(e: MouseEvent) {
           :is-sticker="isSticker"
           :sticker-url="stickerUrl"
           :sticker-name="message.sticker?.name"
+          :cloud-refs="message.cloudRefs"
+          :team-name="teamName"
           @scroll-to-quote="handleQuoteClick"
           @open-forwarded="forwardedDialogVisible = true"
         />
@@ -165,6 +168,8 @@ function bubbleClick(e: MouseEvent) {
             :is-sticker="isSticker"
             :sticker-url="stickerUrl"
             :sticker-name="message.sticker?.name"
+            :cloud-refs="message.cloudRefs"
+            :team-name="teamName"
             @scroll-to-quote="handleQuoteClick"
             @open-forwarded="forwardedDialogVisible = true"
           />
@@ -197,6 +202,8 @@ function bubbleClick(e: MouseEvent) {
         :is-sticker="isSticker"
         :sticker-url="stickerUrl"
         :sticker-name="message.sticker?.name"
+        :cloud-refs="message.cloudRefs"
+        :team-name="teamName"
         @scroll-to-quote="handleQuoteClick"
         @open-forwarded="forwardedDialogVisible = true"
       />

@@ -286,6 +286,11 @@
     "selectedCount": "已选 {count} 项",
     "confirmBatchDelete": "确定要删除选中的 {count} 项吗？此操作不可撤销。"
   },
+  "cloudMention": {
+    "noResults": "无匹配文件",
+    "expired": "已过期",
+    "openInCloud": "在云盘中打开"
+  },
   "reconnect": {
     "title": "连接已断开",
     "attempt": "正在重新连接... (第 {attempt} 次)",

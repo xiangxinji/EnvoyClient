@@ -6,6 +6,7 @@ import { useAI } from "../../composables/useAI";
 import { useMessagePagination } from "../../composables/useMessagePagination";
 import { useFileUpload } from "../../composables/useFileUpload";
 import { useMentionSystem } from "../../composables/useMentionSystem";
+import { useCloudMention } from "../../composables/useCloudMention";
 import { useMultiSelect } from "../../composables/useMultiSelect";
 import { useMessageContextMenu } from "../../composables/useMessageContextMenu";
 import { getErrorMessage } from "../../utils/error";
@@ -17,11 +18,12 @@ import Toast from "../Toast";
 import RichEditor from "../RichEditor";
 import ForwardDialog from "../ForwardDialog";
 import MentionPopup from "../MentionPopup";
+import CloudMentionPopup from "../CloudMentionPopup";
 import StickerPanel from "../StickerPanel";
 import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
 import SvgIcon from "../SvgIcon";
-import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, QuoteInfo } from "../../types";
+import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, QuoteInfo, CloudRef } from "../../types";
 import { formatFileSize } from "../../utils/taskFormatters";
 
 const { t } = useI18n();
@@ -52,6 +54,7 @@ const conversation = computed<TimelineItem[]>(() => props.peerId ? getConversati
 const { visibleMessages, hasMoreHistory, loadingMore, handleScroll, resetDisplayCount, loadAll } = useMessagePagination(conversation, messageList);
 const { pendingFiles, uploading, attachmentError, handlePickAttachment, removeFile, uploadImages, uploadPendingFiles } = useFileUpload(myId, teamName);
 const { currentMentions, mentionPopupVisible, mentionQuery, mentionPopupRef, handleEditorInput, handleMentionSelect, handleMentionClose, handleEditorKeydown, clearMentions } = useMentionSystem(() => isChannel.value, () => members.value, richEditorRef);
+const { currentCloudRefs, cloudPopupVisible, cloudQuery, cloudPopupRef, handleEditorInput: handleCloudEditorInput, handleCloudSelect, handleCloudClose, handleCloudKeydown, clearCloudRefs } = useCloudMention(richEditorRef);
 const { selectMode, selectedIds, forwardDialogVisible, enterSelectMode, exitSelectMode, toggleMessageSelect, handleForwardClick, handleForwardConfirm } = useMultiSelect(conversation, sendChat, showToast);
 const { contextMenuVisible, contextMenuX, contextMenuY, contextMenuMsg, quotingMsg, handleMessageContextmenu, handleQuoteReply, handleContextForward, clearQuotingMsg, generateSnapshotText, handleRevoke, handleScrollToQuote, closeContextMenu } = useMessageContextMenu(messageList, loadAll, revokeMessage, enterSelectMode, (ids) => { selectMode.value = true; selectedIds.value = ids; }, showToast);
 
@@ -81,8 +84,10 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
   }
 
   const quoteInfo: QuoteInfo | undefined = quotingMsg.value ? { id: quotingMsg.value.id, from: quotingMsg.value.from, text: generateSnapshotText(quotingMsg.value), timestamp: quotingMsg.value.timestamp } : undefined;
-  sendChat(props.peerId, text || " ", { attachments: attachments.length > 0 ? attachments : undefined, quote: quoteInfo, channel: isChannel.value ? "general" : undefined, mentions: isChannel.value ? currentMentions.value : undefined });
+  const cloudRefs: CloudRef[] | undefined = currentCloudRefs.value.length > 0 ? currentCloudRefs.value : undefined;
+  sendChat(props.peerId, text || " ", { attachments: attachments.length > 0 ? attachments : undefined, quote: quoteInfo, channel: isChannel.value ? "general" : undefined, mentions: isChannel.value ? currentMentions.value : undefined, cloudRefs });
   clearMentions();
+  clearCloudRefs();
   if (quoteInfo) quotingMsg.value = null;
 }
 
@@ -138,7 +143,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
         <div v-else-if="hasMoreHistory" class="load-hint">{{ $t('chat.loadMore') }}</div>
         <template v-for="item in visibleMessages" :key="item.id">
           <div v-if="item.type === 'revoked'" class="revoked-notice">{{ $t('chat.revokedNotice', { from: item.from }) }}</div>
-          <MessageBubble v-else-if="item.type === 'chat'" :message="item" :my-id="myId" :show-sender="isChannel" :member-ids="isChannel ? memberIds : undefined" :is-channel="isChannel" :members="isChannel ? members : undefined" :select-mode="selectMode" :selected="selectedIds.has(item.id)" :timeline="conversation" @contextmenu="handleMessageContextmenu" @toggle-select="toggleMessageSelect" @scroll-to-quote="handleScrollToQuote" />
+          <MessageBubble v-else-if="item.type === 'chat'" :message="item" :my-id="myId" :show-sender="isChannel" :member-ids="isChannel ? memberIds : undefined" :is-channel="isChannel" :members="isChannel ? members : undefined" :select-mode="selectMode" :selected="selectedIds.has(item.id)" :timeline="conversation" :team-name="teamName" @contextmenu="handleMessageContextmenu" @toggle-select="toggleMessageSelect" @scroll-to-quote="handleScrollToQuote" />
           <TaskCard v-else :task="item" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
         </template>
 
@@ -201,7 +206,8 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
 
         <div class="editor-wrapper" style="position: relative;">
           <MentionPopup v-if="isChannel" ref="mentionPopupRef" :visible="mentionPopupVisible" :members="members" :query="mentionQuery" :my-id="myId" @select="handleMentionSelect" @close="handleMentionClose" />
-          <RichEditor ref="richEditorRef" :enterSendDisabled="mentionPopupVisible" @send="handleRichSend" @input="handleEditorInput" @keydown="handleEditorKeydown" />
+          <CloudMentionPopup ref="cloudPopupRef" :visible="cloudPopupVisible" :query="cloudQuery" :team-name="teamName" @select="handleCloudSelect" @close="handleCloudClose" />
+          <RichEditor ref="richEditorRef" :enterSendDisabled="mentionPopupVisible || cloudPopupVisible" @send="handleRichSend" @input="handleEditorInput(); handleCloudEditorInput()" @keydown="handleEditorKeydown($event); handleCloudKeydown($event)" />
         </div>
       </div>
     </template>

@@ -286,6 +286,11 @@
     "selectedCount": "{count} selected",
     "confirmBatchDelete": "Are you sure you want to delete {count} selected items? This action cannot be undone."
   },
+  "cloudMention": {
+    "noResults": "No matching files",
+    "expired": "Expired",
+    "openInCloud": "Open in Cloud"
+  },
   "reconnect": {
     "title": "Connection Lost",
     "attempt": "Reconnecting... (attempt {attempt})",

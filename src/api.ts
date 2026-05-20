@@ -93,6 +93,13 @@ export interface CloudDirListing {
   items: CloudFileItem[];
 }
 
+export interface CloudSearchResult {
+  name: string;
+  path: string;
+  type: "file" | "directory";
+  size: number;
+}
+
 export async function listCloudFiles(team: string, path?: string): Promise<CloudDirListing> {
   const query = path ? `?path=${encodeURIComponent(path)}` : "";
   const res = await managerFetch(`/api/cloud/files${query}`, {
@@ -163,5 +170,18 @@ export async function getCloudStats(team: string): Promise<CloudStats> {
   const res = await managerFetch("/api/cloud/stats", {
     headers: { team },
   });
+  return res.json();
+}
+
+export async function searchCloudFiles(team: string, query: string): Promise<CloudSearchResult[]> {
+  const res = await managerFetch(`/api/cloud/search?q=${encodeURIComponent(query)}`, {
+    headers: { team },
+  });
+  return res.json();
+}
+
+export async function validateCloudPaths(team: string, paths: string[]): Promise<Record<string, boolean>> {
+  if (paths.length === 0) return {};
+  const res = await managerPost("/api/cloud/validate", { paths }, { team });
   return res.json();
 }
