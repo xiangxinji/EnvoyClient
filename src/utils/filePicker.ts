@@ -7,6 +7,9 @@ export function pickFiles(options?: { accept?: string; multiple?: boolean }): Pr
     input.onchange = () => {
       resolve(Array.from(input.files ?? []));
     };
+    input.oncancel = () => {
+      resolve([]);
+    };
     input.click();
   });
 }
