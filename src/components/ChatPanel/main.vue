@@ -17,6 +17,8 @@ import RichEditor from "../RichEditor";
 import ForwardDialog from "../ForwardDialog";
 import MentionPopup from "../MentionPopup";
 import StickerPanel from "../StickerPanel";
+import { useToast } from "../../composables/useToast";
+import { useConfirm } from "../../composables/useConfirm";
 import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, QuoteInfo } from "../../types";
 import { formatFileSize } from "../../utils/imageCompress";
 
@@ -38,14 +40,11 @@ const taskInputVisible = ref(false);
 const taskContent = ref("");
 const messageList = ref<HTMLDivElement | null>(null);
 const menuOpen = ref(false);
-const confirmVisible = ref(false);
-const toastVisible = ref(false);
-const toastMessage = ref("");
-const toastType = ref<"success" | "error">("success");
 const richEditorRef = ref<InstanceType<typeof RichEditor> | null>(null);
 const stickerPanelVisible = ref(false);
 
-function showToast(msg: string, type: "success" | "error") { toastMessage.value = msg; toastType.value = type; toastVisible.value = true; }
+const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
+const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
 
 const conversation = computed<TimelineItem[]>(() => props.peerId ? getConversation(props.peerId) : []);
 const { visibleMessages, hasMoreHistory, loadingMore, handleScroll, resetDisplayCount, loadAll } = useMessagePagination(conversation, messageList);
@@ -85,9 +84,7 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
   if (quoteInfo) quotingMsg.value = null;
 }
 
-function handleClearChat() { menuOpen.value = false; confirmVisible.value = true; }
-function handleConfirmClear() { confirmVisible.value = false; if (!props.peerId) return; clearConversation(props.peerId); showToast(t('chat.cleared', { peer: props.peerId }), "success"); }
-function handleCancelClear() { confirmVisible.value = false; }
+function handleClearChat() { menuOpen.value = false; showConfirm(t('chat.confirmClearTitle'), t('chat.confirmClearMsg', { peer: props.peerId }), () => { if (!props.peerId) return; clearConversation(props.peerId); showToast(t('chat.cleared', { peer: props.peerId }), "success"); }, true); }
 function handleDispatchTask() { const c = taskContent.value.trim(); if (!c) return; dispatchTask([props.peerId], c); taskContent.value = ""; taskInputVisible.value = false; }
 function handleAISuggest() { const chatMsgs = conversation.value.filter((m): m is ChatMessage => m.type === "chat"); suggestReply(chatMsgs.slice(-memberSettings.value.ai_suggestion_history_count), `当前团队：${teamName}；你的角色：${role}`); }
 function handleAcceptSuggestion() { const text = acceptSuggestion(); if (text) sendChat(props.peerId, text); }
@@ -207,8 +204,8 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
       </div>
     </template>
 
-    <ConfirmDialog :visible="confirmVisible" :title="$t('chat.confirmClearTitle')" :message="$t('chat.confirmClearMsg', { peer: peerId })" :confirm-text="$t('chat.clearBtn')" :danger="true" @confirm="handleConfirmClear" @cancel="handleCancelClear" />
-    <Toast :visible="toastVisible" :message="toastMessage" :type="toastType" @done="toastVisible = false" />
+    <ConfirmDialog :visible="confirmVisible" :title="confirmTitle" :message="confirmMessage" :danger="confirmDanger" @confirm="handleConfirm" @cancel="handleCancel" />
+    <Toast :visible="toastVisible" :message="toastMessage" :type="toastType" @done="hideToast" />
     <ForwardDialog :visible="forwardDialogVisible" :members="members" :current-peer-id="peerId" @confirm="handleForwardConfirmWrapper" @cancel="forwardDialogVisible = false" />
 
     <Teleport to="body">

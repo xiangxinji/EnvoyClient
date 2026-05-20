@@ -2,6 +2,7 @@
 import { ref, onMounted, inject, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { TeamClientKey } from "../../composables/teamClientContext";
+import { useToast } from "../../composables/useToast";
 import {
   listCloudFiles, uploadCloudFile, createCloudDirectory, deleteCloudFile, cloudDownloadUrl,
   type CloudFileItem,
@@ -14,15 +15,10 @@ import Toast from "../Toast";
 const { t } = useI18n();
 const ctx = inject(TeamClientKey)!;
 
-const toastVisible = ref(false);
-const toastMessage = ref("");
-const toastType = ref<"success" | "error">("error");
+const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
 
 function showError(msg: string) {
-  toastMessage.value = msg;
-  toastType.value = "error";
-  toastVisible.value = false;
-  requestAnimationFrame(() => { toastVisible.value = true; });
+  showToast(msg, "error");
 }
 
 const currentPath = ref("");
@@ -277,7 +273,7 @@ onMounted(loadFiles);
       </div>
     </div>
 
-    <Toast :visible="toastVisible" :message="toastMessage" :type="toastType" @done="toastVisible = false" />
+    <Toast :visible="toastVisible" :message="toastMessage" :type="toastType" @done="hideToast" />
   </div>
 </template>
 

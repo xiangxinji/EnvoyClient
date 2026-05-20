@@ -9,6 +9,8 @@ import { renderMarkdown } from "../../utils/markdown";
 import { getResultText, formatFileSize, formatTimestamp, formatTime, getTaskFileUrl, getTraceSteps, formatToolArgs, formatToolResult } from "../../utils/taskFormatters";
 import { useTaskResources } from "../../composables/useTaskResources";
 import { useTaskPermissions } from "../../composables/useTaskPermissions";
+import { useToast } from "../../composables/useToast";
+import { useConfirm } from "../../composables/useConfirm";
 import { inject } from "vue";
 import { TeamClientKey } from "../../composables/teamClientContext";
 import ConfirmDialog from "../ConfirmDialog";
@@ -206,48 +208,10 @@ const from = computed(() => liveTask.value.from);
 const status = computed(() => liveTask.value.status);
 const { isAssignedToMe, canStart, canComplete, canUpload, canReview } = useTaskPermissions(subscribe, from, props.myId, status);
 
-// ─── ConfirmDialog state ───
+// ─── ConfirmDialog & Toast ───
 
-const confirmVisible = ref(false);
-const confirmTitle = ref(t('task.confirmDefault'));
-const confirmMessage = ref("");
-const confirmDanger = ref(false);
-const pendingAction = ref<(() => void) | null>(null);
-
-function showConfirm(title: string, message: string, action: () => void, danger = false) {
-  confirmTitle.value = title;
-  confirmMessage.value = message;
-  confirmDanger.value = danger;
-  pendingAction.value = action;
-  confirmVisible.value = true;
-}
-
-function onConfirm() {
-  confirmVisible.value = false;
-  pendingAction.value?.();
-  pendingAction.value = null;
-}
-
-function onCancel() {
-  confirmVisible.value = false;
-  pendingAction.value = null;
-}
-
-// ─── Toast state ───
-
-const toastVisible = ref(false);
-const toastMessage = ref("");
-const toastType = ref<"success" | "error" | "info">("info");
-
-function showToast(message: string, type: "success" | "error" | "info" = "info") {
-  toastMessage.value = message;
-  toastType.value = type;
-  toastVisible.value = true;
-}
-
-function onToastDone() {
-  toastVisible.value = false;
-}
+const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
+const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
 
 // ─── Task operations ───
 
@@ -572,14 +536,14 @@ function isTraceExpanded(_by: string): boolean {
       :title="confirmTitle"
       :message="confirmMessage"
       :danger="confirmDanger"
-      @confirm="onConfirm"
-      @cancel="onCancel"
+      @confirm="handleConfirm"
+      @cancel="handleCancel"
     />
     <Toast
       :visible="toastVisible"
       :message="toastMessage"
       :type="toastType"
-      @done="onToastDone"
+      @done="hideToast"
     />
   </div>
 </template>

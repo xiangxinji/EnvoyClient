@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { managerFetch, apiUrl } from "../../api";
+import { useConfirm } from "../../composables/useConfirm";
 import ConfirmDialog from "../ConfirmDialog";
 
 interface StickerItem {
@@ -25,9 +26,9 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const stickers = ref<StickerItem[]>([]);
 const loading = ref(false);
-const confirmVisible = ref(false);
-const deleteTarget = ref<StickerItem | null>(null);
 const errorMsg = ref("");
+
+const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
 
 async function loadStickers() {
   loading.value = true;
@@ -76,28 +77,17 @@ async function handleAdd() {
 }
 
 function handleDeleteClick(sticker: StickerItem) {
-  deleteTarget.value = sticker;
-  confirmVisible.value = true;
-}
-
-async function handleDeleteConfirm() {
-  if (!deleteTarget.value) return;
-  confirmVisible.value = false;
-  try {
-    await managerFetch(`/api/stickers/${deleteTarget.value.id}?from=${encodeURIComponent(props.myId)}`, {
-      method: "DELETE",
-      headers: { team: props.teamName },
-    });
-    await loadStickers();
-  } catch (e: unknown) {
-    errorMsg.value = e instanceof Error ? e.message : String(e);
-  }
-  deleteTarget.value = null;
-}
-
-function handleDeleteCancel() {
-  confirmVisible.value = false;
-  deleteTarget.value = null;
+  showConfirm(t('sticker.confirmDeleteTitle'), t('sticker.confirmDeleteMsg'), async () => {
+    try {
+      await managerFetch(`/api/stickers/${sticker.id}?from=${encodeURIComponent(props.myId)}`, {
+        method: "DELETE",
+        headers: { team: props.teamName },
+      });
+      await loadStickers();
+    } catch (e: unknown) {
+      errorMsg.value = e instanceof Error ? e.message : String(e);
+    }
+  }, true);
 }
 
 function handleStickerClick(sticker: StickerItem) {
@@ -135,7 +125,7 @@ defineExpose({ loadStickers });
     </template>
     <div v-if="errorMsg" class="sticker-error">{{ errorMsg }}</div>
   </div>
-  <ConfirmDialog :visible="confirmVisible" :title="t('sticker.confirmDeleteTitle')" :message="t('sticker.confirmDeleteMsg')" :confirm-text="t('sticker.delete')" :danger="true" @confirm="handleDeleteConfirm" @cancel="handleDeleteCancel" />
+  <ConfirmDialog :visible="confirmVisible" :title="confirmTitle" :message="confirmMessage" :danger="confirmDanger" @confirm="handleConfirm" @cancel="handleCancel" />
 </template>
 
 <style scoped>
