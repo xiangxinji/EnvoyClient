@@ -8,7 +8,8 @@ import Text from "@tiptap/extension-text";
 import HardBreak from "@tiptap/extension-hard-break";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
-import { CloudReference } from "./cloudReferenceNode";
+import { CloudReference, type CloudRefAttrs } from "./cloudReferenceNode";
+import type { ContentSegment, CloudRef } from "../../types";
 
 const { t } = useI18n();
 
@@ -25,7 +26,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  send: [text: string, images: PendingImage[]];
+  send: [segments: ContentSegment[]];
   input: [];
 }>();
 
@@ -110,37 +111,76 @@ function insertImageBlob(file: File) {
 
 function handleSend() {
   if (!editor.value) return;
-  const html = editor.value.getHTML();
-  const text = extractText(html);
+  const segments = extractSegments();
 
-  emit("send", text, [...pendingImages.value]);
+  emit("send", segments);
   editor.value.commands.clearContent();
   for (const img of pendingImages.value) URL.revokeObjectURL(img.objectUrl);
   pendingImages.value = [];
 }
 
-function extractText(html: string): string {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  for (const img of div.querySelectorAll("img")) img.remove();
-  let cloudIndex = 0;
-  for (const chip of Array.from(div.querySelectorAll("span[data-cloud-ref]"))) {
-    const textNode = document.createTextNode(`{cloud:${cloudIndex++}}`);
-    chip.replaceWith(textNode);
+function extractSegments(): ContentSegment[] {
+  if (!editor.value) return [];
+  const doc = editor.value.getJSON();
+  const segments: ContentSegment[] = [];
+  let textBuffer = "";
+
+  function flushText() {
+    const trimmed = textBuffer.trim();
+    if (trimmed) {
+      segments.push({ type: "text", content: trimmed });
+    }
+    textBuffer = "";
   }
-  let text = "";
-  function walk(node: Node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      text += node.textContent ?? "";
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node as HTMLElement;
-      const tag = el.tagName;
-      for (const child of Array.from(el.childNodes)) walk(child);
-      if (tag === "P" || tag === "BR" || tag === "DIV") text += "\n";
+
+  function walkNode(node: Record<string, unknown>) {
+    const type = node.type as string;
+
+    if (type === "text") {
+      textBuffer += (node.text as string) ?? "";
+      return;
+    }
+
+    if (type === "image") {
+      flushText();
+      const src = (node.attrs as Record<string, string>)?.src ?? "";
+      const pending = pendingImages.value.find((p) => p.objectUrl === src);
+      if (pending) {
+        segments.push({ type: "image", blob: pending.blob, name: pending.name });
+      }
+      return;
+    }
+
+    if (type === "cloudReference") {
+      flushText();
+      const attrs = node.attrs as CloudRefAttrs;
+      segments.push({
+        type: "cloudRef",
+        ref: { name: attrs.name, path: attrs.path, type: attrs.type, size: attrs.size } as CloudRef,
+      });
+      return;
+    }
+
+    if (type === "hardBreak") {
+      textBuffer += "\n";
+      return;
+    }
+
+    const content = node.content as Record<string, unknown>[] | undefined;
+    if (content) {
+      for (const child of content) {
+        walkNode(child);
+      }
+    }
+
+    if (type === "paragraph") {
+      textBuffer += "\n";
     }
   }
-  walk(div);
-  return text.replace(/\n{3,}/g, "\n\n").trim();
+
+  walkNode(doc as Record<string, unknown>);
+  flushText();
+  return segments;
 }
 
 function focus() {

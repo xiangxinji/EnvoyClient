@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch, computed, onMounted, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
-import { getTeamClientInstance, getMemberSettings } from "../../composables/teamClientContext";
+import { getTeamClientInstance, getMemberSettings, getMessageService } from "../../composables/teamClientContext";
 import { useAIChat as useAI } from "../../composables/useAIChat";
 import { useMessagePagination } from "../../composables/useMessagePagination";
 import { useFileUpload } from "../../composables/useFileUpload";
@@ -23,7 +23,7 @@ import StickerPanel from "../StickerPanel";
 import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
 import SvgIcon from "../SvgIcon";
-import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, QuoteInfo, CloudRef } from "../../types";
+import type { TimelineItem, ChatMessage, TaskMessage, QuoteInfo, ContentSegment } from "../../types";
 import { formatFileSize } from "../../utils/taskFormatters";
 
 const { t } = useI18n();
@@ -52,9 +52,9 @@ const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm
 
 const conversation = computed<TimelineItem[]>(() => props.peerId ? getConversation(props.peerId) : []);
 const { visibleMessages, hasMoreHistory, loadingMore, handleScroll, resetDisplayCount, loadAll } = useMessagePagination(conversation, messageList);
-const { pendingFiles, uploading, attachmentError, handlePickAttachment, removeFile, uploadImages, uploadPendingFiles } = useFileUpload(myId, teamName);
+const { pendingFiles, uploading, attachmentError, handlePickAttachment, removeFile, uploadImages } = useFileUpload(myId, teamName);
 const { currentMentions, mentionPopupVisible, mentionQuery, mentionPopupRef, handleEditorInput, handleMentionSelect, handleMentionClose, handleEditorKeydown, clearMentions } = useMentionSystem(() => isChannel.value, () => members.value, richEditorRef);
-const { currentCloudRefs, cloudPopupVisible, cloudQuery, cloudPopupRef, handleEditorInput: handleCloudEditorInput, handleCloudSelect, handleCloudClose, handleCloudKeydown, clearCloudRefs } = useCloudMention(richEditorRef);
+const { cloudPopupVisible, cloudQuery, cloudPopupRef, handleEditorInput: handleCloudEditorInput, handleCloudSelect, handleCloudClose, handleCloudKeydown, clearCloudRefs } = useCloudMention(richEditorRef);
 const { selectMode, selectedIds, forwardDialogVisible, enterSelectMode, exitSelectMode, toggleMessageSelect, handleForwardClick, handleForwardConfirm } = useMultiSelect(conversation, sendChat, showToast);
 const { contextMenuVisible, contextMenuX, contextMenuY, contextMenuMsg, quotingMsg, handleMessageContextmenu, handleQuoteReply, handleContextForward, clearQuotingMsg, generateSnapshotText, handleRevoke, handleScrollToQuote, closeContextMenu } = useMessageContextMenu(messageList, loadAll, revokeMessage, enterSelectMode, (ids) => { selectMode.value = true; selectedIds.value = ids; }, showToast);
 
@@ -65,30 +65,76 @@ const { settings: memberSettings } = getMemberSettings();
 watch(() => props.peerId, (newPeer) => { if (newPeer) markRead(newPeer); resetDisplayCount(); taskInputVisible.value = false; clearSuggestion(); });
 watch(() => props.peerId, () => { nextTick(() => { if (messageList.value) messageList.value.scrollTop = messageList.value.scrollHeight; }); }, { flush: 'post', immediate: true });
 
-async function handleRichSend(text: string, images: { blob: Blob; name: string }[]) {
+async function handleSegmentedSend(segments: ContentSegment[]) {
   if (!props.peerId) return;
-  if (!text && images.length === 0 && pendingFiles.value.length === 0) return;
+  if (segments.length === 0 && pendingFiles.value.length === 0) return;
   attachmentError.value = "";
-  const attachments: MessageAttachment[] = [];
 
-  if (images.length > 0) {
-    uploading.value = true;
-    try { attachments.push(...await uploadImages(images)); } catch (e: unknown) { attachmentError.value = t('chat.imgUploadFailed', { msg: getErrorMessage(e) }); uploading.value = false; return; }
-    uploading.value = false;
+  const quoteInfo: QuoteInfo | undefined = quotingMsg.value
+    ? { id: quotingMsg.value.id, from: quotingMsg.value.from, text: generateSnapshotText(quotingMsg.value), timestamp: quotingMsg.value.timestamp }
+    : undefined;
+
+  let isFirst = true;
+
+  for (const seg of segments) {
+    try {
+      if (seg.type === "text") {
+        const mentions = isChannel.value ? extractMentionsForText(seg.content) : undefined;
+        await sendChat(props.peerId, seg.content || " ", {
+          quote: isFirst ? quoteInfo : undefined,
+          channel: isChannel.value ? "general" : undefined,
+          mentions,
+        });
+      } else if (seg.type === "image") {
+        uploading.value = true;
+        const [uploaded] = await uploadImages([seg]);
+        uploading.value = false;
+        await sendChat(props.peerId, " ", {
+          attachments: [uploaded],
+          quote: isFirst ? quoteInfo : undefined,
+          channel: isChannel.value ? "general" : undefined,
+        });
+      } else if (seg.type === "cloudRef") {
+        await sendChat(props.peerId, "{cloud:0}", {
+          cloudRefs: [seg.ref],
+          quote: isFirst ? quoteInfo : undefined,
+          channel: isChannel.value ? "general" : undefined,
+        });
+      }
+      isFirst = false;
+    } catch (e: unknown) {
+      attachmentError.value = getErrorMessage(e);
+      uploading.value = false;
+      break;
+    }
   }
 
-  if (pendingFiles.value.length > 0) {
-    uploading.value = true;
-    try { attachments.push(...await uploadPendingFiles()); } catch (e: unknown) { attachmentError.value = t('chat.attUploadFailed', { msg: getErrorMessage(e) }); uploading.value = false; return; }
-    uploading.value = false;
+  for (const att of pendingFiles.value) {
+    try {
+      uploading.value = true;
+      const data = await getMessageService().uploadAttachment(att.file);
+      uploading.value = false;
+      await sendChat(props.peerId, " ", {
+        attachments: [data],
+        channel: isChannel.value ? "general" : undefined,
+      });
+    } catch (e: unknown) {
+      attachmentError.value = getErrorMessage(e);
+      uploading.value = false;
+      break;
+    }
   }
 
-  const quoteInfo: QuoteInfo | undefined = quotingMsg.value ? { id: quotingMsg.value.id, from: quotingMsg.value.from, text: generateSnapshotText(quotingMsg.value), timestamp: quotingMsg.value.timestamp } : undefined;
-  const cloudRefs: CloudRef[] | undefined = currentCloudRefs.value.length > 0 ? currentCloudRefs.value : undefined;
-  sendChat(props.peerId, text || " ", { attachments: attachments.length > 0 ? attachments : undefined, quote: quoteInfo, channel: isChannel.value ? "general" : undefined, mentions: isChannel.value ? currentMentions.value : undefined, cloudRefs });
   clearMentions();
   clearCloudRefs();
+  pendingFiles.value = [];
   if (quoteInfo) quotingMsg.value = null;
+}
+
+function extractMentionsForText(text: string): string[] | undefined {
+  if (!currentMentions.value.length) return undefined;
+  const matched = currentMentions.value.filter((id) => text.includes(`@${id}`));
+  return matched.length > 0 ? matched : undefined;
 }
 
 function handleClearChat() { menuOpen.value = false; showConfirm(t('chat.confirmClearTitle'), t('chat.confirmClearMsg', { peer: props.peerId }), () => { if (!props.peerId) return; clearConversation(props.peerId); showToast(t('chat.cleared', { peer: props.peerId }), "success"); }, true); }
@@ -207,7 +253,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
         <div class="editor-wrapper" style="position: relative;">
           <MentionPopup v-if="isChannel" ref="mentionPopupRef" :visible="mentionPopupVisible" :members="members" :query="mentionQuery" :my-id="myId" @select="handleMentionSelect" @close="handleMentionClose" />
           <CloudMentionPopup ref="cloudPopupRef" :visible="cloudPopupVisible" :query="cloudQuery" :team-name="teamName" @select="handleCloudSelect" @close="handleCloudClose" />
-          <RichEditor ref="richEditorRef" :enterSendDisabled="mentionPopupVisible || cloudPopupVisible" @send="handleRichSend" @input="handleEditorInput(); handleCloudEditorInput()" @keydown="handleEditorKeydown($event); handleCloudKeydown($event)" />
+          <RichEditor ref="richEditorRef" :enterSendDisabled="mentionPopupVisible || cloudPopupVisible" @send="handleSegmentedSend" @input="handleEditorInput(); handleCloudEditorInput()" @keydown="handleEditorKeydown($event); handleCloudKeydown($event)" />
         </div>
       </div>
     </template>

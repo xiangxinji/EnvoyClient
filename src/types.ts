@@ -40,6 +40,24 @@ export interface QuoteInfo {
   timestamp: number;
 }
 
+export interface ContentSegmentText {
+  type: "text";
+  content: string;
+}
+
+export interface ContentSegmentImage {
+  type: "image";
+  blob: Blob;
+  name: string;
+}
+
+export interface ContentSegmentCloudRef {
+  type: "cloudRef";
+  ref: CloudRef;
+}
+
+export type ContentSegment = ContentSegmentText | ContentSegmentImage | ContentSegmentCloudRef;
+
 export interface ChatMessage {
   type: "chat";
   id: string;
