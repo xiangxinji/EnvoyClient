@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, provide } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import MemberSidebar from "../../components/MemberSidebar";
 import ChatPanel from "../../components/ChatPanel";
@@ -10,7 +10,7 @@ import QuickSettingsPanel from "../../components/QuickSettingsPanel";
 import TaskDetailPanel from "../../components/TaskDetailPanel";
 import CloudResourcesPanel from "../../components/CloudResourcesPanel";
 import ReconnectOverlay from "../../components/ReconnectOverlay";
-import { TeamClientKey, getTeamClientInstance } from "../../composables/teamClientContext";
+import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { useGlobalShortcuts } from "../../composables/useGlobalShortcuts";
 import type { TaskMessage } from "../../types";
 
@@ -60,7 +60,6 @@ function handleCloseDetail() {
 }
 
 if (ctx) {
-  provide(TeamClientKey, ctx);
   useGlobalShortcuts(ctx);
 }
 

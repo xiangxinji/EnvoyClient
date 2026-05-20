@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { inject, ref, nextTick, watch, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, nextTick, watch, computed, onMounted, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
-import { TeamClientKey, getMemberSettings } from "../../composables/teamClientContext";
-import { useAI } from "../../composables/useAI";
+import { getTeamClientInstance, getMemberSettings } from "../../composables/teamClientContext";
+import { useAIChat as useAI } from "../../composables/useAIChat";
 import { useMessagePagination } from "../../composables/useMessagePagination";
 import { useFileUpload } from "../../composables/useFileUpload";
 import { useMentionSystem } from "../../composables/useMentionSystem";
@@ -32,7 +32,7 @@ const { getDisplayName } = useUserProfile();
 const props = defineProps<{ peerId: string }>();
 const emit = defineEmits<{ selectTask: [task: TaskMessage] }>();
 
-const ctx = inject(TeamClientKey)!;
+const ctx = getTeamClientInstance()!;
 const { getConversation, sendChat, dispatchTask, role, myId, markRead, members, teamName, clearConversation, revokeMessage } = ctx;
 
 const isChannel = computed(() => props.peerId === "__team__");

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { inject, computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { TeamClientKey } from "../../composables/teamClientContext";
+import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { managerFetch } from "../../api";
 import TaskCard from "../../components/TaskCard";
 import SvgIcon from "../../components/SvgIcon";
@@ -11,7 +11,7 @@ import { apiTaskToTaskMessage, type ApiTask } from "../../utils/taskFormatters";
 
 const { t } = useI18n();
 
-const ctx = inject(TeamClientKey)!;
+const ctx = getTeamClientInstance()!;
 const { teamName, myId, role } = ctx;
 
 const emit = defineEmits<{

@@ -19,12 +19,13 @@ export function useTaskActions(
   resources: Ref<TaskResource[]>,
   myId: string | undefined,
   teamName: string | undefined,
+  existingClientResults?: Ref<TaskResource[]>,
 ) {
   const { t } = useI18n();
   const { showToast, ...toastRest } = useToast();
   const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
 
-  const clientResults = computed(() => resources.value.filter(r => r.type === "client-result"));
+  const clientResults = existingClientResults ?? computed(() => resources.value.filter(r => r.type === "client-result"));
 
   const memberEntries = computed<MemberEntry[]>(() => {
     const resultMemberIds = new Set(clientResults.value.map(r => r.by));

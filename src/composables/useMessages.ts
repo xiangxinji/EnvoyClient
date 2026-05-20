@@ -1,8 +1,9 @@
 import { ref } from "vue";
 import type { Message } from "@envoy/core";
-import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, RevokedNotice, ForwardedRecord, QuoteInfo, StickerInfo, CloudRef } from "../types";
+import type { TimelineItem, TaskMessage, TaskResource, MessageAttachment, RevokedNotice, ForwardedRecord, QuoteInfo, StickerInfo, CloudRef } from "../types";
 import { managerPost, managerFetch, apiUrl } from "../api";
 import { syncMessageToTimeline, type SyncResponse, type SyncMessage } from "../utils/messageMapper";
+import { buildChatMessage, resolvePeerId } from "../utils/chatMessageFactory";
 
 export function useMessages(
   myId: string,
@@ -32,7 +33,7 @@ export function useMessages(
 
   function syncAndRoute(msg: SyncMessage) {
     const item = syncMessageToTimeline(msg, myId);
-    const peerId = msg.channel ? "__team__" : (msg.from_user === myId ? msg.to_user : msg.from_user);
+    const peerId = resolvePeerId(msg.channel, msg.from_user, msg.to_user, myId);
     addToConversation(peerId, item);
   }
 
@@ -91,8 +92,7 @@ export function useMessages(
           if (att.url.startsWith("/")) att.url = apiUrl(att.url);
         }
       }
-      const chatMsg: ChatMessage = {
-        type: "chat",
+      const chatMsg = buildChatMessage({
         id: payload.id ?? msg.id,
         seq: payload.seq ?? 0,
         from: msg.from,
@@ -100,7 +100,7 @@ export function useMessages(
         text: payload.text,
         timestamp: msg.timestamp,
         mine: msg.from === myId,
-        source: (payload.source === "ai-auto" ? "ai-auto" : "human") as "human" | "ai-auto",
+        source: payload.source === "ai-auto" ? "ai-auto" : undefined,
         attachments: payload.attachments,
         forwarded: payload.forwarded,
         quote: payload.quote,
@@ -108,8 +108,8 @@ export function useMessages(
         channel: payload.channel,
         mentions: payload.mentions,
         cloudRefs: payload.cloudRefs,
-      };
-      const peerId = payload.channel ? "__team__" : (msg.from === myId ? msg.to : msg.from);
+      });
+      const peerId = resolvePeerId(payload.channel, msg.from, msg.to, myId);
       addToConversation(peerId, chatMsg);
       if (msg.from !== myId) {
         incrementUnread(peerId);
@@ -186,8 +186,7 @@ export function useMessages(
       const res = await managerPost("/api/messages", body, { team: teamName });
       const data = await res.json() as { ok: boolean; id: string; seq: number };
 
-      const chatMsg: ChatMessage = {
-        type: "chat",
+      const chatMsg = buildChatMessage({
         id: data.id,
         seq: data.seq,
         from: myId,
@@ -196,19 +195,17 @@ export function useMessages(
         timestamp: Date.now(),
         mine: true,
         source,
-        attachments: attachments?.length ? attachments : undefined,
-        forwarded: forwarded?.length ? forwarded : undefined,
+        attachments,
+        forwarded,
         quote,
         sticker,
         channel,
         mentions,
-        cloudRefs: cloudRefs?.length ? cloudRefs : undefined,
-      };
+        cloudRefs,
+      });
       addToConversation(isChannel ? "__team__" : targetId, chatMsg);
     } catch {
-      // Fallback: show message optimistically with temp ID
-      const chatMsg: ChatMessage = {
-        type: "chat",
+      const chatMsg = buildChatMessage({
         id: `${Date.now()}-local`,
         seq: 0,
         from: myId,
@@ -217,14 +214,14 @@ export function useMessages(
         timestamp: Date.now(),
         mine: true,
         source,
-        attachments: attachments?.length ? attachments : undefined,
-        forwarded: forwarded?.length ? forwarded : undefined,
+        attachments,
+        forwarded,
         quote,
         sticker,
         channel,
         mentions,
-        cloudRefs: cloudRefs?.length ? cloudRefs : undefined,
-      };
+        cloudRefs,
+      });
       addToConversation(isChannel ? "__team__" : targetId, chatMsg);
     }
   }

@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { inject, ref } from "vue";
+import { ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { TeamClientKey } from "../../composables/teamClientContext";
-import { useAI } from "../../composables/useAI";
+import { getTeamClientInstance } from "../../composables/teamClientContext";
+import { useAITask } from "../../composables/useAITask";
 
-const ctx = inject(TeamClientKey)!;
+const ctx = getTeamClientInstance()!;
 const { members, dispatchTask } = ctx;
 const { t } = useI18n();
 
-const { dispatchTask: aiDispatchTask, aiAvailable, aiError: dispatchAiError } = useAI();
+const { dispatchTask: aiDispatchTask, aiAvailable, aiError: dispatchAiError } = useAITask();
 
 const taskContent = ref("");
 const dispatchPreview = ref<{ subscribe: string[]; content: string } | null>(null);

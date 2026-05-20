@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { inject, ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { getMemberSettings, TeamClientKey } from "../../composables/teamClientContext";
+import { getMemberSettings, getTeamClientInstance } from "../../composables/teamClientContext";
 import { isRecordingShortcut, buildCombo } from "../../composables/useGlobalShortcuts";
 import BackButton from "../BackButton";
 import SvgIcon from "../SvgIcon";
@@ -14,7 +14,7 @@ const emit = defineEmits<{
 
 type ShortcutType = "auto_reply" | "execution_mode";
 
-const ctx = inject(TeamClientKey)!;
+const ctx = getTeamClientInstance()!;
 const { settings, loadSettings, saveSettings } = getMemberSettings();
 const username = ctx.myId;
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, inject } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useLocale } from "../../i18n";
-import { getMemberSettings, TeamClientKey, setTeamClientInstance } from "../../composables/teamClientContext";
+import { getMemberSettings, getTeamClientInstance, setTeamClientInstance } from "../../composables/teamClientContext";
 import type { TaskExecutionMode } from "../../composables/useMemberSettings";
 import { useConfirm } from "../../composables/useConfirm";
 import { useUserProfile } from "../../composables/useUserProfile";
@@ -26,7 +26,7 @@ const emit = defineEmits<{
 
 const { settings, loadSettings, saveSettings } = getMemberSettings();
 const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
-const ctx = inject(TeamClientKey)!;
+const ctx = getTeamClientInstance()!;
 const router = useRouter();
 
 const username = ctx.myId;

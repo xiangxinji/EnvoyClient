@@ -1,6 +1,6 @@
 import { SKIP_RESULT } from "../../envoy/packages/client/client.js";
 import { useAgent } from "./useAgent";
-import { useAI } from "./useAI";
+import { useAITask as useAI } from "./useAITask";
 import {
   getDefaultTools,
   createUploadResourceTool,

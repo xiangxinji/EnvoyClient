@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, inject, computed } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { TeamClientKey } from "../../composables/teamClientContext";
+import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
 import {
@@ -19,7 +19,7 @@ import Toast from "../Toast";
 import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
-const ctx = inject(TeamClientKey)!;
+const ctx = getTeamClientInstance()!;
 
 const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
 const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();

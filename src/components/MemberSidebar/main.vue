@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { inject, computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { TeamClientKey, getMemberSettings } from "../../composables/teamClientContext";
+import { getTeamClientInstance, getMemberSettings } from "../../composables/teamClientContext";
 import GlassInput from "../GlassInput";
 import MemberHoverCard from "../MemberHoverCard";
 import ToolHoverCard from "../ToolHoverCard";
@@ -20,7 +20,7 @@ const emit = defineEmits<{
   select: [peerId: string];
 }>();
 
-const ctx = inject(TeamClientKey)!;
+const ctx = getTeamClientInstance()!;
 const { members, unreadCounts, markRead, messages, myId, userProfile } = ctx;
 const { settings: memberSettings, toggleAutoReply, toggleExecutionMode } = getMemberSettings();
 

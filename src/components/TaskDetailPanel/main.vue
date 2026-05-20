@@ -110,7 +110,7 @@ const {
   handleStart, requestComplete,
   requestApprove, requestReject,
   handleUpload, downloadFile,
-} = useTaskActions(taskId, subscribe, resources, props.myId, props.teamName);
+} = useTaskActions(taskId, subscribe, resources, props.myId, props.teamName, clientResults);
 
 const traceExpanded = ref(false);
 

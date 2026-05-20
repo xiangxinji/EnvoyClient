@@ -1,13 +1,13 @@
-import { ref, inject, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import type { TaskMessage } from "../types";
 import type { ApiTask } from "../utils/taskFormatters";
 import { apiTaskToTaskMessage } from "../utils/taskFormatters";
 import { managerFetch } from "../api";
-import { TeamClientKey } from "./teamClientContext";
+import { getTeamClientInstance } from "./teamClientContext";
 import type { Task } from "../../envoy/packages/core/task.js";
 
 export function useTaskLiveData(initialTask: TaskMessage) {
-  const ctx = inject(TeamClientKey)!;
+  const ctx = getTeamClientInstance()!;
 
   const liveTask = ref<TaskMessage>({ ...initialTask });
 

@@ -1,11 +1,8 @@
 import { shallowRef } from "vue";
-import type { InjectionKey } from "vue";
 import type { useTeamClient } from "./useTeamClient";
 import { useMemberSettings } from "./useMemberSettings";
 
 export type TeamClientContext = ReturnType<typeof useTeamClient>;
-
-export const TeamClientKey: InjectionKey<TeamClientContext> = Symbol("team-client");
 
 const _instance = shallowRef<TeamClientContext | null>(null);
 const _memberSettings = useMemberSettings();

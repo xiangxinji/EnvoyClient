@@ -108,13 +108,6 @@ const viewer = useFullscreenViewer();
 function openFullscreen(att: MessageAttachment) {
   if (att.type === "image") viewer.openFullscreen(att.url);
 }
-
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === "Escape" && viewer.fullscreenUrl.value) viewer.closeFullscreen();
-}
-
-document.addEventListener("keydown", handleKeydown);
-onUnmounted(() => document.removeEventListener("keydown", handleKeydown));
 </script>
 
 <template>

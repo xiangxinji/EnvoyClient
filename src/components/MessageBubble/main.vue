@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onUnmounted } from "vue";
+import { computed, ref, onUnmounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ChatMessage, MemberInfo, TimelineItem } from "../../types";
@@ -90,10 +90,14 @@ function onCardEnter() { cancelHoverHide(); }
 function onCardLeave() { hideHoverCard(); }
 
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === "Escape" && forwardedDialogVisible.value) forwardedDialogVisible.value = false;
+  if (e.key === "Escape") forwardedDialogVisible.value = false;
 }
 
-document.addEventListener("keydown", handleKeydown);
+watch(forwardedDialogVisible, (open) => {
+  if (open) document.addEventListener("keydown", handleKeydown);
+  else document.removeEventListener("keydown", handleKeydown);
+});
+
 onUnmounted(() => {
   document.removeEventListener("keydown", handleKeydown);
 });
