@@ -3,14 +3,12 @@ import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import type { TaskMessage, TaskResource } from "../../types";
 import type { Task } from "../../../envoy/packages/core/task.js";
-import { apiUrl, managerFetch, managerPost } from "../../api";
-import { downloadFileWithDialog } from "../../utils/notification";
-import { renderMarkdown } from "../../utils/markdown";
-import { getResultText, formatFileSize, formatTimestamp, formatTime, getTaskFileUrl, getTraceSteps, formatToolArgs, formatToolResult } from "../../utils/taskFormatters";
+import { getResultText, formatFileSize, formatTimestamp, formatTime, getTraceSteps, formatToolArgs, formatToolResult } from "../../utils/taskFormatters";
 import { useTaskResources } from "../../composables/useTaskResources";
 import { useTaskPermissions } from "../../composables/useTaskPermissions";
-import { useToast } from "../../composables/useToast";
-import { useConfirm } from "../../composables/useConfirm";
+import { useTaskActions } from "../../composables/useTaskActions";
+import { managerFetch } from "../../api";
+import { renderMarkdown } from "../../utils/markdown";
 import { inject } from "vue";
 import { TeamClientKey } from "../../composables/teamClientContext";
 import ConfirmDialog from "../ConfirmDialog";
@@ -32,7 +30,6 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-// Maintain a fresh copy of the task by fetching from API + listening to WebSocket
 const liveTask = ref<TaskMessage>({ ...props.task });
 
 async function fetchTask() {
@@ -94,12 +91,8 @@ const modeLabels: Record<string, string> = {
   parallel: t('task.mode.parallel'),
 };
 
-// ─── Group resources by type ───
-
 const resources = computed(() => liveTask.value.resources ?? []);
 const { clientResults, fileResources, traceResources, leaderReviews, isAIExecuted } = useTaskResources(resources);
-
-// ─── Timeline ───
 
 interface TimelineEvent {
   time: number | undefined;
@@ -120,32 +113,16 @@ const timelineEvents = computed<TimelineEvent[]>(() => {
   });
 
   for (const r of clientResults.value) {
-    events.push({
-      time: r.timestamp,
-      label: t('task.executionDone'),
-      by: r.by,
-      icon: "result",
-    });
+    events.push({ time: r.timestamp, label: t('task.executionDone'), by: r.by, icon: "result" });
   }
 
   for (const r of leaderReviews.value) {
     const success = (r.data as Record<string, unknown>)?.success as boolean;
-    events.push({
-      time: r.timestamp,
-      label: success ? t('task.reviewApprovedLabel') : t('task.reviewRejectedLabel'),
-      by: r.by,
-      icon: "review",
-      success,
-    });
+    events.push({ time: r.timestamp, label: success ? t('task.reviewApprovedLabel') : t('task.reviewRejectedLabel'), by: r.by, icon: "review", success });
   }
 
   for (const r of fileResources.value) {
-    events.push({
-      time: r.timestamp,
-      label: t('task.uploadFile'),
-      by: r.by,
-      icon: "file",
-    });
+    events.push({ time: r.timestamp, label: t('task.uploadFile'), by: r.by, icon: "file" });
   }
 
   events.sort((a, b) => {
@@ -157,8 +134,6 @@ const timelineEvents = computed<TimelineEvent[]>(() => {
 
   return events;
 });
-
-// ─── Duration ───
 
 const duration = computed<string | null>(() => {
   if (!liveTask.value.timestamp) return null;
@@ -172,182 +147,24 @@ const duration = computed<string | null>(() => {
   return `${seconds}s`;
 });
 
-// ─── Member entries ───
-
-interface MemberEntry {
-  id: string;
-  hasResult: boolean;
-}
-
-const memberEntries = computed<MemberEntry[]>(() => {
-  const resultMemberIds = new Set(clientResults.value.map((r) => r.by));
-
-  if (clientResults.value.length > 0) {
-    const entries: MemberEntry[] = clientResults.value.map((r) => ({
-      id: r.by,
-      hasResult: true,
-    }));
-    for (const id of liveTask.value.subscribe ?? []) {
-      if (!resultMemberIds.has(id)) {
-        entries.push({ id, hasResult: false });
-      }
-    }
-    return entries;
-  }
-
-  if (liveTask.value.subscribe?.length) {
-    return liveTask.value.subscribe.map((id) => ({ id, hasResult: false }));
-  }
-
-  return [];
-});
-
-// ─── Permissions ───
-
 const subscribe = computed(() => liveTask.value.subscribe);
 const from = computed(() => liveTask.value.from);
 const status = computed(() => liveTask.value.status);
 const { isAssignedToMe, canStart, canComplete, canUpload, canReview } = useTaskPermissions(subscribe, from, props.myId, status);
 
-// ─── ConfirmDialog & Toast ───
+const taskId = computed(() => liveTask.value.taskId);
+const {
+  memberEntries,
+  starting, completing, uploading, reviewing,
+  downloading,
+  toastVisible, toastMessage, toastType, hideToast,
+  confirmVisible, confirmTitle, confirmMessage, confirmDanger,
+  handleConfirm, handleCancel,
+  handleStart, requestComplete,
+  requestApprove, requestReject,
+  handleUpload, downloadFile,
+} = useTaskActions(taskId, subscribe, resources, props.myId, props.teamName);
 
-const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
-const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
-
-// ─── Task operations ───
-
-const starting = ref(false);
-const completing = ref(false);
-const uploading = ref(false);
-const reviewing = ref(false);
-
-async function handleStart() {
-  if (starting.value) return;
-  starting.value = true;
-  try {
-    const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/start`, { from: props.myId }, { team: props.teamName ?? "" });
-    if (res.ok) { /* WebSocket will update */ }
-    else showToast(t('common.operationFailed'), "error");
-  } catch {
-    showToast(t('common.operationFailed'), "error");
-  }
-  starting.value = false;
-}
-
-function requestComplete() {
-  showConfirm(t('task.confirmComplete'), t('task.confirmCompleteMsg'), doComplete);
-}
-
-async function doComplete() {
-  if (completing.value) return;
-  completing.value = true;
-  try {
-    const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/complete`, { from: props.myId, data: { note: t('task.manualComplete'), source: "manual" } }, { team: props.teamName ?? "" });
-    if (res.ok) { /* WebSocket will update */ }
-    else showToast(t('common.operationFailed'), "error");
-  } catch {
-    showToast(t('common.operationFailed'), "error");
-  }
-  completing.value = false;
-}
-
-function requestApprove() {
-  showConfirm(t('task.confirmApprove'), t('task.confirmApproveMsg'), doApprove);
-}
-
-async function doApprove() {
-  if (reviewing.value) return;
-  reviewing.value = true;
-  try {
-    const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/result`, {
-      from: props.myId,
-      success: true,
-      data: { review: t('task.approved'), source: "manual" },
-    }, { team: props.teamName ?? "" });
-    if (res.ok) {
-      showToast(t('task.reviewApproved'), "success");
-    } else {
-      showToast(t('common.operationFailed'), "error");
-    }
-  } catch {
-    showToast(t('common.operationFailed'), "error");
-  }
-  reviewing.value = false;
-}
-
-function requestReject() {
-  showConfirm(t('task.confirmReject'), t('task.confirmRejectMsg'), doReject, true);
-}
-
-async function doReject() {
-  if (reviewing.value) return;
-  reviewing.value = true;
-  try {
-    const res = await managerPost(`/api/tasks/${liveTask.value.taskId}/result`, {
-      from: props.myId,
-      success: false,
-      error: t('task.reviewFailed'),
-    }, { team: props.teamName ?? "" });
-    if (res.ok) {
-      showToast(t('task.taskRejected'), "info");
-    } else {
-      showToast(t('common.operationFailed'), "error");
-    }
-  } catch {
-    showToast(t('common.operationFailed'), "error");
-  }
-  reviewing.value = false;
-}
-
-async function handleUpload() {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.onchange = async () => {
-    const file = input.files?.[0];
-    if (!file) return;
-    uploading.value = true;
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("from", props.myId ?? "");
-      const res = await fetch(apiUrl(`/api/tasks/${liveTask.value.taskId}/resources`), {
-        method: "POST",
-        headers: { team: props.teamName ?? "" },
-        body: formData,
-      });
-      if (!res.ok) throw new Error(t('common.uploadFailed'));
-      /* WebSocket will update */
-    } catch {
-      showToast(t('common.fileUploadFailed'), "error");
-    }
-    uploading.value = false;
-  };
-  input.click();
-}
-
-// ─── Helpers ───
-
-function getFileDownloadUrl(filename: string): string {
-  return getTaskFileUrl(liveTask.value.taskId, filename);
-}
-
-const downloading = ref("");
-
-async function downloadFile(filename: string) {
-  if (downloading.value) return;
-  downloading.value = filename;
-  try {
-    const url = getFileDownloadUrl(filename);
-    await downloadFileWithDialog(url, filename, { team: props.teamName ?? "" });
-    showToast(t('common.fileSaved'), "success");
-  } catch {
-    showToast(t('common.fileDownloadFailed'), "error");
-  } finally {
-    downloading.value = "";
-  }
-}
-
-// ─── Trace expand state ───
 const traceExpanded = ref(false);
 
 function toggleTrace(_by: string) {
@@ -368,7 +185,6 @@ function isTraceExpanded(_by: string): boolean {
     </div>
 
     <div class="detail-body">
-      <!-- Status + Meta -->
       <div class="detail-meta-row">
         <span class="status-badge" :class="liveTask.status">{{ statusLabels[liveTask.status] }}</span>
         <span class="mode-badge">{{ modeLabels['serial'] ?? $t('task.mode.serial') }}</span>
@@ -412,7 +228,7 @@ function isTraceExpanded(_by: string): boolean {
         </div>
       </div>
 
-      <!-- Member results grouped -->
+      <!-- Member results -->
       <div v-if="memberEntries.length > 0" class="detail-section">
         <div class="section-title">{{ $t('task.memberExecution') }}</div>
         <div class="member-results">
@@ -422,8 +238,6 @@ function isTraceExpanded(_by: string): boolean {
               <span v-if="entry.hasResult" class="member-status completed">{{ $t('task.status.completed') }}</span>
               <span v-else class="member-status pending">{{ $t('task.pendingExecute') }}</span>
             </div>
-
-            <!-- Client result -->
             <template v-if="entry.hasResult">
               <div v-for="res in clientResults.filter(r => r.by === entry.id)" :key="res.by" class="result-block">
                 <span v-if="isAIExecuted(res)" class="source-badge ai">AI</span>
@@ -435,7 +249,7 @@ function isTraceExpanded(_by: string): boolean {
         </div>
       </div>
 
-      <!-- Execution traces (standalone section, like TaskCard) -->
+      <!-- Execution traces -->
       <div v-if="traceResources.length > 0" class="detail-section">
         <div class="section-title clickable" @click="toggleTrace('__all__')">
           <SvgIcon name="activity" :size="13" />
@@ -506,26 +320,26 @@ function isTraceExpanded(_by: string): boolean {
 
       <!-- Actions -->
       <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="detail-actions">
-        <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart">
+        <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart()">
           <SvgIcon name="play" :size="12" />
           {{ starting ? $t('task.starting') : $t('task.startExecution') }}
         </button>
-        <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="handleUpload">
+        <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="handleUpload()">
           <SvgIcon name="upload" :size="12" />
           {{ uploading ? $t('task.uploading') : $t('task.uploadFile') }}
         </button>
-        <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="requestComplete">
+        <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="requestComplete()">
           <SvgIcon name="check" :size="12" />
           {{ completing ? $t('task.submitting') : $t('task.markComplete') }}
         </button>
       </div>
 
       <div v-if="canReview" class="detail-actions">
-        <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove">
+        <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove()">
           <SvgIcon name="check" :size="12" />
           {{ reviewing ? $t('task.processing') : $t('task.approve') }}
         </button>
-        <button class="action-btn action-reject" :disabled="reviewing" @click="requestReject">
+        <button class="action-btn action-reject" :disabled="reviewing" @click="requestReject()">
           <SvgIcon name="close" :size="12" />
           {{ $t('task.reject') }}
         </button>

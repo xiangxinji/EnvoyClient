@@ -2,14 +2,11 @@
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { TaskMessage } from "../../types";
-import { apiUrl, managerPost } from "../../api";
-import { downloadFileWithDialog } from "../../utils/notification";
 import { renderMarkdown } from "../../utils/markdown";
-import { getResultText, formatFileSize, formatTimestamp, getTaskFileUrl, getTraceSteps, formatToolArgs, formatToolResult } from "../../utils/taskFormatters";
+import { getResultText, formatFileSize, formatTimestamp, getTraceSteps, formatToolArgs, formatToolResult } from "../../utils/taskFormatters";
 import { useTaskResources } from "../../composables/useTaskResources";
 import { useTaskPermissions } from "../../composables/useTaskPermissions";
-import { useToast } from "../../composables/useToast";
-import { useConfirm } from "../../composables/useConfirm";
+import { useTaskActions } from "../../composables/useTaskActions";
 import ConfirmDialog from "../ConfirmDialog";
 import Toast from "../Toast";
 import SvgIcon from "../SvgIcon";
@@ -35,8 +32,6 @@ const statusLabels: Record<TaskMessage["status"], string> = {
   failed: t('task.status.failed'),
 };
 
-// ─── Shared composables ───
-
 const resources = computed(() => props.task.resources ?? []);
 const { clientResults, fileResources, traceResources, leaderReviews, isAIExecuted, isAIReview } = useTaskResources(resources);
 
@@ -45,188 +40,28 @@ const from = computed(() => props.task.from);
 const status = computed(() => props.task.status);
 const { isAssignedToMe, canStart, canComplete, canUpload, canReview } = useTaskPermissions(subscribe, from, props.myId, status);
 
-// ─── Members ───
+const taskId = computed(() => props.task.taskId);
+const {
+  memberEntries,
+  starting, completing, uploading, reviewing,
+  downloading,
+  toastVisible, toastMessage, toastType, hideToast,
+  confirmVisible, confirmTitle, confirmMessage, confirmDanger,
+  handleConfirm, handleCancel,
+  handleStart, requestComplete,
+  requestApprove, requestReject,
+  handleUpload, downloadFile,
+} = useTaskActions(taskId, subscribe, resources, props.myId, props.teamName);
 
-interface MemberEntry {
-  id: string;
-  hasResult: boolean;
-}
-
-const memberEntries = computed<MemberEntry[]>(() => {
-  const resultMemberIds = new Set(clientResults.value.map((r) => r.by));
-
-  if (clientResults.value.length > 0) {
-    const entries: MemberEntry[] = clientResults.value.map((r) => ({
-      id: r.by,
-      hasResult: true,
-    }));
-    for (const id of props.task.subscribe ?? []) {
-      if (!resultMemberIds.has(id)) {
-        entries.push({ id, hasResult: false });
-      }
-    }
-    return entries;
-  }
-
-  if (props.task.subscribe?.length) {
-    return props.task.subscribe.map((id) => ({ id, hasResult: false }));
-  }
-
-  return [];
-});
-
-function getMemberStatusClass(entry: MemberEntry): string {
+function getMemberStatusClass(entry: { hasResult: boolean }): string {
   if (entry.hasResult) return "completed";
   return (props.task.status === "completed" || props.task.status === "failed") ? props.task.status : "pending";
 }
 
-function getMemberStatusLabel(entry: MemberEntry): string {
+function getMemberStatusLabel(entry: { hasResult: boolean }): string {
   if (entry.hasResult) return statusLabels["completed"];
   return (props.task.status === "completed" || props.task.status === "failed") ? statusLabels[props.task.status] : t('task.status.pending');
 }
-
-// ─── Task operation state ───
-
-const starting = ref(false);
-const completing = ref(false);
-const uploading = ref(false);
-const reviewing = ref(false);
-
-// ─── ConfirmDialog & Toast ───
-
-const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
-const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
-
-// ─── Task operations ───
-
-async function handleStart() {
-  if (starting.value) return;
-  starting.value = true;
-  try {
-    const res = await managerPost(`/api/tasks/${props.task.taskId}/start`, { from: props.myId }, { team: props.teamName ?? "" });
-    if (res.ok) emit("statusChanged");
-    else showToast(t('common.operationFailed'), "error");
-  } catch {
-    showToast(t('common.operationFailed'), "error");
-  }
-  starting.value = false;
-}
-
-function requestComplete() {
-  showConfirm(t('task.confirmComplete'), t('task.confirmCompleteMsg'), doComplete);
-}
-
-async function doComplete() {
-  if (completing.value) return;
-  completing.value = true;
-  try {
-    const res = await managerPost(`/api/tasks/${props.task.taskId}/complete`, { from: props.myId, data: { note: t('task.manualComplete'), source: "manual" } }, { team: props.teamName ?? "" });
-    if (res.ok) emit("statusChanged");
-    else showToast(t('common.operationFailed'), "error");
-  } catch {
-    showToast(t('common.operationFailed'), "error");
-  }
-  completing.value = false;
-}
-
-function requestApprove() {
-  showConfirm(t('task.confirmApprove'), t('task.confirmApproveMsg'), doApprove);
-}
-
-async function doApprove() {
-  if (reviewing.value) return;
-  reviewing.value = true;
-  try {
-    const res = await managerPost(`/api/tasks/${props.task.taskId}/result`, {
-      from: props.myId,
-      success: true,
-      data: { review: t('task.approved'), source: "manual" },
-    }, { team: props.teamName ?? "" });
-    if (res.ok) {
-      emit("statusChanged");
-      showToast(t('task.reviewApproved'), "success");
-    } else {
-      showToast(t('common.operationFailed'), "error");
-    }
-  } catch {
-    showToast(t('common.operationFailed'), "error");
-  }
-  reviewing.value = false;
-}
-
-function requestReject() {
-  showConfirm(t('task.confirmReject'), t('task.confirmRejectMsg'), doReject, true);
-}
-
-async function doReject() {
-  if (reviewing.value) return;
-  reviewing.value = true;
-  try {
-    const res = await managerPost(`/api/tasks/${props.task.taskId}/result`, {
-      from: props.myId,
-      success: false,
-      error: t('task.reviewFailed'),
-    }, { team: props.teamName ?? "" });
-    if (res.ok) {
-      emit("statusChanged");
-      showToast(t('task.taskRejected'), "info");
-    } else {
-      showToast(t('common.operationFailed'), "error");
-    }
-  } catch {
-    showToast(t('common.operationFailed'), "error");
-  }
-  reviewing.value = false;
-}
-
-async function handleUpload() {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.onchange = async () => {
-    const file = input.files?.[0];
-    if (!file) return;
-    uploading.value = true;
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("from", props.myId ?? "");
-      const res = await fetch(apiUrl(`/api/tasks/${props.task.taskId}/resources`), {
-        method: "POST",
-        headers: { team: props.teamName ?? "" },
-        body: formData,
-      });
-      if (!res.ok) throw new Error(t('common.uploadFailed'));
-      emit("statusChanged");
-    } catch {
-      showToast(t('common.fileUploadFailed'), "error");
-    }
-    uploading.value = false;
-  };
-  input.click();
-}
-
-// ─── File helpers ───
-
-function getFileDownloadUrl(filename: string): string {
-  return getTaskFileUrl(props.task.taskId, filename);
-}
-
-const downloading = ref("");
-
-async function downloadFile(filename: string) {
-  if (downloading.value) return;
-  downloading.value = filename;
-  try {
-    const url = getFileDownloadUrl(filename);
-    await downloadFileWithDialog(url, filename, { team: props.teamName ?? "" });
-  } catch {
-    showToast(t('common.fileDownloadFailed'), "error");
-  } finally {
-    downloading.value = "";
-  }
-}
-
-// ─── Trace ───
 
 const traceExpanded = ref(false);
 </script>
@@ -350,15 +185,15 @@ const traceExpanded = ref(false);
 
     <!-- Operation buttons -->
     <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="task-actions" @click.stop>
-      <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart">
+      <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart(() => emit('statusChanged'))">
         <SvgIcon name="play" :size="12" />
         {{ starting ? $t('task.starting') : $t('task.startExecution') }}
       </button>
-      <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="handleUpload">
+      <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="handleUpload(() => emit('statusChanged'))">
         <SvgIcon name="upload" :size="12" />
         {{ uploading ? $t('task.uploading') : $t('task.uploadFile') }}
       </button>
-      <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="requestComplete">
+      <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="requestComplete(() => emit('statusChanged'))">
         <SvgIcon name="check" :size="12" />
         {{ completing ? $t('task.submitting') : $t('task.markComplete') }}
       </button>
@@ -366,11 +201,11 @@ const traceExpanded = ref(false);
 
     <!-- Leader review buttons -->
     <div v-if="canReview" class="task-actions" @click.stop>
-      <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove">
+      <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove(() => emit('statusChanged'))">
         <SvgIcon name="check" :size="12" />
         {{ reviewing ? $t('task.processing') : $t('task.approve') }}
       </button>
-      <button class="action-btn action-reject" :disabled="reviewing" @click="requestReject">
+      <button class="action-btn action-reject" :disabled="reviewing" @click="requestReject(() => emit('statusChanged'))">
         <SvgIcon name="close" :size="12" />
         {{ $t('task.reject') }}
       </button>

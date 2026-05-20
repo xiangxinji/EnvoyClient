@@ -3,7 +3,7 @@
   bottom: 100%;
   left: 0;
   right: 0;
-  max-height: 240px;
+  max-height: 200px;
   display: flex;
   flex-direction: column;
   margin-bottom: var(--space-sm);
@@ -56,7 +56,7 @@
 
 .sticker-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--space-sm);
   padding: var(--space-md);
   overflow-y: auto;
