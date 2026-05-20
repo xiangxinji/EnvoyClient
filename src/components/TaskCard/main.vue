@@ -3,10 +3,14 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { TaskMessage } from "../../types";
 import { renderMarkdown } from "../../utils/markdown";
-import { getResultText, formatFileSize, formatTimestamp, getTraceSteps, formatToolArgs, formatToolResult, getStatusLabels } from "../../utils/taskFormatters";
+import { getResultText, getTraceSteps, getStatusLabels } from "../../utils/taskFormatters";
 import { useTaskResources } from "../../composables/useTaskResources";
 import { useTaskPermissions } from "../../composables/useTaskPermissions";
 import { useTaskActions } from "../../composables/useTaskActions";
+import TaskActionButtons from "../TaskActionButtons";
+import TaskFileList from "../TaskFileList";
+import TaskReviewList from "../TaskReviewList";
+import TaskTraceBlock from "../TaskTraceBlock";
 import ConfirmDialog from "../ConfirmDialog";
 import Toast from "../Toast";
 import SvgIcon from "../SvgIcon";
@@ -27,7 +31,7 @@ const emit = defineEmits<{
 const statusLabels = getStatusLabels(t);
 
 const resources = computed(() => props.task.resources ?? []);
-const { clientResults, fileResources, traceResources, leaderReviews, isAIExecuted, isAIReview } = useTaskResources(resources);
+const { clientResults, fileResources, traceResources, leaderReviews, isAIExecuted } = useTaskResources(resources);
 
 const subscribe = computed(() => props.task.subscribe);
 const from = computed(() => props.task.from);
@@ -99,111 +103,31 @@ const traceExpanded = ref(false);
     </div>
 
     <!-- Leader review section -->
-    <div v-if="leaderReviews.length > 0" class="task-section">
-      <div class="section-label">
-        <SvgIcon name="check-circle" :size="13" />
-        {{ $t('task.reviewLog') }}
-      </div>
-      <div v-for="(review, i) in leaderReviews" :key="`review-${i}`" class="review-item" :class="review.data?.success ? 'approved' : 'rejected'">
-        <span class="resource-by">{{ review.by }}</span>
-        <span class="review-status" :class="review.data?.success ? 'approved' : 'rejected'">
-          {{ review.data?.success ? $t('task.approved') : $t('task.rejected') }}
-        </span>
-        <span v-if="isAIReview(review)" class="source-badge ai">AI</span>
-        <span v-else class="source-badge manual">{{ $t('task.manual') }}</span>
-        <div v-if="review.data?.data" class="review-data">
-          <div class="markdown-content" v-html="renderMarkdown(getResultText(review.data.data))" />
-        </div>
-        <div v-if="review.data?.error" class="review-error">{{ review.data.error }}</div>
-      </div>
-    </div>
+    <TaskReviewList :reviews="leaderReviews" />
 
     <!-- Resources section -->
-    <div v-if="fileResources.length > 0" class="task-section">
-      <div class="section-label">
-        <SvgIcon name="file-plus" :size="13" />
-        {{ $t('task.uploadFile') }}
-      </div>
-      <div v-for="(res, i) in fileResources" :key="`file-${i}`" class="file-item">
-        <span class="resource-by">{{ res.by }}</span>
-        <a
-          class="file-link"
-          :class="{ disabled: downloading === res.data.filename }"
-          href="javascript:void(0)"
-          @click.stop="downloadFile(res.data.filename)"
-        >
-          <template v-if="downloading === res.data.filename">
-            <SvgIcon name="spinner" :size="12" class="spin" />
-            {{ $t('task.downloading') }}
-          </template>
-          <template v-else>
-            <SvgIcon name="download" :size="12" />
-            {{ res.data.filename }}
-          </template>
-        </a>
-        <span class="file-meta">{{ formatFileSize(res.data.size) }} · {{ formatTimestamp(res.data.uploadedAt) }}</span>
-      </div>
-    </div>
+    <TaskFileList :files="fileResources" :downloading="downloading" @download="downloadFile" />
 
     <!-- Execution trace section -->
-    <div v-if="traceResources.length > 0" class="task-section">
-      <div class="section-label clickable" @click.stop="traceExpanded = !traceExpanded">
-        <SvgIcon name="activity" :size="13" />
-        {{ $t('task.executionTrace') }}
-        <span class="trace-toggle">{{ traceExpanded ? $t('task.collapse') : $t('task.expand') }}</span>
-        <span class="trace-count">{{ $t('task.steps', { count: getTraceSteps(traceResources[0]).length }) }}</span>
-      </div>
-      <div v-if="traceExpanded" class="trace-timeline">
-        <div v-for="step in getTraceSteps(traceResources[0])" :key="step.index" class="trace-step">
-          <div class="trace-step-header">
-            <span class="step-index">Step {{ step.index }}</span>
-            <span v-if="step.toolCalls.length > 0" class="step-tools">
-              <span v-for="(tc, ti) in step.toolCalls" :key="ti" class="tool-tag">{{ tc.name }}</span>
-            </span>
-          </div>
-          <div v-if="step.reasoning" class="step-reasoning">{{ step.reasoning }}</div>
-          <div v-if="step.toolCalls.length > 0" class="step-details">
-            <div v-for="(tc, ti) in step.toolCalls" :key="ti" class="tool-call-block">
-              <div class="tool-call-header">
-                <span class="tool-name">{{ tc.name }}</span>
-                <code class="tool-args">{{ formatToolArgs(tc.args) }}</code>
-              </div>
-              <div v-if="step.toolResults[ti]" class="tool-result">
-                <pre class="tool-result-content">{{ formatToolResult(step.toolResults[ti].result) }}</pre>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <TaskTraceBlock :traces="traceResources.length > 0 ? [traceResources[0]] : []" :expanded="traceExpanded" :total-steps="traceResources.length > 0 ? getTraceSteps(traceResources[0]).length : 0" @toggle="traceExpanded = !traceExpanded" />
 
     <!-- Operation buttons -->
-    <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="task-actions" @click.stop>
-      <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart(() => emit('statusChanged'))">
-        <SvgIcon name="play" :size="12" />
-        {{ starting ? $t('task.starting') : $t('task.startExecution') }}
-      </button>
-      <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="handleUpload(() => emit('statusChanged'))">
-        <SvgIcon name="upload" :size="12" />
-        {{ uploading ? $t('task.uploading') : $t('task.uploadFile') }}
-      </button>
-      <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="requestComplete(() => emit('statusChanged'))">
-        <SvgIcon name="check" :size="12" />
-        {{ completing ? $t('task.submitting') : $t('task.markComplete') }}
-      </button>
-    </div>
-
-    <!-- Leader review buttons -->
-    <div v-if="canReview" class="task-actions" @click.stop>
-      <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove(() => emit('statusChanged'))">
-        <SvgIcon name="check" :size="12" />
-        {{ reviewing ? $t('task.processing') : $t('task.approve') }}
-      </button>
-      <button class="action-btn action-reject" :disabled="reviewing" @click="requestReject(() => emit('statusChanged'))">
-        <SvgIcon name="close" :size="12" />
-        {{ $t('task.reject') }}
-      </button>
-    </div>
+    <TaskActionButtons
+      :is-assigned-to-me="isAssignedToMe"
+      :can-start="canStart"
+      :can-upload="canUpload"
+      :can-complete="canComplete"
+      :can-review="canReview"
+      :starting="starting"
+      :uploading="uploading"
+      :completing="completing"
+      :reviewing="reviewing"
+      @start="handleStart(() => emit('statusChanged'))"
+      @upload="handleUpload(() => emit('statusChanged'))"
+      @complete="requestComplete(() => emit('statusChanged'))"
+      @approve="requestApprove(() => emit('statusChanged'))"
+      @reject="requestReject(() => emit('statusChanged'))"
+    />
 
     <ConfirmDialog
       :visible="confirmVisible"
