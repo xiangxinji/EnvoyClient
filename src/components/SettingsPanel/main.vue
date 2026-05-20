@@ -2,8 +2,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { useLocale } from "../../i18n";
-import { getMemberSettings, getTeamClientInstance, setTeamClientInstance } from "../../composables/teamClientContext";
+import { getMemberSettings, getTeamClientInstance, setTeamClientInstance, getSystemSettingService } from "../../composables/teamClientContext";
 import type { TaskExecutionMode } from "../../composables/useMemberSettings";
 import { useConfirm } from "../../composables/useConfirm";
 import { useUserProfile } from "../../composables/useUserProfile";
@@ -16,9 +15,9 @@ import ConfirmDialog from "../ConfirmDialog";
 import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
-const { locale, switchLocale } = useLocale();
-const currentLocale = ref(locale.value);
-watch(currentLocale, (val) => switchLocale(val as "zh-CN" | "en"));
+const sysSettings = getSystemSettingService();
+const currentLocale = ref(sysSettings.locale);
+watch(currentLocale, (val) => sysSettings.switchLocale(val as "zh-CN" | "en"));
 
 const emit = defineEmits<{
   back: [];

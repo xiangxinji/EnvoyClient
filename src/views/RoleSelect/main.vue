@@ -2,7 +2,8 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { useLocale, type Locale } from "../../i18n";
+import { type Locale } from "../../i18n";
+import { getSystemSettingService } from "../../composables/teamClientContext";
 import { useTeamClient } from "../../composables/useTeamClient";
 import { setTeamClientInstance } from "../../composables/teamClientContext";
 import { setManagerUrl, setClientToken } from "../../api";
@@ -12,12 +13,12 @@ import logo from "../../assets/logo.png";
 import { isTauri } from "../../utils/platform";
 import { getErrorMessage } from "../../utils/error";
 const { t } = useI18n();
-const { locale, switchLocale, loadFromSettings } = useLocale();
-const currentLocale = ref(locale.value as Locale);
+const sysSettings = getSystemSettingService();
+const currentLocale = ref(sysSettings.locale as Locale);
 
 function handleLangChange(val: string) {
   currentLocale.value = val as Locale;
-  switchLocale(val as Locale);
+  sysSettings.switchLocale(val as Locale);
 }
 
 const router = useRouter();
@@ -33,8 +34,8 @@ const selectedTeam = ref("");
 const authenticated = ref(false);
 
 async function loadSettings() {
-  await loadFromSettings();
-  currentLocale.value = locale.value as Locale;
+  await sysSettings.loadLocaleFromSettings();
+  currentLocale.value = sysSettings.locale as Locale;
   if (!isTauri) {
     // Browser mode: just use default
     return;

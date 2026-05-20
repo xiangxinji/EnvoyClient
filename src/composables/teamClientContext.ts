@@ -6,6 +6,7 @@ import { CloudResourceService } from "../services/CloudResourceService";
 import { TaskService } from "../services/TaskService";
 import { UserProfileService } from "../services/UserProfileService";
 import { StickerService } from "../services/StickerService";
+import { SystemSettingService } from "../services/SystemSettingService";
 import type { ServiceConfig } from "../services/types";
 
 export type TeamClientContext = ReturnType<typeof useTeamClient>;
@@ -23,6 +24,7 @@ const _cloudResourceService = new CloudResourceService(_serviceConfig);
 const _taskService = new TaskService(_serviceConfig);
 const _userProfileService = new UserProfileService(_serviceConfig);
 const _stickerService = new StickerService(_serviceConfig);
+const _systemSettingService = new SystemSettingService();
 
 export function setTeamClientInstance(ctx: TeamClientContext | null) {
   _instance.value = ctx;
@@ -58,4 +60,8 @@ export function getUserProfileService() {
 
 export function getStickerService() {
   return _stickerService;
+}
+
+export function getSystemSettingService() {
+  return _systemSettingService;
 }
