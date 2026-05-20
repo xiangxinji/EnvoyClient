@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
-import type { CloudSearchResult } from "../../api";
-import { searchCloudFiles } from "../../api";
+import type { CloudSearchResult } from "../../services/types";
+import { getCloudResourceService } from "../../composables/teamClientContext";
 import { getFileCategory } from "../../utils/fileCategories";
 import FileIcon from "../FileIcon";
 import SvgIcon from "../SvgIcon";
@@ -29,7 +29,7 @@ async function doSearch(query: string) {
   if (!query) { results.value = []; return; }
   loading.value = true;
   try {
-    results.value = await searchCloudFiles(props.teamName, query);
+    results.value = await getCloudResourceService().search(query);
   } catch {
     results.value = [];
   } finally {

@@ -1,21 +1,18 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import type { TaskMessage } from "../types";
-import type { ApiTask } from "../utils/taskFormatters";
-import { apiTaskToTaskMessage } from "../utils/taskFormatters";
-import { managerFetch } from "../api";
-import { getTeamClientInstance } from "./teamClientContext";
+import { apiTaskToTaskMessage, type ApiTask } from "../utils/taskFormatters";
+import { getTaskService, getTeamClientInstance } from "./teamClientContext";
 import type { Task } from "../../envoy/packages/core/task.js";
 
 export function useTaskLiveData(initialTask: TaskMessage) {
   const ctx = getTeamClientInstance()!;
+  const taskService = getTaskService();
 
   const liveTask = ref<TaskMessage>({ ...initialTask });
 
   async function fetchTask() {
     try {
-      const res = await managerFetch(`/api/teams/${encodeURIComponent(ctx.teamName)}/tasks/${liveTask.value.taskId}`);
-      if (!res.ok) return;
-      const t = await res.json() as ApiTask;
+      const t = await taskService.fetchDetail(liveTask.value.taskId);
       liveTask.value = apiTaskToTaskMessage(t);
     } catch { /* ignore */ }
   }

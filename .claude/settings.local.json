@@ -107,7 +107,10 @@
       "Bash([ -f \"openspec/changes/$name/tasks.md\" ])",
       "Bash([ -d \"openspec/changes/$name/specs\" ])",
       "Bash([ -d \"openspec/changes/$name\" ])",
-      "Bash(mv openspec/changes/__TRACKED_VAR__ openspec/changes/archive/2026-05-20-__TRACKED_VAR__)"
+      "Bash(mv openspec/changes/__TRACKED_VAR__ openspec/changes/archive/2026-05-20-__TRACKED_VAR__)",
+      "Bash(git worktree *)",
+      "Bash(git branch *)",
+      "mcp__plugin_ecc_sequential-thinking__sequentialthinking"
     ]
   },
   "enabledPlugins": {

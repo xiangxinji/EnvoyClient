@@ -1,14 +1,18 @@
 import { ref } from "vue";
-import { fetchProfiles, updateProfile, uploadAvatar, apiUrl, type UserProfile } from "../api";
+import { getUserProfileService } from "./teamClientContext";
+import { apiUrl } from "../api";
 import { getErrorMessage } from "../utils/error";
+import type { UserProfile } from "../services/types";
 
 const profiles = ref<Map<string, UserProfile>>(new Map());
 
 export function useUserProfile() {
+  const profileService = getUserProfileService();
+
   async function loadProfiles(usernames: string[]): Promise<void> {
     if (usernames.length === 0) return;
     try {
-      const list = await fetchProfiles(usernames);
+      const list = await profileService.fetchProfiles(usernames);
       const newMap = new Map(profiles.value);
       for (const p of list) newMap.set(p.username, p);
       profiles.value = newMap;
@@ -38,7 +42,7 @@ export function useUserProfile() {
   }
 
   async function updateMyProfile(username: string, data: { nickname?: string | null }): Promise<void> {
-    const result = await updateProfile(username, data);
+    const result = await profileService.updateProfile(username, data);
     const existing = profiles.value.get(username);
     if (existing) {
       profiles.value.set(username, { ...existing, nickname: result.nickname });
@@ -46,7 +50,7 @@ export function useUserProfile() {
   }
 
   async function uploadMyAvatar(username: string, file: File): Promise<void> {
-    const result = await uploadAvatar(username, file);
+    const result = await profileService.uploadAvatar(username, file);
     const existing = profiles.value.get(username);
     if (existing) {
       profiles.value.set(username, { ...existing, avatar_url: result.avatar_url });

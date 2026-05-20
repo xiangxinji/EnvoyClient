@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { getTeamClientInstance } from "../../composables/teamClientContext";
+import { getTeamClientInstance, getCloudResourceService } from "../../composables/teamClientContext";
 import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
-import {
-  listCloudFiles, uploadCloudFile, createCloudDirectory, deleteCloudFile, cloudDownloadUrl,
-  type CloudFileItem,
-} from "../../api";
+import type { CloudFileItem } from "../../services/types";
 import { downloadFileWithDialog } from "../../utils/notification";
 import { getErrorMessage } from "../../utils/error";
 import { formatFileSize } from "../../utils/taskFormatters";
@@ -20,6 +17,7 @@ import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
 const ctx = getTeamClientInstance()!;
+const cloudService = getCloudResourceService();
 
 const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
 const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
@@ -65,7 +63,7 @@ const breadcrumbs = computed<Breadcrumb[]>(() => {
 async function loadFiles() {
   loading.value = true;
   try {
-    const result = await listCloudFiles(ctx.teamName, currentPath.value);
+    const result = await cloudService.listFiles(currentPath.value);
     items.value = result.items;
   } catch { items.value = []; }
   finally { loading.value = false; }
@@ -88,7 +86,7 @@ async function handleUpload() {
   if (!file) return;
   uploadProgress.value = 0;
   try {
-    await uploadCloudFile(ctx.teamName, file, currentPath.value, ctx.myId, pct => { uploadProgress.value = pct; });
+    await cloudService.uploadFile(file, currentPath.value, pct => { uploadProgress.value = pct; });
     await loadFiles();
   } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.uploadFailed"), "error"); }
   finally { uploadProgress.value = null; }
@@ -99,7 +97,7 @@ async function confirmNewDir() {
   if (!name) return;
   showNewDirDialog.value = false;
   try {
-    await createCloudDirectory(ctx.teamName, name, currentPath.value, ctx.myId);
+    await cloudService.createDirectory(name, currentPath.value);
     await loadFiles();
   } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.operationFailed"), "error"); }
 }
@@ -120,7 +118,7 @@ function requestBatchDelete() {
 async function performDelete(targets: CloudFileItem[]) {
   for (const item of targets) {
     const filePath = item.type === "directory" ? currentPath.value + item.name + "/" : currentPath.value + item.name;
-    try { await deleteCloudFile(ctx.teamName, filePath, ctx.myId); }
+    try { await cloudService.deleteFile(filePath); }
     catch (e: unknown) { showToast(getErrorMessage(e) || t("common.operationFailed"), "error"); break; }
   }
   exitSelectMode();
@@ -129,7 +127,7 @@ async function performDelete(targets: CloudFileItem[]) {
 
 async function handleDownload(item: CloudFileItem) {
   try {
-    const url = cloudDownloadUrl(ctx.teamName, currentPath.value + item.name);
+    const url = cloudService.downloadUrl(currentPath.value + item.name);
     await downloadFileWithDialog(url, item.name, { team: ctx.teamName });
   } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.fileDownloadFailed"), "error"); }
 }

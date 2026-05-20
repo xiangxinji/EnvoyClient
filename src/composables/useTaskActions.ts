@@ -1,12 +1,11 @@
 import { computed, ref, type Ref } from "vue";
-import { managerPost, apiUrl } from "../api";
 import { downloadFileWithDialog } from "../utils/notification";
-import { getTaskFileUrl } from "../utils/taskFormatters";
-import { pickFiles } from "../utils/filePicker";
 import { useToast } from "./useToast";
 import { useConfirm } from "./useConfirm";
 import { useI18n } from "vue-i18n";
 import type { TaskResource } from "../types";
+import { getTaskService } from "./teamClientContext";
+import { pickFiles } from "../utils/filePicker";
 
 interface MemberEntry {
   id: string;
@@ -47,13 +46,12 @@ export function useTaskActions(
   const uploading = ref(false);
   const reviewing = ref(false);
 
-  async function runAction(loading: Ref<boolean>, action: () => Promise<Response>, onSuccess?: () => void) {
+  async function runAction(loading: Ref<boolean>, action: () => Promise<void>, onSuccess?: () => void) {
     if (loading.value) return;
     loading.value = true;
     try {
-      const res = await action();
-      if (res.ok) onSuccess?.();
-      else showToast(t('common.operationFailed'), "error");
+      await action();
+      onSuccess?.();
     } catch {
       showToast(t('common.operationFailed'), "error");
     }
@@ -61,10 +59,7 @@ export function useTaskActions(
   }
 
   async function handleStart(onSuccess?: () => void) {
-    await runAction(starting, () =>
-      managerPost(`/api/tasks/${taskId.value}/start`, { from: myId }, { team: teamName ?? "" }),
-      onSuccess,
-    );
+    await runAction(starting, () => getTaskService().start(taskId.value), onSuccess);
   }
 
   function requestComplete(onSuccess?: () => void) {
@@ -73,7 +68,7 @@ export function useTaskActions(
 
   async function doComplete(onSuccess?: () => void) {
     await runAction(completing, () =>
-      managerPost(`/api/tasks/${taskId.value}/complete`, { from: myId, data: { note: t('task.manualComplete'), source: "manual" } }, { team: teamName ?? "" }),
+      getTaskService().complete(taskId.value, { note: t('task.manualComplete'), source: "manual" }),
       onSuccess,
     );
   }
@@ -84,7 +79,7 @@ export function useTaskActions(
 
   async function doApprove(onSuccess?: () => void) {
     await runAction(reviewing, () =>
-      managerPost(`/api/tasks/${taskId.value}/result`, { from: myId, success: true, data: { review: t('task.approved'), source: "manual" } }, { team: teamName ?? "" }),
+      getTaskService().submitResult(taskId.value, { from: myId ?? "", success: true, data: { review: t('task.approved'), source: "manual" } }),
       () => { onSuccess?.(); showToast(t('task.reviewApproved'), "success"); },
     );
   }
@@ -95,7 +90,7 @@ export function useTaskActions(
 
   async function doReject(onSuccess?: () => void) {
     await runAction(reviewing, () =>
-      managerPost(`/api/tasks/${taskId.value}/result`, { from: myId, success: false, error: t('task.reviewFailed') }, { team: teamName ?? "" }),
+      getTaskService().submitResult(taskId.value, { from: myId ?? "", success: false, error: t('task.reviewFailed') }),
       () => { onSuccess?.(); showToast(t('task.taskRejected'), "info"); },
     );
   }
@@ -106,15 +101,7 @@ export function useTaskActions(
     if (!file) return;
     uploading.value = true;
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("from", myId ?? "");
-      const res = await fetch(apiUrl(`/api/tasks/${taskId.value}/resources`), {
-        method: "POST",
-        headers: { team: teamName ?? "" },
-        body: formData,
-      });
-      if (!res.ok) throw new Error(t('common.uploadFailed'));
+      await getTaskService().uploadResource(taskId.value, file);
       onSuccess?.();
     } catch {
       showToast(t('common.fileUploadFailed'), "error");
@@ -128,7 +115,7 @@ export function useTaskActions(
     if (downloading.value) return;
     downloading.value = filename;
     try {
-      const url = getTaskFileUrl(taskId.value, filename);
+      const url = getTaskService().downloadResourceUrl(taskId.value, filename);
       await downloadFileWithDialog(url, filename, { team: teamName ?? "" });
     } catch {
       showToast(t('common.fileDownloadFailed'), "error");

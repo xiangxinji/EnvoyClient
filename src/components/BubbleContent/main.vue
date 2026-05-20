@@ -6,7 +6,7 @@ import { useUserProfile } from "../../composables/useUserProfile";
 import { useFullscreenViewer } from "../../composables/useFullscreenViewer";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { validateCloudPaths, cloudDownloadUrl } from "../../api";
+import { getCloudResourceService } from "../../composables/teamClientContext";
 import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
@@ -79,7 +79,7 @@ const renderedHtml = computed(() => {
         : `<span class="cloud-ref-card directory" data-cloud-path="${escapeHtml(cloudRef.path)}"><span class="cloud-ref-icon-fallback">📁</span><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-action">${t("cloudMention.openInCloud")}</span></span>`;
       sanitized = sanitized.replace(marker, cardHtml);
     } else {
-      const dlUrl = props.teamName ? escapeHtml(cloudDownloadUrl(props.teamName, cloudRef.path)) : "#";
+      const dlUrl = props.teamName ? escapeHtml(getCloudResourceService().downloadUrl(cloudRef.path)) : "#";
       const cardHtml = expired
         ? `<span class="cloud-ref-card expired"><span class="cloud-ref-icon-fallback">📄</span><span class="cloud-ref-info"><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-expired">(${t("cloudMention.expired")})</span></span></span>`
         : `<a class="cloud-ref-card file" href="${dlUrl}" target="_blank" rel="noopener"><span class="cloud-ref-icon-fallback">📄</span><span class="cloud-ref-info"><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-size">${formatFileSize(cloudRef.size)}</span></span><span class="cloud-ref-download">⬇</span></a>`;
@@ -95,7 +95,7 @@ onMounted(async () => {
   if (!props.cloudRefs?.length || !props.teamName) return;
   const paths = props.cloudRefs.map(r => r.path);
   try {
-    const result = await validateCloudPaths(props.teamName, paths);
+    const result = await getCloudResourceService().validatePaths(paths);
     if (!cancelled) validationMap.value = result;
   } catch {
     // silent fail — cards stay in valid state

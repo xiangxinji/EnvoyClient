@@ -8,8 +8,7 @@ import type { ConnectionStatus, ConnectionClientOptions } from "./useConnection"
 import { useMessages } from "./useMessages";
 import { useTaskExecution } from "./useTaskExecution";
 import { useAutoReply } from "./useAutoReply";
-import { getMemberSettings, setTeamClientInstance } from "./teamClientContext";
-import { managerPost } from "../api";
+import { getMemberSettings, setTeamClientInstance, getTaskService } from "./teamClientContext";
 import { useUserProfile } from "./useUserProfile";
 import { sendDesktopNotification, requestTaskbarAttention, updateDockBadge, cancelTaskbarAttention, resetNotificationState } from "../utils/notification";
 
@@ -178,12 +177,7 @@ export function useTeamClient(
   // ─── Public interface ───
 
   function dispatchTask(targetIds: string[], content: string) {
-    managerPost("/api/tasks", {
-      from: conn.myId,
-      content,
-      subscribe: targetIds,
-      mode: "serial",
-    }, { team: conn.teamName });
+    void getTaskService().dispatch(targetIds, content);
   }
 
   function logout() {

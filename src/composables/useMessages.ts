@@ -1,9 +1,10 @@
 import { ref } from "vue";
 import type { Message } from "@envoy/core";
 import type { TimelineItem, TaskMessage, TaskResource, MessageAttachment, RevokedNotice, ForwardedRecord, QuoteInfo, StickerInfo, CloudRef } from "../types";
-import { managerPost, managerFetch, apiUrl } from "../api";
+import { managerFetch, apiUrl } from "../api";
 import { syncMessageToTimeline, type SyncResponse, type SyncMessage } from "../utils/messageMapper";
 import { buildChatMessage, resolvePeerId } from "../utils/chatMessageFactory";
+import { getMessageService } from "./teamClientContext";
 
 export function useMessages(
   myId: string,
@@ -171,20 +172,11 @@ export function useMessages(
     const mentions = options?.mentions;
     const cloudRefs = options?.cloudRefs;
     const isChannel = !!channel;
-    const body: Record<string, unknown> = { from: myId, text };
-    if (!isChannel) body.to = targetId;
-    if (attachments?.length) body.attachments = attachments;
-    if (source) body.source = source;
-    if (forwarded?.length) body.forwarded = forwarded;
-    if (quote) body.quote = quote;
-    if (sticker) body.sticker = sticker;
-    if (channel) body.channel = channel;
-    if (mentions?.length) body.mentions = mentions;
-    if (cloudRefs?.length) body.cloudRefs = cloudRefs;
 
     try {
-      const res = await managerPost("/api/messages", body, { team: teamName });
-      const data = await res.json() as { ok: boolean; id: string; seq: number };
+      const data = await getMessageService().send(targetId, text, {
+        attachments, source, forwarded, quote, sticker, channel, mentions, cloudRefs,
+      });
 
       const chatMsg = buildChatMessage({
         id: data.id,
@@ -237,31 +229,21 @@ export function useMessages(
   }
 
   async function revokeMessage(peerId: string, msgId: string): Promise<boolean> {
-    try {
-      const res = await fetch(
-        apiUrl(`/api/messages/${encodeURIComponent(msgId)}?from=${encodeURIComponent(myId)}`),
-        {
-          method: "DELETE",
-          headers: { team: teamName },
-        },
-      );
-      if (!res.ok) return false;
+    const ok = await getMessageService().revoke(msgId);
+    if (!ok) return false;
 
-      const items = messages.value.get(peerId);
-      if (items) {
-        const notice: RevokedNotice = {
-          type: "revoked",
-          id: msgId,
-          seq: 0,
-          from: myId,
-          timestamp: Date.now(),
-        };
-        messages.value.set(peerId, items.map((t) => t.id === msgId ? notice : t));
-      }
-      return true;
-    } catch {
-      return false;
+    const items = messages.value.get(peerId);
+    if (items) {
+      const notice: RevokedNotice = {
+        type: "revoked",
+        id: msgId,
+        seq: 0,
+        from: myId,
+        timestamp: Date.now(),
+      };
+      messages.value.set(peerId, items.map((t) => t.id === msgId ? notice : t));
     }
+    return true;
   }
 
   return {

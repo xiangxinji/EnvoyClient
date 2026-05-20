@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import type { CloudSearchResult } from "../api";
+import type { CloudSearchResult } from "../services/types";
 import type RichEditor from "../components/RichEditor";
 import type CloudMentionPopup from "../components/CloudMentionPopup";
 

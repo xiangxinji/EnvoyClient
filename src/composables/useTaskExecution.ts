@@ -10,8 +10,7 @@ import {
   createCloudListTool,
   createCloudUploadTool,
 } from "../agent/tools";
-import { managerPost } from "../api";
-import { getMemberSettings } from "./teamClientContext";
+import { getMemberSettings, getTaskService } from "./teamClientContext";
 import { isTauri, safeInvoke } from "../utils/platform";
 import { getErrorMessage } from "../utils/error";
 import type { TaskResource, SkillCatalogResponse } from "../types";
@@ -25,10 +24,7 @@ interface TaskExecutionContext {
 export function useTaskExecution(ctx: TaskExecutionContext) {
   const agent = useAgent();
   const { settings, loadSettings } = getMemberSettings();
-
-  function postToManager(path: string, body: Record<string, unknown>) {
-    return managerPost(path, body, { team: ctx.teamName });
-  }
+  const taskService = getTaskService();
 
   function registerHandler(client: { doing: (handler: (task: { serverTask: { id: string; content: string; status: string; attempt: number; resources: TaskResource[] } }) => Promise<unknown>) => void }) {
     client.doing(async (clientTask) => {
@@ -64,14 +60,14 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       const ai = useAI();
       const reviewResult = await ai.reviewTaskResult(taskContent, memberResults);
 
-      postToManager(`/api/tasks/${taskId}/result`, {
+      void taskService.submitResult(taskId, {
         from: ctx.myId,
         success: reviewResult.success,
         data: { review: reviewResult.summary, source: "ai", ...reviewResult },
       });
       return reviewResult;
     } catch (e) {
-      postToManager(`/api/tasks/${taskId}/result`, {
+      void taskService.submitResult(taskId, {
         from: ctx.myId,
         success: false,
         error: `Leader review failed: ${getErrorMessage(e)}`,
@@ -81,12 +77,11 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
   }
 
   async function handleMemberExecution(taskId: string, taskContent: string) {
-    // Transition server-side task status: pending → running
-    postToManager(`/api/tasks/${taskId}/start`, { from: ctx.myId });
+    void taskService.start(taskId);
 
     if (!isTauri) {
       const result = { taskId, note: "browser mode, no agent tools" };
-      postToManager(`/api/tasks/${taskId}/result`, { from: ctx.myId, success: true, data: result });
+      void taskService.submitResult(taskId, { from: ctx.myId, success: true, data: result });
       return result;
     }
 
@@ -127,7 +122,7 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
         parsed = { result: agentResult.result };
       }
 
-      postToManager(`/api/tasks/${taskId}/result`, {
+      void taskService.submitResult(taskId, {
         from: ctx.myId,
         success: true,
         data: { ...parsed, source: "ai" },
@@ -136,7 +131,7 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       return parsed;
     } catch (e) {
       const error = getErrorMessage(e);
-      postToManager(`/api/tasks/${taskId}/result`, { from: ctx.myId, success: false, error });
+      void taskService.submitResult(taskId, { from: ctx.myId, success: false, error });
       return { error };
     }
   }
