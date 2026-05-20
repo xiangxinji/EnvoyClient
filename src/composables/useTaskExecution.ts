@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import { SKIP_RESULT } from "../../envoy/packages/client/client.js";
 import { useAgent } from "./useAgent";
 import { useAI } from "./useAI";
@@ -13,14 +12,9 @@ import {
 } from "../agent/tools";
 import { managerPost } from "../api";
 import { getMemberSettings } from "./teamClientContext";
+import { isTauri, safeInvoke } from "../utils/platform";
+import { getErrorMessage } from "../utils/error";
 import type { TaskResource, SkillCatalogResponse } from "../types";
-
-const isTauri = "__TAURI_INTERNALS__" in window;
-
-function safeInvoke(cmd: string, args: Record<string, unknown>) {
-  if (!isTauri) return Promise.resolve();
-  return invoke(cmd, args);
-}
 
 interface TaskExecutionContext {
   role: "leader" | "member";
@@ -80,9 +74,9 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       postToManager(`/api/tasks/${taskId}/result`, {
         from: ctx.myId,
         success: false,
-        error: `Leader review failed: ${String(e)}`,
+        error: `Leader review failed: ${getErrorMessage(e)}`,
       });
-      return { error: String(e) };
+      return { error: getErrorMessage(e) };
     }
   }
 
@@ -141,7 +135,7 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       });
       return parsed;
     } catch (e) {
-      const error = String(e);
+      const error = getErrorMessage(e);
       postToManager(`/api/tasks/${taskId}/result`, { from: ctx.myId, success: false, error });
       return { error };
     }

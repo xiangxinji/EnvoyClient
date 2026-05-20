@@ -3,10 +3,9 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import logo from "../../assets/logo.png";
+import { isTauri } from "../../utils/platform";
 
 const { t } = useI18n();
-
-const isTauri = "__TAURI_INTERNALS__" in window;
 const router = useRouter();
 
 const managerUrl = ref("http://localhost:8080");

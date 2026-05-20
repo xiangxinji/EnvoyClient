@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { managerFetch, apiUrl } from "../../api";
+import { getErrorMessage } from "../../utils/error";
 import { useConfirm } from "../../composables/useConfirm";
 import ConfirmDialog from "../ConfirmDialog";
 import SvgIcon from "../SvgIcon";
@@ -71,7 +72,7 @@ async function handleAdd() {
     }
     await loadStickers();
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = getErrorMessage(e);
     console.error("handleAdd error:", msg);
     errorMsg.value = msg;
   }
@@ -86,7 +87,7 @@ function handleDeleteClick(sticker: StickerItem) {
       });
       await loadStickers();
     } catch (e: unknown) {
-      errorMsg.value = e instanceof Error ? e.message : String(e);
+      errorMsg.value = getErrorMessage(e);
     }
   }, true);
 }

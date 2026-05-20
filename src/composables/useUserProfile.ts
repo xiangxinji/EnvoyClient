@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { fetchProfiles, updateProfile, uploadAvatar, apiUrl, type UserProfile } from "../api";
+import { getErrorMessage } from "../utils/error";
 
 const profiles = ref<Map<string, UserProfile>>(new Map());
 
@@ -12,7 +13,7 @@ export function useUserProfile() {
       for (const p of list) newMap.set(p.username, p);
       profiles.value = newMap;
     } catch (e: unknown) {
-      console.error("[useUserProfile] fetchProfiles failed:", e instanceof Error ? e.message : String(e));
+      console.error("[useUserProfile] fetchProfiles failed:", getErrorMessage(e));
     }
   }
 

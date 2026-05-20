@@ -3,7 +3,7 @@ import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import type { TaskMessage, TaskResource } from "../../types";
 import type { Task } from "../../../envoy/packages/core/task.js";
-import { getResultText, formatFileSize, formatTimestamp, formatTime, getTraceSteps, formatToolArgs, formatToolResult } from "../../utils/taskFormatters";
+import { getResultText, formatFileSize, formatTimestamp, formatTime, getTraceSteps, formatToolArgs, formatToolResult, getStatusLabels } from "../../utils/taskFormatters";
 import { useTaskResources } from "../../composables/useTaskResources";
 import { useTaskPermissions } from "../../composables/useTaskPermissions";
 import { useTaskActions } from "../../composables/useTaskActions";
@@ -78,13 +78,7 @@ onUnmounted(() => {
   ctx.client?.off("task", onTaskUpdate);
 });
 
-const statusLabels: Record<TaskMessage["status"], string> = {
-  pending: t('task.status.pending'),
-  running: t('task.status.running'),
-  reviewing: t('task.status.reviewing'),
-  completed: t('task.status.completed'),
-  failed: t('task.status.failed'),
-};
+const statusLabels = getStatusLabels(t);
 
 const modeLabels: Record<string, string> = {
   serial: t('task.mode.serial'),

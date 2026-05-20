@@ -1,6 +1,7 @@
 import type { AgentTool } from "./tools";
 import { apiUrl, getClientToken } from "../api";
 import type { AgentResult, AgentStep, AgentToolCall, AgentReasonResponse } from "../types";
+import { getErrorMessage } from "../utils/error";
 
 // ─── Types ───
 
@@ -182,7 +183,7 @@ export async function reactLoop(
         });
         agentStep.toolResults.push({ name: call.name, result });
       } catch (e: unknown) {
-        const errMsg = e instanceof Error ? e.message : String(e);
+        const errMsg = getErrorMessage(e);
         const errResult = { error: errMsg };
         messages.push({
           role: "tool",

@@ -1,12 +1,7 @@
 import { ref } from "vue";
 import type { ChatMessage, MemberInfo, TaskMessage, SSEEventData, AIHealthResponse, TaskResource } from "../types";
-import { apiUrl, managerFetch } from "../api";
-
-// ─── Helpers ───
-
-function getErrorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
+import { apiUrl, managerFetch, managerPost } from "../api";
+import { getErrorMessage } from "../utils/error";
 
 function extractResultOutput(data: unknown): { stdout: string; stderr: string; exit_code: number } {
   if (typeof data === "object" && data !== null) {
@@ -146,13 +141,9 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      const res = await managerFetch("/api/ai/task/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description,
-          members: members.map((m) => ({ id: m.id, role: m.role })),
-        }),
+      const res = await managerPost("/api/ai/task/generate", {
+        description,
+        members: members.map((m) => ({ id: m.id, role: m.role })),
       });
       return await res.json();
     } catch (e: unknown) {
@@ -165,17 +156,13 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      const res = await managerFetch("/api/ai/task/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          taskDescription,
-          results: results.map((r) => ({
-            memberId: r.by,
-            commands: [taskDescription],
-            ...extractResultOutput(r.data),
-          })),
-        }),
+      const res = await managerPost("/api/ai/task/analyze", {
+        taskDescription,
+        results: results.map((r) => ({
+          memberId: r.by,
+          commands: [taskDescription],
+          ...extractResultOutput(r.data),
+        })),
       });
       return await res.json();
     } catch (e: unknown) {
@@ -188,11 +175,7 @@ export function useAI() {
     aiError.value = "";
 
     try {
-      const res = await managerFetch("/api/ai/task/dispatch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description, members }),
-      });
+      const res = await managerPost("/api/ai/task/dispatch", { description, members });
       return await res.json() as { subscribe: string[]; content: string };
     } catch (e: unknown) {
       aiError.value = getErrorMessage(e);
@@ -227,14 +210,10 @@ export function useAI() {
           };
         });
 
-      const res = await managerFetch("/api/ai/task/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          taskDescription: taskContent,
-          results: clientResults,
-          resources: fileResources,
-        }),
+      const res = await managerPost("/api/ai/task/review", {
+        taskDescription: taskContent,
+        results: clientResults,
+        resources: fileResources,
       });
       return await res.json() as { success: boolean; summary: string };
     } catch (e: unknown) {

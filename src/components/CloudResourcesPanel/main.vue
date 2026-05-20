@@ -8,6 +8,7 @@ import {
   type CloudFileItem,
 } from "../../api";
 import { downloadFileWithDialog } from "../../utils/notification";
+import { getErrorMessage } from "../../utils/error";
 import { getFileCategory } from "../../utils/fileCategories";
 import FileIcon from "../FileIcon";
 import Toast from "../Toast";
@@ -91,7 +92,7 @@ async function handleUpload() {
     try {
       await uploadCloudFile(ctx.teamName, file, currentPath.value, ctx.myId, pct => { uploadProgress.value = pct; });
       await loadFiles();
-    } catch (e: unknown) { showError(e instanceof Error ? e.message : t("common.uploadFailed")); }
+    } catch (e: unknown) { showError(getErrorMessage(e) || t("common.uploadFailed")); }
     finally { uploadProgress.value = null; }
   };
   input.click();
@@ -104,7 +105,7 @@ async function confirmNewDir() {
   try {
     await createCloudDirectory(ctx.teamName, name, currentPath.value, ctx.myId);
     await loadFiles();
-  } catch (e: unknown) { showError(e instanceof Error ? e.message : t("common.operationFailed")); }
+  } catch (e: unknown) { showError(getErrorMessage(e) || t("common.operationFailed")); }
 }
 
 function requestDeleteSingle(item: CloudFileItem) {
@@ -126,7 +127,7 @@ async function confirmDelete() {
   for (const item of targets) {
     const filePath = item.type === "directory" ? currentPath.value + item.name + "/" : currentPath.value + item.name;
     try { await deleteCloudFile(ctx.teamName, filePath, ctx.myId); }
-    catch (e: unknown) { showError(e instanceof Error ? e.message : t("common.operationFailed")); break; }
+    catch (e: unknown) { showError(getErrorMessage(e) || t("common.operationFailed")); break; }
   }
   exitSelectMode();
   await loadFiles();
@@ -136,7 +137,7 @@ async function handleDownload(item: CloudFileItem) {
   try {
     const url = cloudDownloadUrl(ctx.teamName, currentPath.value + item.name);
     await downloadFileWithDialog(url, item.name, { team: ctx.teamName });
-  } catch (e: unknown) { showError(e instanceof Error ? e.message : t("common.fileDownloadFailed")); }
+  } catch (e: unknown) { showError(getErrorMessage(e) || t("common.fileDownloadFailed")); }
 }
 
 function formatSize(bytes: number): string {

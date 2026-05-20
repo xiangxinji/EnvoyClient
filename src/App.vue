@@ -5,6 +5,7 @@ import CloseConfirmDialog from "./components/CloseConfirmDialog";
 import { useTheme } from "./composables/useTheme";
 import { useTeamClientInstance } from "./composables/teamClientContext";
 import { cancelTaskbarAttention } from "./utils/notification";
+import { isTauri } from "./utils/platform";
 
 useTheme();
 
@@ -12,7 +13,6 @@ const instance = useTeamClientInstance();
 const username = computed(() => instance.value?.myId ?? undefined);
 
 const showDialog = ref(false);
-const isTauri = "__TAURI_INTERNALS__" in window;
 
 let unlisten: (() => void) | null = null;
 

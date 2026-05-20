@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { getDefaultTools } from "../agent/tools";
 import { reactLoop } from "../agent/react";
 import type { AgentResult } from "../types";
+import { getErrorMessage } from "../utils/error";
 
 export type { AgentTool, AgentToolSchema } from "../agent/tools";
 export { createUploadResourceTool, createQueryResourcesTool, createReadResourceTool } from "../agent/tools";
@@ -25,7 +26,7 @@ export function useAgent() {
     try {
       return await reactLoop(taskContent, tools, currentStep, error, workspacePath, skillCatalog);
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : String(e);
+      error.value = getErrorMessage(e);
       return { result: JSON.stringify({ error: error.value }), trace: [] };
     } finally {
       isRunning.value = false;

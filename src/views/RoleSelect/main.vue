@@ -9,6 +9,8 @@ import { setManagerUrl, setClientToken } from "../../api";
 import { rsaEncrypt } from "../../utils/rsa";
 import GlassSelect from "../../components/GlassSelect";
 import logo from "../../assets/logo.png";
+import { isTauri } from "../../utils/platform";
+import { getErrorMessage } from "../../utils/error";
 const { t } = useI18n();
 const { locale, switchLocale, loadFromSettings } = useLocale();
 const currentLocale = ref(locale.value as Locale);
@@ -17,8 +19,6 @@ function handleLangChange(val: string) {
   currentLocale.value = val as Locale;
   switchLocale(val as Locale);
 }
-
-const isTauri = "__TAURI_INTERNALS__" in window;
 
 const router = useRouter();
 
@@ -127,7 +127,7 @@ async function handleLogin() {
     }
     authenticated.value = true;
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : String(e);
+    error.value = getErrorMessage(e);
   } finally {
     loading.value = false;
   }
@@ -168,7 +168,7 @@ async function handleConnect() {
 
     router.push("/chat");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : t("role.connectFailed");
+    error.value = getErrorMessage(e) || t("role.connectFailed");
     loading.value = false;
   }
 }

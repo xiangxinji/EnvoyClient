@@ -12,7 +12,7 @@ const emit = defineEmits<{
 
 defineProps<{ username?: string }>();
 
-const isTauri = "__TAURI_INTERNALS__" in window;
+import { isTauri } from "../../utils/platform";
 
 const appWindow = ref<any>(null);
 

@@ -1,13 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { apiUrl } from "../api";
+import { isTauri } from "../utils/platform";
 import {
   createUploadResourceTool,
   createQueryResourcesTool,
   createReadResourceTool,
   createReadSkillTool,
 } from "./resourceTools";
-
-const isTauri = "__TAURI_INTERNALS__" in window;
 
 // ─── Tool interfaces ───
 

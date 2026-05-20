@@ -1,6 +1,7 @@
 import { createI18n } from "vue-i18n";
 import zhCN from "./zh-CN.json";
 import en from "./en.json";
+import { isTauri } from "../utils/platform";
 
 export type Locale = "zh-CN" | "en";
 
@@ -28,7 +29,6 @@ function applyLocale(lang: Locale) {
 }
 
 async function persistToSettings(lang: Locale) {
-  const isTauri = "__TAURI_INTERNALS__" in window;
   if (!isTauri) return;
   try {
     const { invoke } = await import("@tauri-apps/api/core");
@@ -47,7 +47,6 @@ export function useLocale() {
   }
 
   async function loadFromSettings() {
-    const isTauri = "__TAURI_INTERNALS__" in window;
     if (!isTauri) return;
     try {
       const { invoke } = await import("@tauri-apps/api/core");

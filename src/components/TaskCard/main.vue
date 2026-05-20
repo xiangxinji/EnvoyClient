@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { TaskMessage } from "../../types";
 import { renderMarkdown } from "../../utils/markdown";
-import { getResultText, formatFileSize, formatTimestamp, getTraceSteps, formatToolArgs, formatToolResult } from "../../utils/taskFormatters";
+import { getResultText, formatFileSize, formatTimestamp, getTraceSteps, formatToolArgs, formatToolResult, getStatusLabels } from "../../utils/taskFormatters";
 import { useTaskResources } from "../../composables/useTaskResources";
 import { useTaskPermissions } from "../../composables/useTaskPermissions";
 import { useTaskActions } from "../../composables/useTaskActions";
@@ -24,13 +24,7 @@ const emit = defineEmits<{
   selectTask: [task: TaskMessage];
 }>();
 
-const statusLabels: Record<TaskMessage["status"], string> = {
-  pending: t('task.status.pending'),
-  running: t('task.status.running'),
-  reviewing: t('task.status.reviewing'),
-  completed: t('task.status.completed'),
-  failed: t('task.status.failed'),
-};
+const statusLabels = getStatusLabels(t);
 
 const resources = computed(() => props.task.resources ?? []);
 const { clientResults, fileResources, traceResources, leaderReviews, isAIExecuted, isAIReview } = useTaskResources(resources);

@@ -1,5 +1,6 @@
 import type { ChatMessage, TimelineItem } from "../types";
 import { managerFetch } from "../api";
+import { getErrorMessage } from "../utils/error";
 
 const DEBOUNCE_MS = 5000;
 
@@ -62,7 +63,7 @@ export function useAutoReply(opts: AutoReplyOptions) {
 
       opts.sendChat(peerId, data.text.trim(), { source: "ai-auto" });
     } catch (e: unknown) {
-      console.warn("[autoReply] generate error:", e instanceof Error ? e.message : String(e));
+      console.warn("[autoReply] generate error:", getErrorMessage(e));
     }
   }
 

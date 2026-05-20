@@ -1,5 +1,15 @@
-import type { TaskResource, AgentStep } from "../types";
+import type { TaskResource, AgentStep, TaskMessage } from "../types";
 import { apiUrl } from "../api";
+
+export function getStatusLabels(t: (key: string) => string): Record<TaskMessage["status"], string> {
+  return {
+    pending: t('task.status.pending'),
+    running: t('task.status.running'),
+    reviewing: t('task.status.reviewing'),
+    completed: t('task.status.completed'),
+    failed: t('task.status.failed'),
+  };
+}
 
 export function getResultText(data: unknown): string {
   if (!data) return "";

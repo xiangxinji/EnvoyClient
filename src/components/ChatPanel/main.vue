@@ -8,6 +8,7 @@ import { useFileUpload } from "../../composables/useFileUpload";
 import { useMentionSystem } from "../../composables/useMentionSystem";
 import { useMultiSelect } from "../../composables/useMultiSelect";
 import { useMessageContextMenu } from "../../composables/useMessageContextMenu";
+import { getErrorMessage } from "../../utils/error";
 import MessageBubble from "../MessageBubble";
 import { useUserProfile } from "../../composables/useUserProfile";
 import TaskCard from "../TaskCard";
@@ -21,7 +22,7 @@ import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
 import SvgIcon from "../SvgIcon";
 import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, QuoteInfo } from "../../types";
-import { formatFileSize } from "../../utils/imageCompress";
+import { formatFileSize } from "../../utils/taskFormatters";
 
 const { t } = useI18n();
 const { getDisplayName } = useUserProfile();
@@ -69,13 +70,13 @@ async function handleRichSend(text: string, images: { blob: Blob; name: string }
 
   if (images.length > 0) {
     uploading.value = true;
-    try { attachments.push(...await uploadImages(images)); } catch (e: unknown) { attachmentError.value = t('chat.imgUploadFailed', { msg: e instanceof Error ? e.message : String(e) }); uploading.value = false; return; }
+    try { attachments.push(...await uploadImages(images)); } catch (e: unknown) { attachmentError.value = t('chat.imgUploadFailed', { msg: getErrorMessage(e) }); uploading.value = false; return; }
     uploading.value = false;
   }
 
   if (pendingFiles.value.length > 0) {
     uploading.value = true;
-    try { attachments.push(...await uploadPendingFiles()); } catch (e: unknown) { attachmentError.value = t('chat.attUploadFailed', { msg: e instanceof Error ? e.message : String(e) }); uploading.value = false; return; }
+    try { attachments.push(...await uploadPendingFiles()); } catch (e: unknown) { attachmentError.value = t('chat.attUploadFailed', { msg: getErrorMessage(e) }); uploading.value = false; return; }
     uploading.value = false;
   }
 

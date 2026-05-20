@@ -1,7 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { apiUrl } from "../api";
-
-const isTauri = "__TAURI_INTERNALS__" in window;
+import { isTauri } from "../utils/platform";
 import type { AgentTool } from "./tools";
 
 export function createUploadResourceTool(ctx: {

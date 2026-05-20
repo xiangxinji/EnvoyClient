@@ -1,4 +1,4 @@
-const isTauri = "__TAURI_INTERNALS__" in window;
+import { isTauri } from "./platform";
 import { i18n } from "../i18n";
 
 let cachedIconPath: string | null = null;

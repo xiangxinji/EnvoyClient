@@ -4,6 +4,7 @@ import { getMemberSettings } from "./teamClientContext";
 import type { TeamClientContext } from "./teamClientContext";
 import type { TaskExecutionMode } from "./useMemberSettings";
 import { sendDesktopNotification } from "../utils/notification";
+import { getErrorMessage } from "../utils/error";
 
 export const isRecordingShortcut = ref(false);
 
@@ -45,7 +46,7 @@ function comboToTauriShortcut(combo: string): string {
   return combo.replace(/\bCtrl\b/, "CommandOrControl").replace(/\+/g, "+");
 }
 
-const isTauri = "__TAURI_INTERNALS__" in window;
+import { isTauri } from "../utils/platform";
 
 type GlobalShortcutModule = typeof import("@tauri-apps/plugin-global-shortcut");
 
@@ -98,7 +99,7 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
           });
           registeredShortcuts.add(combo);
         } catch (e: unknown) {
-          console.warn("Failed to register global shortcut:", combo, e instanceof Error ? e.message : String(e));
+          console.warn("Failed to register global shortcut:", combo, getErrorMessage(e));
         }
       }
     }

@@ -1,7 +1,5 @@
 import { ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
-
-const isTauri = "__TAURI_INTERNALS__" in window;
+import { isTauri, safeInvoke } from "../utils/platform";
 
 export type TaskExecutionMode = "manual" | "auto";
 
@@ -26,11 +24,6 @@ const DEFAULT_SETTINGS: MemberSettings = {
 const _settings = ref<MemberSettings>({ ...DEFAULT_SETTINGS });
 
 const _loaded = ref(false);
-
-function safeInvoke(cmd: string, args: Record<string, unknown>) {
-  if (!isTauri) return Promise.resolve(null) as Promise<unknown>;
-  return invoke(cmd, args);
-}
 
 export function useMemberSettings() {
   async function loadSettings(username: string): Promise<MemberSettings> {
