@@ -65,7 +65,7 @@ async function getShortcutModule(): Promise<GlobalShortcutModule | null> {
 
 export function useGlobalShortcuts(ctx: TeamClientContext) {
 
-  const { settings, loadSettings, saveSettings } = getMemberSettings();
+  const { settings, loadSettings, toggleAutoReply, toggleExecutionMode } = getMemberSettings();
 
   const registeredShortcuts = new Set<string>();
 
@@ -110,14 +110,13 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
 
     if (s.shortcut_auto_reply && combo === s.shortcut_auto_reply) {
       const next = !s.ai_auto_reply;
-      await saveSettings(ctx.myId, { ai_auto_reply: next });
-      if (!next) ctx.autoReplyDispose?.();
+      await toggleAutoReply(ctx.myId, ctx.autoReplyDispose);
       sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('notification.aiAutoReplyChanged', { status: next ? i18n.global.t('notification.aiAutoReplyOn') : i18n.global.t('notification.aiAutoReplyOff') }));
     }
 
     if (s.shortcut_execution_mode && combo === s.shortcut_execution_mode) {
       const next: TaskExecutionMode = s.task_execution_mode === "auto" ? "manual" : "auto";
-      await saveSettings(ctx.myId, { task_execution_mode: next });
+      await toggleExecutionMode(ctx.myId);
       sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('notification.taskModeChanged', { mode: next === "auto" ? i18n.global.t('notification.modeAuto') : i18n.global.t('notification.modeManual') }));
     }
   }

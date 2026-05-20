@@ -107,5 +107,14 @@ export function useMemberSettings() {
     loaded: _loaded,
     loadSettings,
     saveSettings,
+    async toggleAutoReply(username: string, onDispose?: () => void) {
+      const next = !_settings.value.ai_auto_reply;
+      await saveSettings(username, { ai_auto_reply: next });
+      if (!next) onDispose?.();
+    },
+    async toggleExecutionMode(username: string) {
+      const next: TaskExecutionMode = _settings.value.task_execution_mode === "auto" ? "manual" : "auto";
+      await saveSettings(username, { task_execution_mode: next });
+    },
   };
 }

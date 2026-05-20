@@ -5,15 +5,17 @@ import { useI18n } from "vue-i18n";
 import { useLocale } from "../../i18n";
 import { getMemberSettings, TeamClientKey, setTeamClientInstance } from "../../composables/teamClientContext";
 import type { TaskExecutionMode } from "../../composables/useMemberSettings";
+import { useConfirm } from "../../composables/useConfirm";
 import { useUserProfile } from "../../composables/useUserProfile";
 import { pickFiles } from "../../utils/filePicker";
 import GlassSelect from "../GlassSelect";
 import GlassCheckbox from "../GlassCheckbox";
 import GlassButton from "../GlassButton";
 import BackButton from "../BackButton";
+import ConfirmDialog from "../ConfirmDialog";
 import SvgIcon from "../SvgIcon";
 
-useI18n();
+const { t } = useI18n();
 const { locale, switchLocale } = useLocale();
 const currentLocale = ref(locale.value);
 watch(currentLocale, (val) => switchLocale(val as "zh-CN" | "en"));
@@ -23,6 +25,7 @@ const emit = defineEmits<{
 }>();
 
 const { settings, loadSettings, saveSettings } = getMemberSettings();
+const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
 const ctx = inject(TeamClientKey)!;
 const router = useRouter();
 
@@ -40,7 +43,6 @@ const workingDirectory = ref("");
 const aiHistoryCount = ref(5);
 const aiAutoReply = ref(false);
 const saving = ref(false);
-const showLogoutConfirm = ref(false);
 
 onMounted(async () => {
   await loadSettings(username);
@@ -125,8 +127,11 @@ async function saveAiHistoryCount() {
   saving.value = false;
 }
 
+function requestLogout() {
+  showConfirm(t('settings.logoutTitle'), t('settings.logoutDesc'), handleLogout, true);
+}
+
 async function handleLogout() {
-  showLogoutConfirm.value = false;
   try {
     await ctx.disconnect();
   } catch {}
@@ -253,29 +258,20 @@ async function handleLogout() {
           <span class="user-name">{{ displayName }}</span>
           <span class="user-role" :class="ctx.role">{{ ctx.role }}</span>
         </div>
-        <button class="logout-btn" :title="$t('settings.logout')" @click="showLogoutConfirm = true">
+        <button class="logout-btn" :title="$t('settings.logout')" @click="requestLogout">
           <SvgIcon name="log-out" :size="18" />
         </button>
       </div>
     </div>
 
-    <Teleport to="body">
-      <Transition name="logout">
-        <div v-if="showLogoutConfirm" class="logout-overlay" @click.self="showLogoutConfirm = false">
-          <div class="logout-dialog">
-            <div class="logout-icon">
-              <SvgIcon name="log-out" :size="28" />
-            </div>
-            <h3 class="logout-title">{{ $t('settings.logoutTitle') }}</h3>
-            <p class="logout-desc">{{ $t('settings.logoutDesc') }}</p>
-            <div class="logout-actions">
-              <button class="btn btn-cancel" @click="showLogoutConfirm = false">{{ $t('common.cancel') }}</button>
-              <button class="btn btn-danger" @click="handleLogout">{{ $t('settings.logout') }}</button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <ConfirmDialog
+      :visible="confirmVisible"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :danger="confirmDanger"
+      @confirm="handleConfirm"
+      @cancel="handleCancel"
+    />
 
     <div v-if="saving" class="saving-indicator">{{ $t('settings.saving') }}</div>
   </div>

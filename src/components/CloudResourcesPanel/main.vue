@@ -3,6 +3,7 @@ import { ref, onMounted, inject, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { TeamClientKey } from "../../composables/teamClientContext";
 import { useToast } from "../../composables/useToast";
+import { useConfirm } from "../../composables/useConfirm";
 import {
   listCloudFiles, uploadCloudFile, createCloudDirectory, deleteCloudFile, cloudDownloadUrl,
   type CloudFileItem,
@@ -13,6 +14,7 @@ import { formatFileSize } from "../../utils/taskFormatters";
 import { pickFiles } from "../../utils/filePicker";
 import { getFileCategory } from "../../utils/fileCategories";
 import FileIcon from "../FileIcon";
+import ConfirmDialog from "../ConfirmDialog";
 import Toast from "../Toast";
 import SvgIcon from "../SvgIcon";
 
@@ -20,6 +22,7 @@ const { t } = useI18n();
 const ctx = inject(TeamClientKey)!;
 
 const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
+const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
 
 const currentPath = ref("");
 const items = ref<CloudFileItem[]>([]);
@@ -27,7 +30,6 @@ const loading = ref(false);
 const uploadProgress = ref<number | null>(null);
 const showNewDirDialog = ref(false);
 const newDirName = ref("");
-const deleteConfirm = ref<{ items: CloudFileItem[]; msg: string } | null>(null);
 const selectMode = ref(false);
 const selectedIds = ref<Set<string>>(new Set());
 
@@ -106,18 +108,16 @@ function requestDeleteSingle(item: CloudFileItem) {
   const msg = item.type === "directory"
     ? t("cloud.confirmDeleteDir", { name: item.name })
     : t("cloud.confirmDeleteFile", { name: item.name });
-  deleteConfirm.value = { items: [item], msg };
+  showConfirm(t("common.delete"), msg, () => performDelete([item]), true);
 }
 
 function requestBatchDelete() {
   const count = selectedItems.value.length;
-  deleteConfirm.value = { items: [...selectedItems.value], msg: t("cloud.confirmBatchDelete", { count }) };
+  const msg = t("cloud.confirmBatchDelete", { count });
+  showConfirm(t("common.delete"), msg, () => performDelete([...selectedItems.value]), true);
 }
 
-async function confirmDelete() {
-  if (!deleteConfirm.value) return;
-  const targets = deleteConfirm.value.items;
-  deleteConfirm.value = null;
+async function performDelete(targets: CloudFileItem[]) {
   for (const item of targets) {
     const filePath = item.type === "directory" ? currentPath.value + item.name + "/" : currentPath.value + item.name;
     try { await deleteCloudFile(ctx.teamName, filePath, ctx.myId); }
@@ -233,17 +233,14 @@ onMounted(loadFiles);
       </div>
     </div>
 
-    <!-- Delete confirmation dialog -->
-    <div v-if="deleteConfirm" class="dialog-overlay" @click.self="deleteConfirm = null">
-      <div class="dialog">
-        <h3>{{ t('common.delete') }}</h3>
-        <p class="dialog-msg">{{ deleteConfirm.msg }}</p>
-        <div class="dialog-actions">
-          <button class="dialog-btn cancel" @click="deleteConfirm = null">{{ t('common.cancel') }}</button>
-          <button class="dialog-btn danger" @click="confirmDelete">{{ t('common.delete') }}</button>
-        </div>
-      </div>
-    </div>
+    <ConfirmDialog
+      :visible="confirmVisible"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :danger="confirmDanger"
+      @confirm="handleConfirm"
+      @cancel="handleCancel"
+    />
 
     <Toast :visible="toastVisible" :message="toastMessage" :type="toastType" @done="hideToast" />
   </div>

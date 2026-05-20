@@ -8,7 +8,6 @@ import ToolHoverCard from "../ToolHoverCard";
 import { useSidebarSearch } from "../../composables/useSidebarSearch";
 import { useHoverCard } from "../../composables/useHoverCard";
 import SvgIcon from "../SvgIcon";
-import type { TaskExecutionMode } from "../../composables/useMemberSettings";
 import type { MemberInfo } from "../../types";
 
 const { t } = useI18n();
@@ -23,7 +22,7 @@ const emit = defineEmits<{
 
 const ctx = inject(TeamClientKey)!;
 const { members, unreadCounts, markRead, messages, myId, userProfile } = ctx;
-const { settings: memberSettings, saveSettings } = getMemberSettings();
+const { settings: memberSettings, toggleAutoReply, toggleExecutionMode } = getMemberSettings();
 
 const isAutoMode = computed(() => memberSettings.value.task_execution_mode === "auto");
 const isAutoReply = computed(() => memberSettings.value.ai_auto_reply);
@@ -121,17 +120,12 @@ onUnmounted(() => {
   window.removeEventListener("keydown", handleGlobalKeyDown);
 });
 
-async function toggleExecutionMode() {
-  const next: TaskExecutionMode = isAutoMode.value ? "manual" : "auto";
-  await saveSettings(myId, { task_execution_mode: next });
+async function handleToggleExecutionMode() {
+  await toggleExecutionMode(myId);
 }
 
-async function toggleAutoReply() {
-  const next = !isAutoReply.value;
-  await saveSettings(myId, { ai_auto_reply: next });
-  if (!next) {
-    ctx.autoReplyDispose?.();
-  }
+async function handleToggleAutoReply() {
+  await toggleAutoReply(myId, ctx.autoReplyDispose);
 }
 
 // Count all tasks across all conversations
@@ -280,7 +274,7 @@ function formatBadge(count: number): string {
           class="quick-toggle"
           :class="{ active: isAutoReply }"
           :title="t('sidebar.aiAutoReply')"
-          @click="toggleAutoReply"
+          @click="handleToggleAutoReply"
         >
           <SvgIcon name="chat" :size="14" />
         </button>
@@ -288,7 +282,7 @@ function formatBadge(count: number): string {
           class="quick-toggle"
           :class="{ active: isAutoMode }"
           :title="t('sidebar.aiTaskMode')"
-          @click="toggleExecutionMode"
+          @click="handleToggleExecutionMode"
         >
           <SvgIcon name="lightning" :size="14" />
         </button>
