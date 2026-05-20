@@ -10,9 +10,7 @@
       @keydown.escape="close"
     >
       <span class="glass-select-value">{{ currentLabel || props.placeholder }}</span>
-      <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="6 9 12 15 18 9" />
-      </svg>
+      <SvgIcon name="chevron-down" :size="14" class="arrow" />
     </button>
 
     <Transition name="dropdown">
@@ -34,6 +32,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, useSlots } from "vue"
+import SvgIcon from "../SvgIcon"
 
 const props = withDefaults(defineProps<{
   modelValue?: string

@@ -12,6 +12,7 @@ import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
 import ConfirmDialog from "../ConfirmDialog";
 import Toast from "../Toast";
+import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
 
@@ -234,10 +235,7 @@ const traceExpanded = ref(false);
   <div class="task-card" :class="task.status" @click="emit('selectTask', task)">
     <div class="task-header">
       <div class="task-title">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 11l3 3L22 4" />
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-        </svg>
+        <SvgIcon name="check-circle" :size="14" />
         <span>{{ $t('task.task') }}</span>
       </div>
       <span class="status-badge" :class="task.status">{{ statusLabels[task.status] }}</span>
@@ -257,7 +255,7 @@ const traceExpanded = ref(false);
     <!-- Summary section -->
     <div v-if="clientResults.length > 0" class="task-section">
       <div class="section-label">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <SvgIcon name="file-text" :size="13" />
         {{ $t('task.executionResult') }}
       </div>
       <div v-for="(res, i) in clientResults" :key="`summary-${i}`" class="summary-item">
@@ -274,7 +272,7 @@ const traceExpanded = ref(false);
     <!-- Leader review section -->
     <div v-if="leaderReviews.length > 0" class="task-section">
       <div class="section-label">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <SvgIcon name="check-circle" :size="13" />
         {{ $t('task.reviewLog') }}
       </div>
       <div v-for="(review, i) in leaderReviews" :key="`review-${i}`" class="review-item" :class="(review.data as any)?.success ? 'approved' : 'rejected'">
@@ -294,7 +292,7 @@ const traceExpanded = ref(false);
     <!-- Resources section -->
     <div v-if="fileResources.length > 0" class="task-section">
       <div class="section-label">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+        <SvgIcon name="file-plus" :size="13" />
         {{ $t('task.uploadFile') }}
       </div>
       <div v-for="(res, i) in fileResources" :key="`file-${i}`" class="file-item">
@@ -306,11 +304,11 @@ const traceExpanded = ref(false);
           @click.stop="downloadFile((res.data as any).filename)"
         >
           <template v-if="downloading === (res.data as any).filename">
-            <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            <SvgIcon name="spinner" :size="12" class="spin" />
             {{ $t('task.downloading') }}
           </template>
           <template v-else>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <SvgIcon name="download" :size="12" />
             {{ (res.data as any).filename }}
           </template>
         </a>
@@ -321,7 +319,7 @@ const traceExpanded = ref(false);
     <!-- Execution trace section -->
     <div v-if="traceResources.length > 0" class="task-section">
       <div class="section-label clickable" @click.stop="traceExpanded = !traceExpanded">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <SvgIcon name="activity" :size="13" />
         {{ $t('task.executionTrace') }}
         <span class="trace-toggle">{{ traceExpanded ? $t('task.collapse') : $t('task.expand') }}</span>
         <span class="trace-count">{{ $t('task.steps', { count: getTraceSteps(traceResources[0]).length }) }}</span>
@@ -353,15 +351,15 @@ const traceExpanded = ref(false);
     <!-- Operation buttons -->
     <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="task-actions" @click.stop>
       <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+        <SvgIcon name="play" :size="12" />
         {{ starting ? $t('task.starting') : $t('task.startExecution') }}
       </button>
       <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="handleUpload">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <SvgIcon name="upload" :size="12" />
         {{ uploading ? $t('task.uploading') : $t('task.uploadFile') }}
       </button>
       <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="requestComplete">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <SvgIcon name="check" :size="12" />
         {{ completing ? $t('task.submitting') : $t('task.markComplete') }}
       </button>
     </div>
@@ -369,11 +367,11 @@ const traceExpanded = ref(false);
     <!-- Leader review buttons -->
     <div v-if="canReview" class="task-actions" @click.stop>
       <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <SvgIcon name="check" :size="12" />
         {{ reviewing ? $t('task.processing') : $t('task.approve') }}
       </button>
       <button class="action-btn action-reject" :disabled="reviewing" @click="requestReject">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <SvgIcon name="close" :size="12" />
         {{ $t('task.reject') }}
       </button>
     </div>

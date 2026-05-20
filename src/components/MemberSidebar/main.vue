@@ -7,6 +7,7 @@ import MemberHoverCard from "../MemberHoverCard";
 import ToolHoverCard from "../ToolHoverCard";
 import { useSidebarSearch } from "../../composables/useSidebarSearch";
 import { useHoverCard } from "../../composables/useHoverCard";
+import SvgIcon from "../SvgIcon";
 import type { TaskExecutionMode } from "../../composables/useMemberSettings";
 import type { MemberInfo } from "../../types";
 
@@ -174,10 +175,7 @@ function getInitial(name: string): string {
         @clear="searchQuery = ''"
       >
         <template #prefix>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
+          <SvgIcon name="search" :size="14" />
         </template>
       </GlassInput>
     </div>
@@ -201,17 +199,9 @@ function getInitial(name: string): string {
           @mouseleave="handleToolLeave"
         >
           <div class="avatar" :class="tool.id === '__cloud__' ? 'cloud-avatar' : tool.id === '__dispatch__' ? 'dispatch-avatar' : 'task-center-avatar'">
-            <svg v-if="tool.id === '__cloud__'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-            </svg>
-            <svg v-else-if="tool.id === '__tasks__'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-              <rect x="9" y="3" width="6" height="4" rx="1" />
-              <path d="M9 14l2 2 4-4" />
-            </svg>
-            <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
+            <SvgIcon v-if="tool.id === '__cloud__'" name="cloud" :size="14" />
+            <SvgIcon v-else-if="tool.id === '__tasks__'" name="tasks" :size="14" />
+            <SvgIcon v-else name="lightning" :size="14" />
           </div>
           <div class="member-info">
             <span class="member-name">{{ tool.label }}</span>
@@ -232,9 +222,7 @@ function getInitial(name: string): string {
           @click="handleClick('__team__')"
         >
           <div class="avatar channel-avatar">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
+            <SvgIcon name="chat" :size="14" />
           </div>
           <div class="member-info">
             <span class="member-name">{{ t('sidebar.channelGeneral') }}</span>
@@ -282,17 +270,11 @@ function getInitial(name: string): string {
         </div>
         <div class="user-menu" @click.stop>
           <button class="user-menu-item" :class="{ active: selectedPeer === '__quick__' }" @click="emit('select', '__quick__')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-              <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M9 16h6" />
-            </svg>
+            <SvgIcon name="keyboard" :size="14" />
             {{ t('sidebar.shortcuts') }}
           </button>
           <button class="user-menu-item" :class="{ active: selectedPeer === '__settings__' }" @click="emit('select', '__settings__')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
+            <SvgIcon name="settings" :size="14" />
             {{ t('sidebar.settings') }}
           </button>
         </div>
@@ -304,9 +286,7 @@ function getInitial(name: string): string {
           :title="t('sidebar.aiAutoReply')"
           @click="toggleAutoReply"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
+          <SvgIcon name="chat" :size="14" />
         </button>
         <button
           class="quick-toggle"
@@ -314,9 +294,7 @@ function getInitial(name: string): string {
           :title="t('sidebar.aiTaskMode')"
           @click="toggleExecutionMode"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-          </svg>
+          <SvgIcon name="lightning" :size="14" />
         </button>
       </div>
     </div>

@@ -2,6 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { MemberInfo } from "../../types";
+import SvgIcon from "../SvgIcon";
 
 const props = defineProps<{
   visible: boolean;
@@ -60,7 +61,7 @@ function getInitial(name: string): string {
               <span class="forward-role" :class="m.role">{{ m.role }}</span>
             </div>
             <div class="forward-radio" :class="{ checked: m.id === selectedId }">
-              <svg v-if="m.id === selectedId" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              <SvgIcon v-if="m.id === selectedId" name="check" :size="12" />
             </div>
           </div>
         </div>

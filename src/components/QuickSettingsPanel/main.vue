@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import { getMemberSettings, TeamClientKey } from "../../composables/teamClientContext";
 import { isRecordingShortcut, buildCombo } from "../../composables/useGlobalShortcuts";
 import BackButton from "../BackButton";
+import SvgIcon from "../SvgIcon";
 
 useI18n();
 
@@ -111,10 +112,7 @@ function clearShortcut(type: ShortcutType) {
             :title="$t('shortcut.clearShortcut')"
             @click="clearShortcut('execution_mode')"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <SvgIcon name="close" :size="12" />
           </button>
         </div>
       </div>
@@ -147,10 +145,7 @@ function clearShortcut(type: ShortcutType) {
             :title="$t('shortcut.clearShortcut')"
             @click="clearShortcut('auto_reply')"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <SvgIcon name="close" :size="12" />
           </button>
         </div>
       </div>

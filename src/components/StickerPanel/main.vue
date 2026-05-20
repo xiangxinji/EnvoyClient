@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import { managerFetch, apiUrl } from "../../api";
 import { useConfirm } from "../../composables/useConfirm";
 import ConfirmDialog from "../ConfirmDialog";
+import SvgIcon from "../SvgIcon";
 
 interface StickerItem {
   id: string;
@@ -104,7 +105,7 @@ defineExpose({ loadStickers });
     <div v-else-if="stickers.length === 0" class="sticker-empty">
       <p>{{ t('sticker.empty') }}</p>
       <button type="button" class="btn-add" @click="handleAdd">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        <SvgIcon name="plus" :size="16" />
         {{ t('sticker.add') }}
       </button>
     </div>
@@ -113,13 +114,13 @@ defineExpose({ loadStickers });
         <div v-for="sticker in stickers" :key="sticker.id" class="sticker-item" @click="handleStickerClick(sticker)">
           <img :src="apiUrl(sticker.url)" :alt="sticker.name" class="sticker-thumb" />
           <button type="button" class="sticker-delete" @click.stop="handleDeleteClick(sticker)" :title="t('sticker.delete')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            <SvgIcon name="close" :size="12" />
           </button>
         </div>
       </div>
       <div class="sticker-footer">
         <button type="button" class="btn-add-small" @click="handleAdd" :title="t('sticker.add')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+          <SvgIcon name="plus" :size="16" />
         </button>
       </div>
     </template>

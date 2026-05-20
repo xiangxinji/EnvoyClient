@@ -1,13 +1,13 @@
 <template>
   <button class="back-btn" @click="$emit('click')">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polyline points="15 18 9 12 15 6" />
-    </svg>
+    <SvgIcon name="chevron-left" :size="16" />
     {{ $t('common.back') }}
   </button>
 </template>
 
 <script setup lang="ts">
+import SvgIcon from "../SvgIcon";
+
 defineEmits<{
   click: []
 }>()

@@ -19,6 +19,7 @@ import MentionPopup from "../MentionPopup";
 import StickerPanel from "../StickerPanel";
 import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
+import SvgIcon from "../SvgIcon";
 import type { TimelineItem, ChatMessage, MessageAttachment, TaskMessage, QuoteInfo } from "../../types";
 import { formatFileSize } from "../../utils/imageCompress";
 
@@ -105,7 +106,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
 <template>
   <div class="chat-panel">
     <div v-if="!peerId" class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+      <SvgIcon name="chat" :size="48" />
       <p>{{ $t('chat.selectPeer') }}</p>
     </div>
 
@@ -116,15 +117,15 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
         <span v-else-if="peerStatus === 'offline'" class="header-status offline">{{ $t('chat.offline') }}</span>
         <div class="header-actions">
           <button class="btn-menu" @click="menuOpen = !menuOpen" :title="$t('chat.actions')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+            <SvgIcon name="more-vertical" :size="16" />
           </button>
           <div v-if="menuOpen" class="dropdown" @click.stop>
             <button class="dropdown-item" @click="menuOpen = false; enterSelectMode()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <SvgIcon name="check-square" :size="14" />
               {{ $t('chat.multiSelect') }}
             </button>
             <button class="dropdown-item danger" @click="handleClearChat">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <SvgIcon name="trash" :size="14" />
               {{ $t('chat.clearHistory') }}
             </button>
           </div>
@@ -164,16 +165,16 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
         <div v-if="taskInputVisible && role === 'leader'" class="task-input-wrapper">
           <div class="task-input">
             <input v-model="taskContent" :placeholder="$t('chat.enterTask')" @keydown.enter="handleDispatchTask" />
-            <button class="btn-icon btn-confirm" @click="handleDispatchTask" :title="$t('chat.dispatchTask')" :disabled="!taskContent.trim()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg></button>
-            <button class="btn-icon btn-cancel" @click="taskInputVisible = false" :title="$t('common.cancel')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
+            <button class="btn-icon btn-confirm" @click="handleDispatchTask" :title="$t('chat.dispatchTask')" :disabled="!taskContent.trim()"><SvgIcon name="lightning" :size="18" /></button>
+            <button class="btn-icon btn-cancel" @click="taskInputVisible = false" :title="$t('common.cancel')"><SvgIcon name="close" :size="18" /></button>
           </div>
         </div>
 
         <div v-if="pendingFiles.length > 0" class="attachment-preview">
           <div v-for="(att, i) in pendingFiles" :key="i" class="preview-item">
-            <div class="preview-file-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg></div>
+            <div class="preview-file-icon"><SvgIcon name="file" :size="16" /></div>
             <div class="preview-info"><span class="preview-name">{{ att.file.name }}</span><span class="preview-size">{{ formatFileSize(att.file.size) }}</span></div>
-            <button class="preview-remove" @click="removeFile(i)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            <button class="preview-remove" @click="removeFile(i)"><SvgIcon name="close" :size="12" /></button>
           </div>
         </div>
         <div v-if="attachmentError" class="attachment-error">{{ attachmentError }}</div>
@@ -183,16 +184,16 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
             <span class="quote-preview-sender">{{ getDisplayName(quotingMsg.from) }}</span>
             <span class="quote-preview-text">{{ generateSnapshotText(quotingMsg) }}</span>
           </div>
-          <button class="quote-preview-close" @click="clearQuotingMsg"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          <button class="quote-preview-close" @click="clearQuotingMsg"><SvgIcon name="close" :size="14" /></button>
         </div>
 
         <StickerPanel v-if="stickerPanelVisible" :my-id="myId" :team-name="teamName" @send="handleStickerSend" />
         <div class="toolbar">
           <div class="toolbar-left">
-            <button v-if="role === 'leader'" class="btn-tool" @click="taskInputVisible = !taskInputVisible" :title="$t('chat.dispatchTask')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg></button>
-            <button class="btn-tool" @click="handlePickAttachment((f: File) => richEditorRef?.insertImage(f))" :title="$t('chat.addAttachment')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-            <button class="btn-tool" :class="{ active: stickerPanelVisible }" @click="stickerPanelVisible = !stickerPanelVisible" :title="$t('chat.sticker')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></button>
-            <button class="btn-tool" @click="handleAISuggest" :title="$t('chat.aiSuggestReply')" :disabled="!aiAvailable || isStreaming"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg></button>
+            <button v-if="role === 'leader'" class="btn-tool" @click="taskInputVisible = !taskInputVisible" :title="$t('chat.dispatchTask')"><SvgIcon name="check-circle" :size="18" /></button>
+            <button class="btn-tool" @click="handlePickAttachment((f: File) => richEditorRef?.insertImage(f))" :title="$t('chat.addAttachment')"><SvgIcon name="paperclip" :size="18" /></button>
+            <button class="btn-tool" :class="{ active: stickerPanelVisible }" @click="stickerPanelVisible = !stickerPanelVisible" :title="$t('chat.sticker')"><SvgIcon name="smile" :size="18" /></button>
+            <button class="btn-tool" @click="handleAISuggest" :title="$t('chat.aiSuggestReply')" :disabled="!aiAvailable || isStreaming"><SvgIcon name="lightning" :size="18" /></button>
           </div>
           <button class="btn-send-toolbar" @click="richEditorRef?.send()" :title="$t('common.send')" :disabled="uploading">{{ $t('common.send') }}</button>
         </div>
@@ -211,15 +212,15 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
     <Teleport to="body">
       <div v-if="contextMenuVisible" class="context-menu" :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }" @click.stop>
         <button class="context-menu-item" @click="handleQuoteReply(() => richEditorRef?.focus())">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+          <SvgIcon name="reply" :size="14" />
           {{ $t('chat.quote') }}
         </button>
         <button class="context-menu-item" @click="handleContextForward">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><path d="M21 3l-7 7"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <SvgIcon name="forward" :size="14" />
           {{ $t('chat.forward') }}
         </button>
         <button v-if="contextMenuMsg?.mine" class="context-menu-item danger" @click="handleRevoke(peerId)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+          <SvgIcon name="delete-back" :size="14" />
           {{ $t('chat.revoke') }}
         </button>
       </div>

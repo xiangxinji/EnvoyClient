@@ -68,3 +68,37 @@ showConfirm("删除确认", "确定要删除吗？", () => {
 1. **禁止重复状态管理**: 如果多个组件存在相同的状态管理模式（如 Toast、Confirm），必须提取为 composable 复用
 2. **Composable 命名**: 以 `use` 前缀命名，文件放在 `src/composables/` 目录
 3. **组件职责单一**: 组件中不应包含可提取的通用逻辑，如 Toast 显示、确认弹窗等
+
+## SVG 图标使用规范
+
+### 禁止内联 SVG
+
+**所有组件中禁止使用内联 `<svg>` 标签**，必须通过 `SvgIcon` 组件引用图标文件。
+
+**文件结构**:
+- 图标组件: `src/components/SvgIcon/main.vue`
+- 图标注册: `src/assets/icons/index.ts`
+- 图标文件: `src/assets/icons/*.svg`
+
+### 添加新图标
+
+1. 在 `src/assets/icons/` 目录下创建 `.svg` 文件（文件名即图标名）
+2. SVG 文件需包含 `xmlns`、`viewBox`、`fill="none"`、`stroke="currentColor"`、`stroke-width="2"` 等标准属性
+3. 无需手动注册，`index.ts` 通过 `import.meta.glob` 自动加载
+
+### 使用方式
+
+```vue
+<script setup lang="ts">
+import SvgIcon from "../SvgIcon";
+</script>
+
+<template>
+  <SvgIcon name="check-circle" :size="16" />
+  <SvgIcon name="close" size="12" />
+</template>
+```
+
+### 现有图标列表
+
+cloud, tasks, lightning, search, keyboard, chat, settings, plus, close, check, check-circle, check-square, more-vertical, forward, reply, delete-back, paperclip, smile, chevron-right, zoom-out, zoom-in, rotate-ccw, rotate-cw, refresh, download, file, trash, camera, log-out

@@ -11,6 +11,7 @@ import { downloadFileWithDialog } from "../../utils/notification";
 import { getFileCategory } from "../../utils/fileCategories";
 import FileIcon from "../FileIcon";
 import Toast from "../Toast";
+import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
 const ctx = inject(TeamClientKey)!;
@@ -157,10 +158,7 @@ onMounted(loadFiles);
     <div class="cloud-toolbar">
       <div class="breadcrumb">
         <button class="breadcrumb-btn root-btn" :class="{ current: !currentPath }" @click="navigateTo('')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
+          <SvgIcon name="home" :size="14" />
         </button>
         <template v-for="(crumb, idx) in breadcrumbs" :key="idx">
           <span class="breadcrumb-sep">/</span>
@@ -169,24 +167,16 @@ onMounted(loadFiles);
       </div>
       <div class="toolbar-actions">
         <button v-if="isLeader && !selectMode" class="action-btn" @click="selectMode = true">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 11 12 14 22 4" />
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-          </svg>
+          <SvgIcon name="check-square" :size="14" />
           {{ t('cloud.select') }}
         </button>
         <button v-if="selectMode" class="action-btn" @click="exitSelectMode">{{ t('common.cancel') }}</button>
         <button class="action-btn" :disabled="uploadProgress !== null" @click="handleUpload">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
+          <SvgIcon name="upload" :size="14" />
           {{ uploadProgress !== null ? `${uploadProgress}%` : t('cloud.upload') }}
         </button>
         <button class="action-btn" @click="newDirName = ''; showNewDirDialog = true">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-            <line x1="12" y1="11" x2="12" y2="17" /><line x1="9" y1="14" x2="15" y2="14" />
-          </svg>
+          <SvgIcon name="folder-plus" :size="14" />
           {{ t('cloud.createDir') }}
         </button>
       </div>
@@ -220,9 +210,7 @@ onMounted(loadFiles);
           <tr v-for="item in items" :key="item.id" class="file-row" :class="{ selected: selectedIds.has(item.id) }">
             <td v-if="selectMode" class="col-check" @click="toggleSelect(item)">
               <div class="checkbox" :class="{ checked: selectedIds.has(item.id) }">
-                <svg v-if="selectedIds.has(item.id)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                <SvgIcon v-if="selectedIds.has(item.id)" name="check" :size="12" />
               </div>
             </td>
             <td class="col-name" @click="selectMode ? toggleSelect(item) : (item.type === 'directory' ? enterDir(item) : undefined)" :class="{ clickable: selectMode || item.type === 'directory' }">
@@ -234,14 +222,10 @@ onMounted(loadFiles);
             <td class="col-time">{{ new Date(item.createdAt).toLocaleString() }}</td>
             <td v-if="!selectMode" class="col-actions">
               <button v-if="item.type === 'file'" class="icon-btn" :title="t('cloud.download')" @click="handleDownload(item)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
+                <SvgIcon name="download" :size="14" />
               </button>
               <button v-if="isLeader" class="icon-btn danger" :title="t('common.delete')" @click="requestDeleteSingle(item)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
+                <SvgIcon name="trash" :size="14" />
               </button>
             </td>
           </tr>

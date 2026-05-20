@@ -16,6 +16,7 @@ import { TeamClientKey } from "../../composables/teamClientContext";
 import ConfirmDialog from "../ConfirmDialog";
 import Toast from "../Toast";
 import BackButton from "../BackButton";
+import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
 
@@ -396,10 +397,10 @@ function isTraceExpanded(_by: string): boolean {
         <div class="timeline">
           <div v-for="(evt, i) in timelineEvents" :key="i" class="timeline-item">
             <div class="timeline-dot" :class="evt.icon">
-              <svg v-if="evt.icon === 'create'" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
-              <svg v-else-if="evt.icon === 'result'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              <svg v-else-if="evt.icon === 'review'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 11l3 3L22 4"/></svg>
-              <svg v-else width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+              <SvgIcon v-if="evt.icon === 'create'" name="circle" :size="10" />
+              <SvgIcon v-else-if="evt.icon === 'result'" name="check" :size="10" />
+              <SvgIcon v-else-if="evt.icon === 'review'" name="check-circle" :size="10" />
+              <SvgIcon v-else name="file" :size="10" />
             </div>
             <div class="timeline-content">
               <span class="timeline-label">{{ evt.label }}</span>
@@ -437,7 +438,7 @@ function isTraceExpanded(_by: string): boolean {
       <!-- Execution traces (standalone section, like TaskCard) -->
       <div v-if="traceResources.length > 0" class="detail-section">
         <div class="section-title clickable" @click="toggleTrace('__all__')">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <SvgIcon name="activity" :size="13" />
           {{ $t('task.executionTrace') }}
           <span class="trace-count">{{ $t('task.steps', { count: traceResources.map(r => getTraceSteps(r).length).reduce((a, b) => a + b, 0) }) }}</span>
           <span class="trace-expand">{{ isTraceExpanded('__all__') ? $t('task.collapse') : $t('task.expand') }}</span>
@@ -491,11 +492,11 @@ function isTraceExpanded(_by: string): boolean {
           <span class="resource-by">{{ res.by }}</span>
           <a class="file-link" :class="{ disabled: downloading === (res.data as Record<string, unknown>).filename }" href="javascript:void(0)" @click="downloadFile((res.data as Record<string, unknown>).filename as string)">
             <template v-if="downloading === (res.data as Record<string, unknown>).filename">
-              <svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              <SvgIcon name="spinner" :size="12" class="spin" />
               {{ $t('task.downloading') }}
             </template>
             <template v-else>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <SvgIcon name="download" :size="12" />
               {{ (res.data as Record<string, unknown>).filename }}
             </template>
           </a>
@@ -506,26 +507,26 @@ function isTraceExpanded(_by: string): boolean {
       <!-- Actions -->
       <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="detail-actions">
         <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="handleStart">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+          <SvgIcon name="play" :size="12" />
           {{ starting ? $t('task.starting') : $t('task.startExecution') }}
         </button>
         <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="handleUpload">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <SvgIcon name="upload" :size="12" />
           {{ uploading ? $t('task.uploading') : $t('task.uploadFile') }}
         </button>
         <button v-if="canComplete" class="action-btn action-complete" :disabled="completing" @click="requestComplete">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <SvgIcon name="check" :size="12" />
           {{ completing ? $t('task.submitting') : $t('task.markComplete') }}
         </button>
       </div>
 
       <div v-if="canReview" class="detail-actions">
         <button class="action-btn action-approve" :disabled="reviewing" @click="requestApprove">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <SvgIcon name="check" :size="12" />
           {{ reviewing ? $t('task.processing') : $t('task.approve') }}
         </button>
         <button class="action-btn action-reject" :disabled="reviewing" @click="requestReject">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <SvgIcon name="close" :size="12" />
           {{ $t('task.reject') }}
         </button>
       </div>

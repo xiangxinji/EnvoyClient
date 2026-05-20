@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import { TeamClientKey } from "../../composables/teamClientContext";
 import { managerFetch } from "../../api";
 import TaskCard from "../../components/TaskCard";
+import SvgIcon from "../../components/SvgIcon";
 import type { TaskMessage, TaskResource } from "../../types";
 import type { Task } from "../../../envoy/packages/core/task.js";
 
@@ -151,10 +152,7 @@ onUnmounted(() => {
     </div>
 
     <div v-if="allTasks.length === 0" class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M9 11l3 3L22 4" />
-        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-      </svg>
+      <SvgIcon name="check-circle" :size="48" />
       <p>{{ $t('task.noTasks') }}</p>
     </div>
 
