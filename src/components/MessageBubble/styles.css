@@ -45,3 +45,7 @@
 .channel-bubble.mine { border-bottom-right-radius: 4px; }
 .channel-bubble:not(.mine) { border-bottom-left-radius: 4px; }
 .ai-badge-inline { font-size: 0.68em; padding: 1px 6px; border-radius: var(--radius-sm); background: var(--glass-bg-light); border: 1px solid var(--glass-border); color: var(--text-muted); white-space: nowrap; align-self: center; }
+
+/* Quote row — DM layout alignment */
+.quote-row { display: flex; max-width: 78%; padding: 0 4px; margin-top: -2px; }
+.quote-row.mine { justify-content: flex-end; align-self: flex-end; }

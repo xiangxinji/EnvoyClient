@@ -8,7 +8,10 @@ import { useUserProfile } from "../../composables/useUserProfile";
 import { useHoverCard } from "../../composables/useHoverCard";
 import { formatTime, formatFileSize } from "../../utils/taskFormatters";
 import BubbleContent from "../BubbleContent";
+import AttachmentList from "../AttachmentList";
 import MemberHoverCard from "../MemberHoverCard";
+import QuoteCard from "../QuoteCard";
+import StickerImage from "../StickerImage";
 import SvgIcon from "../SvgIcon";
 
 const props = defineProps<{
@@ -36,6 +39,7 @@ const { hoveredItem: hoverMember, hoverRect, visible: hoverVisible, show: showHo
 
 const isSticker = computed(() => !!props.message.sticker);
 const stickerUrl = computed(() => props.message.sticker?.url ?? "");
+const noText = computed(() => !props.message.text?.trim() && !props.message.forwarded?.length);
 
 const isQuoteRevoked = computed(() => {
   if (!props.message.quote || !props.timeline) return false;
@@ -128,23 +132,13 @@ function bubbleClick(e: MouseEvent) {
         <span class="channel-time">{{ formatTime(message.timestamp) }}</span>
       </div>
       <div ref="bubbleRef" class="bubble channel-bubble" :class="{ selected: selected && selectMode, 'sticker-mode': isSticker }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
-        <BubbleContent
-          :text="message.text"
-          :mentions="isChannel ? message.mentions : undefined"
-          :member-ids="memberIds"
-          :quote="quoteForContent"
-          :is-quote-revoked="isQuoteRevoked"
-          :forwarded="message.forwarded"
-          :attachments="message.attachments"
-          :is-sticker="isSticker"
-          :sticker-url="stickerUrl"
-          :sticker-name="message.sticker?.name"
-          :cloud-refs="message.cloudRefs"
-          :team-name="teamName"
-          @scroll-to-quote="handleQuoteClick"
-          @open-forwarded="forwardedDialogVisible = true"
-        />
+        <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
+        <template v-else>
+          <BubbleContent v-if="!noText" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :forwarded="message.forwarded" :cloud-refs="message.cloudRefs" :team-name="teamName" @open-forwarded="forwardedDialogVisible = true" />
+          <AttachmentList v-if="message.attachments?.length" :items="message.attachments" :no-text="noText" />
+        </template>
       </div>
+      <QuoteCard v-if="quoteForContent" :from="quoteForContent.from" :text="quoteForContent.text" :revoked="isQuoteRevoked" @click="handleQuoteClick" />
     </div>
     <span v-if="message.source === 'ai-auto'" class="ai-badge-inline">{{ $t('chat.aiAutoReply') }}</span>
   </div>
@@ -161,28 +155,18 @@ function bubbleClick(e: MouseEvent) {
       </div>
       <div class="channel-msg-row mine">
         <div ref="bubbleRef" class="bubble mine channel-bubble" :class="{ selected: selected && selectMode, 'sticker-mode': isSticker }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
-          <BubbleContent
-            :text="message.text"
-            :mentions="isChannel ? message.mentions : undefined"
-            :member-ids="memberIds"
-            :quote="quoteForContent"
-            :is-quote-revoked="isQuoteRevoked"
-            :forwarded="message.forwarded"
-            :attachments="message.attachments"
-            :is-sticker="isSticker"
-            :sticker-url="stickerUrl"
-            :sticker-name="message.sticker?.name"
-            :cloud-refs="message.cloudRefs"
-            :team-name="teamName"
-            @scroll-to-quote="handleQuoteClick"
-            @open-forwarded="forwardedDialogVisible = true"
-          />
+          <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
+          <template v-else>
+            <BubbleContent v-if="!noText" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :forwarded="message.forwarded" :cloud-refs="message.cloudRefs" :team-name="teamName" @open-forwarded="forwardedDialogVisible = true" />
+            <AttachmentList v-if="message.attachments?.length" :items="message.attachments" :no-text="noText" />
+          </template>
         </div>
         <div class="channel-avatar mine-avatar">
           <img v-if="getAvatarUrl(message.from)" :src="getAvatarUrl(message.from)!" class="channel-avatar-img" />
           <template v-else>{{ getInitial(getDisplayName(message.from)) }}</template>
         </div>
       </div>
+      <QuoteCard v-if="quoteForContent" :from="quoteForContent.from" :text="quoteForContent.text" :revoked="isQuoteRevoked" @click="handleQuoteClick" />
     </div>
   </div>
 
@@ -193,25 +177,15 @@ function bubbleClick(e: MouseEvent) {
       <SvgIcon v-if="selected" name="check" :size="14" />
     </div>
     <div ref="bubbleRef" class="bubble" :class="{ mine: message.mine, selected: selected && selectMode, 'sticker-mode': isSticker }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
-      <BubbleContent
-        :text="message.text"
-        :mentions="isChannel ? message.mentions : undefined"
-        :member-ids="memberIds"
-        :quote="quoteForContent"
-        :is-quote-revoked="isQuoteRevoked"
-        :forwarded="message.forwarded"
-        :attachments="message.attachments"
-        :show-sender="showSender"
-        :sender-name="showSender ? getDisplayName(message.from) : undefined"
-        :is-sticker="isSticker"
-        :sticker-url="stickerUrl"
-        :sticker-name="message.sticker?.name"
-        :cloud-refs="message.cloudRefs"
-        :team-name="teamName"
-        @scroll-to-quote="handleQuoteClick"
-        @open-forwarded="forwardedDialogVisible = true"
-      />
+      <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
+      <template v-else>
+        <BubbleContent v-if="!noText" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :forwarded="message.forwarded" :show-sender="showSender" :sender-name="showSender ? getDisplayName(message.from) : undefined" :cloud-refs="message.cloudRefs" :team-name="teamName" @open-forwarded="forwardedDialogVisible = true" />
+        <AttachmentList v-if="message.attachments?.length" :items="message.attachments" :no-text="noText" />
+      </template>
     </div>
+  </div>
+  <div v-if="quoteForContent" class="quote-row" :class="{ mine: message.mine }">
+    <QuoteCard :from="quoteForContent.from" :text="quoteForContent.text" :revoked="isQuoteRevoked" @click="handleQuoteClick" />
   </div>
   <div class="time-row" :class="{ mine: message.mine }">
     <span v-if="message.source === 'ai-auto'" class="ai-badge">{{ $t('chat.aiAutoReply') }}</span>
