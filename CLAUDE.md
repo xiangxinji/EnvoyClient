@@ -83,6 +83,63 @@ showConfirm("删除确认", "确定要删除吗？", () => {
 3. **大段 CSS 变量 → 独立样式文件**: 全局 CSS 变量（如主题色）应放在 `src/styles/` 目录，不在组件中定义
 4. **内嵌对话框/浮层 → 独立组件**: 组件内的 Teleport 弹窗（如全屏图片查看器、转发对话框）应提取为独立组件
 
+## 通用工具函数规范
+
+### 平台判断 — `src/utils/platform.ts`
+
+**禁止内联 `"__TAURI_INTERNALS__" in window`**，必须从 `platform.ts` 导入。
+
+```ts
+import { isTauri, safeInvoke } from "../utils/platform";
+
+// isTauri — 运行时判断是否在 Tauri 环境
+if (isTauri) { ... }
+
+// safeInvoke — 安全调用 Tauri invoke，非 Tauri 环境返回 null
+const result = await safeInvoke<Settings>("get_settings");
+```
+
+### 错误消息提取 — `src/utils/error.ts`
+
+**禁止内联 `e instanceof Error ? e.message : String(e)`**，必须使用 `getErrorMessage`。
+
+```ts
+import { getErrorMessage } from "../utils/error";
+
+catch (e: unknown) {
+  console.error("操作失败:", getErrorMessage(e));
+}
+```
+
+### 文件大小格式化 — `src/utils/taskFormatters.ts`
+
+`formatFileSize` 的唯一实现在 `taskFormatters.ts`，禁止在其他文件重复定义。
+
+```ts
+import { formatFileSize } from "../../utils/taskFormatters";
+```
+
+### 任务状态标签 — `src/utils/taskFormatters.ts`
+
+`getStatusLabels(t)` 返回 `Record<TaskMessage["status"], string>`，禁止在组件内重复定义 `statusLabels` 映射。
+
+```ts
+import { getStatusLabels } from "../../utils/taskFormatters";
+const statusLabels = getStatusLabels(t);
+```
+
+### POST 请求 — `managerPost`
+
+所有 POST JSON 请求必须使用 `managerPost`，禁止手动构造 `method: "POST"` + `Content-Type` + `JSON.stringify`。
+
+```ts
+import { managerPost } from "../../api";
+
+const res = await managerPost("/api/path", { key: "value" });
+```
+
+仅 SSE 流式请求（需读取 `response.body`）可使用 `managerFetch` 手动构造。
+
 ## SVG 图标使用规范
 
 ### 禁止内联 SVG
