@@ -17,9 +17,9 @@ export function useMentionSystem(
     if (!isChannel()) return;
     const editor = richEditorRef.value?.editor;
     if (!editor) return;
-    const text = editor.getText();
-    const cursorPos = editor.state.selection.from;
-    const textBefore = text.substring(0, Math.min(cursorPos, text.length));
+    const { from } = editor.state.selection;
+    const $pos = editor.state.selection.$from;
+    const textBefore = editor.state.doc.textBetween($pos.start(), from, "\n", "");
     const atMatch = textBefore.match(/@(\w*)$/);
     if (atMatch) {
       mentionQuery.value = atMatch[1] ?? "";
@@ -32,13 +32,14 @@ export function useMentionSystem(
   function handleMentionSelect(memberId: string) {
     const editor = richEditorRef.value?.editor;
     if (!editor) return;
-    const text = editor.getText();
-    const cursorPos = editor.state.selection.from;
-    const textBefore = text.substring(0, Math.min(cursorPos, text.length));
+    const { from } = editor.state.selection;
+    const $pos = editor.state.selection.$from;
+    const textBefore = editor.state.doc.textBetween($pos.start(), from, "\n", "");
     const atMatch = textBefore.match(/@(\w*)$/);
     if (atMatch) {
-      const from = cursorPos - (atMatch[0]?.length ?? 0);
-      editor.chain().focus().deleteRange({ from, to: cursorPos }).insertContent(`@${memberId} `).run();
+      const fromInNode = $pos.parentOffset - (atMatch[0]?.length ?? 0);
+      const deleteFrom = from - ($pos.parentOffset - fromInNode);
+      editor.chain().focus().deleteRange({ from: deleteFrom, to: from }).insertContent(`@${memberId} `).run();
     }
     if (!currentMentions.value.includes(memberId)) {
       currentMentions.value.push(memberId);

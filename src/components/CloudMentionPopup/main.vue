@@ -26,10 +26,20 @@ const results = ref<CloudSearchResult[]>([]);
 const loading = ref(false);
 
 async function doSearch(query: string) {
-  if (!query) { results.value = []; return; }
   loading.value = true;
   try {
-    results.value = await getCloudResourceService().search(query);
+    if (query) {
+      results.value = await getCloudResourceService().search(query);
+    } else {
+      const listing = await getCloudResourceService().listFiles("");
+      // CloudFileItem lacks 'path', construct it from listing.path + item.name
+      results.value = listing.items.map(item => ({
+        name: item.name,
+        path: listing.path + item.name + (item.type === "directory" ? "/" : ""),
+        type: item.type,
+        size: item.size,
+      }));
+    }
   } catch {
     results.value = [];
   } finally {
@@ -82,7 +92,7 @@ defineExpose({ handleKeydown });
 </script>
 
 <template>
-  <div v-if="visible && (results.length > 0 || loading || (!loading && query))" ref="listRef" class="cloud-popup">
+  <div v-if="visible && (results.length > 0 || loading)" ref="listRef" class="cloud-popup">
     <div v-if="loading" class="cloud-popup-loading">
       <span class="spinner-small"></span>
     </div>

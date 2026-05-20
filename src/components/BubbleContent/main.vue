@@ -44,13 +44,23 @@ function escapeHtml(s: string): string {
 const renderedHtml = computed(() => {
   let rawText = props.text;
 
-  // Replace {cloud:N} markers with placeholders before markdown
-  const cloudMarkers: Array<{ marker: string; index: number }> = [];
+  // Replace {cloud:N} markers with final HTML before markdown processing
   rawText = rawText.replace(/\{cloud:(\d+)\}/g, (_match: string, idx: string) => {
-    const n = parseInt(idx, 10);
-    const placeholder = `__CLOUDREF_${n}__`;
-    cloudMarkers.push({ marker: placeholder, index: n });
-    return placeholder;
+    const index = parseInt(idx, 10);
+    const cloudRef = props.cloudRefs?.[index];
+    if (!cloudRef || !cloudRef.name) return `{cloud:${index}}`;
+    const refPath = cloudRef.path ?? "";
+    const expired = refPath ? validationMap.value[refPath] === false : false;
+    if (cloudRef.type === "directory") {
+      return expired
+        ? `<span class="cloud-ref-card expired"><span class="cloud-ref-icon-fallback">📁</span><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-expired">(${t("cloudMention.expired")})</span></span>`
+        : `<span class="cloud-ref-card directory" data-cloud-path="${escapeHtml(refPath)}"><span class="cloud-ref-icon-fallback">📁</span><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-action">${t("cloudMention.openInCloud")}</span></span>`;
+    } else {
+      const dlUrl = refPath && props.teamName ? escapeHtml(getCloudResourceService().downloadUrl(refPath)) : "#";
+      return expired
+        ? `<span class="cloud-ref-card expired"><span class="cloud-ref-icon-fallback">📄</span><span class="cloud-ref-info"><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-expired">(${t("cloudMention.expired")})</span></span></span>`
+        : `<a class="cloud-ref-card file" href="${dlUrl}" target="_blank" rel="noopener"><span class="cloud-ref-icon-fallback">📄</span><span class="cloud-ref-info"><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-size">${formatFileSize(cloudRef.size ?? 0)}</span></span><span class="cloud-ref-download">⬇</span></a>`;
+    }
   });
 
   if (props.mentions && props.mentions.length > 0) {
@@ -63,29 +73,7 @@ const renderedHtml = computed(() => {
     }
   }
   let raw = renderMarkdown(rawText);
-  let sanitized = DOMPurify.sanitize(raw, { ADD_TAGS: ["span"], ADD_ATTR: ["class"] });
-
-  // Replace placeholders with cloud ref cards
-  for (const { marker, index } of cloudMarkers) {
-    const cloudRef = props.cloudRefs?.[index];
-    if (!cloudRef) {
-      sanitized = sanitized.replace(marker, `{cloud:${index}}`);
-      continue;
-    }
-    const expired = validationMap.value[cloudRef.path] === false;
-    if (cloudRef.type === "directory") {
-      const cardHtml = expired
-        ? `<span class="cloud-ref-card expired"><span class="cloud-ref-icon-fallback">📁</span><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-expired">(${t("cloudMention.expired")})</span></span>`
-        : `<span class="cloud-ref-card directory" data-cloud-path="${escapeHtml(cloudRef.path)}"><span class="cloud-ref-icon-fallback">📁</span><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-action">${t("cloudMention.openInCloud")}</span></span>`;
-      sanitized = sanitized.replace(marker, cardHtml);
-    } else {
-      const dlUrl = props.teamName ? escapeHtml(getCloudResourceService().downloadUrl(cloudRef.path)) : "#";
-      const cardHtml = expired
-        ? `<span class="cloud-ref-card expired"><span class="cloud-ref-icon-fallback">📄</span><span class="cloud-ref-info"><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-expired">(${t("cloudMention.expired")})</span></span></span>`
-        : `<a class="cloud-ref-card file" href="${dlUrl}" target="_blank" rel="noopener"><span class="cloud-ref-icon-fallback">📄</span><span class="cloud-ref-info"><span class="cloud-ref-name">${escapeHtml(cloudRef.name)}</span><span class="cloud-ref-size">${formatFileSize(cloudRef.size)}</span></span><span class="cloud-ref-download">⬇</span></a>`;
-      sanitized = sanitized.replace(marker, cardHtml);
-    }
-  }
+  let sanitized = DOMPurify.sanitize(raw, { ADD_TAGS: ["span", "a"], ADD_ATTR: ["class", "data-cloud-path", "target", "rel", "href"] });
 
   return sanitized;
 });

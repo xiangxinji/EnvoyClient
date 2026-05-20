@@ -14,10 +14,10 @@ export function useCloudMention(
   function handleEditorInput() {
     const editor = richEditorRef.value?.editor;
     if (!editor) return;
-    const text = editor.getText();
-    const cursorPos = editor.state.selection.from;
-    const textBefore = text.substring(0, Math.min(cursorPos, text.length));
-    const hashMatch = textBefore.match(/(?:^|[\s(\[]#)([\w.\-]*)$/);
+    const { from } = editor.state.selection;
+    const $pos = editor.state.selection.$from;
+    const textBefore = editor.state.doc.textBetween($pos.start(), from, "\n", "");
+    const hashMatch = textBefore.match(/(?:^#|[\s(\[]#)([\w.\-]*)$/);
     if (hashMatch) {
       cloudQuery.value = hashMatch[1] ?? "";
       cloudPopupVisible.value = true;
@@ -29,13 +29,14 @@ export function useCloudMention(
   function handleCloudSelect(item: CloudSearchResult) {
     const editor = richEditorRef.value?.editor;
     if (!editor) return;
-    const text = editor.getText();
-    const cursorPos = editor.state.selection.from;
-    const textBefore = text.substring(0, Math.min(cursorPos, text.length));
+    const { from } = editor.state.selection;
+    const $pos = editor.state.selection.$from;
+    const textBefore = editor.state.doc.textBetween($pos.start(), from, "\n", "");
     const hashMatch = textBefore.match(/#([\w.\-]*)$/);
     if (hashMatch) {
-      const from = cursorPos - (hashMatch[0]?.length ?? 0);
-      editor.chain().focus().deleteRange({ from, to: cursorPos }).insertContent({
+      const fromInNode = $pos.parentOffset - (hashMatch[0]?.length ?? 0);
+      const deleteFrom = from - ($pos.parentOffset - fromInNode);
+      editor.chain().focus().deleteRange({ from: deleteFrom, to: from }).insertContent({
         type: "cloudReference",
         attrs: { name: item.name, path: item.path, type: item.type, size: item.size },
       }).run();

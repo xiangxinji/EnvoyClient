@@ -1,4 +1,4 @@
-import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, ForwardedRecord, QuoteInfo, StickerInfo } from "../types";
+import type { TimelineItem, ChatMessage, TaskMessage, TaskResource, MessageAttachment, ForwardedRecord, QuoteInfo, StickerInfo, CloudRef } from "../types";
 
 export interface SyncResponse {
   messages: SyncMessage[];
@@ -55,5 +55,6 @@ export function syncMessageToTimeline(msg: SyncMessage, myId: string): TimelineI
     sticker: extra.sticker as StickerInfo | undefined,
     channel: msg.channel ?? undefined,
     mentions: msg.mentions ? JSON.parse(msg.mentions) as string[] : undefined,
+    cloudRefs: extra.cloudRefs as CloudRef[] | undefined,
   } satisfies ChatMessage;
 }

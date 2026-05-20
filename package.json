@@ -13,7 +13,10 @@
     "manager:web": "cd manager/web && npx vite",
     "manager": "concurrently -n server,web -c blue,green \"npm run manager:server\" \"npm run manager:web\"",
     "website:dev": "cd website && npm run dev",
-    "website:build": "cd website && npm run generate"
+    "website:build": "cd website && npm run generate",
+    "manager:server:install": "cd manager/server && npm install",
+    "manager:web:install" :"cd manager/web && npm install",
+    "all:install": "npm install && npm run manager:server:install && npm run manager:web:install"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

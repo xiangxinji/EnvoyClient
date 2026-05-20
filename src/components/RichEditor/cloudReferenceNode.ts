@@ -27,7 +27,7 @@ export const CloudReference = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const icon = HTMLAttributes["data-type"] === "directory" ? "📁" : "📄";
+    const icon = HTMLAttributes.type === "directory" ? "📁" : "📄";
     return [
       "span",
       mergeAttributes(HTMLAttributes, {
