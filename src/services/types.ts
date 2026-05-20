@@ -81,3 +81,14 @@ export interface UserProfile {
   readonly nickname: string | null;
   readonly avatar_url: string | null;
 }
+
+// ─── Sticker Types ───────────────────────────────────────────
+
+export interface StickerItem {
+  readonly id: string;
+  readonly name: string;
+  readonly url: string;
+  readonly size: number;
+  readonly mimeType: string;
+  readonly createdAt: number;
+}

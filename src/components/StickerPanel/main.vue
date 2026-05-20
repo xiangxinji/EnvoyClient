@@ -1,21 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { managerFetch, apiUrl } from "../../api";
+import { getStickerService } from "../../composables/teamClientContext";
 import { getErrorMessage } from "../../utils/error";
 import { pickFiles } from "../../utils/filePicker";
 import { useConfirm } from "../../composables/useConfirm";
+import type { StickerItem } from "../../services/types";
 import ConfirmDialog from "../ConfirmDialog";
 import SvgIcon from "../SvgIcon";
-
-interface StickerItem {
-  id: string;
-  name: string;
-  url: string;
-  size: number;
-  mimeType: string;
-  createdAt: number;
-}
 
 const props = defineProps<{
   myId: string;
@@ -27,6 +19,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const stickerService = getStickerService();
 const stickers = ref<StickerItem[]>([]);
 const loading = ref(false);
 const errorMsg = ref("");
@@ -36,11 +29,7 @@ const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm
 async function loadStickers() {
   loading.value = true;
   try {
-    const res = await managerFetch(`/api/stickers?user=${encodeURIComponent(props.myId)}`, {
-      headers: { team: props.teamName },
-    });
-    const data = await res.json() as { stickers: StickerItem[] };
-    stickers.value = data.stickers;
+    stickers.value = await stickerService.list();
   } catch (e: unknown) {
     console.error("loadStickers error:", e);
   } finally {
@@ -55,14 +44,7 @@ async function handleAdd() {
     if (chosen.length === 0) return;
 
     for (const file of chosen) {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("from", props.myId);
-      await managerFetch("/api/stickers", {
-        method: "POST",
-        headers: { team: props.teamName },
-        body: formData,
-      });
+      await stickerService.add(file);
     }
     await loadStickers();
   } catch (e: unknown) {
@@ -75,10 +57,7 @@ async function handleAdd() {
 function handleDeleteClick(sticker: StickerItem) {
   showConfirm(t('sticker.confirmDeleteTitle'), t('sticker.confirmDeleteMsg'), async () => {
     try {
-      await managerFetch(`/api/stickers/${sticker.id}?from=${encodeURIComponent(props.myId)}`, {
-        method: "DELETE",
-        headers: { team: props.teamName },
-      });
+      await stickerService.remove(sticker.id);
       await loadStickers();
     } catch (e: unknown) {
       errorMsg.value = getErrorMessage(e);
@@ -87,7 +66,7 @@ function handleDeleteClick(sticker: StickerItem) {
 }
 
 function handleStickerClick(sticker: StickerItem) {
-  emit("send", apiUrl(sticker.url), sticker.name);
+  emit("send", stickerService.stickerUrl(sticker.url), sticker.name);
 }
 
 onMounted(loadStickers);
@@ -107,7 +86,7 @@ defineExpose({ loadStickers });
     <template v-else>
       <div class="sticker-grid">
         <div v-for="sticker in stickers" :key="sticker.id" class="sticker-item" @click="handleStickerClick(sticker)">
-          <img :src="apiUrl(sticker.url)" :alt="sticker.name" class="sticker-thumb" />
+          <img :src="stickerService.stickerUrl(sticker.url)" :alt="sticker.name" class="sticker-thumb" />
           <button type="button" class="sticker-delete" @click.stop="handleDeleteClick(sticker)" :title="t('sticker.delete')">
             <SvgIcon name="close" :size="12" />
           </button>
