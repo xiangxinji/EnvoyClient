@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { managerFetch, apiUrl } from "../../api";
 import { getErrorMessage } from "../../utils/error";
+import { pickFiles } from "../../utils/filePicker";
 import { useConfirm } from "../../composables/useConfirm";
 import ConfirmDialog from "../ConfirmDialog";
 import SvgIcon from "../SvgIcon";
@@ -50,17 +51,10 @@ async function loadStickers() {
 async function handleAdd() {
   errorMsg.value = "";
   try {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/png,image/jpeg,image/gif,image/webp";
-    input.multiple = true;
-    const chosen = await new Promise<FileList | null>((resolve) => {
-      input.onchange = () => resolve(input.files);
-      input.click();
-    });
-    if (!chosen || chosen.length === 0) return;
+    const chosen = await pickFiles({ accept: "image/png,image/jpeg,image/gif,image/webp", multiple: true });
+    if (chosen.length === 0) return;
 
-    for (const file of Array.from(chosen)) {
+    for (const file of chosen) {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("from", props.myId);

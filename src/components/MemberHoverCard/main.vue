@@ -5,7 +5,7 @@ import type { MemberInfo } from "../../types";
 import { useUserProfile } from "../../composables/useUserProfile";
 
 const { t } = useI18n();
-const { getDisplayName, getAvatarUrl } = useUserProfile();
+const { getDisplayName, getAvatarUrl, getInitial } = useUserProfile();
 
 const props = defineProps<{
   member: MemberInfo;
@@ -39,7 +39,7 @@ const position = computed(() => {
         <div class="hover-card-header">
           <div class="hover-card-avatar">
             <img v-if="getAvatarUrl(member.id)" :src="getAvatarUrl(member.id)!" class="hover-card-avatar-img" />
-            <template v-else>{{ getDisplayName(member.id).charAt(0).toUpperCase() }}</template>
+            <template v-else>{{ getInitial(getDisplayName(member.id)) }}</template>
           </div>
           <div class="hover-card-identity">
             <span class="hover-card-name">{{ getDisplayName(member.id) }}</span>

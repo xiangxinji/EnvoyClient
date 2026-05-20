@@ -158,10 +158,6 @@ function formatBadge(count: number): string {
   if (count > 99) return "99+";
   return String(count);
 }
-
-function getInitial(name: string): string {
-  return name.charAt(0).toUpperCase();
-}
 </script>
 
 <template>
@@ -247,7 +243,7 @@ function getInitial(name: string): string {
         >
           <div class="avatar">
             <img v-if="userProfile.getAvatarUrl(m.id)" :src="userProfile.getAvatarUrl(m.id) ?? undefined" class="avatar-img" />
-            <template v-else>{{ getInitial(m.id) }}</template>
+            <template v-else>{{ userProfile.getInitial(m.id) }}</template>
             <span class="status-dot" :class="m.status"></span>
           </div>
           <div class="member-info">
@@ -266,7 +262,7 @@ function getInitial(name: string): string {
       <div class="user-menu-wrapper">
         <div class="user-avatar-btn" :title="myId">
           <img v-if="userProfile.getAvatarUrl(myId)" :src="userProfile.getAvatarUrl(myId)!" class="avatar-img" />
-          <template v-else>{{ getInitial(myId) }}</template>
+          <template v-else>{{ userProfile.getInitial(myId) }}</template>
         </div>
         <div class="user-menu" @click.stop>
           <button class="user-menu-item" :class="{ active: selectedPeer === '__quick__' }" @click="emit('select', '__quick__')">

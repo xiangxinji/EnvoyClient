@@ -84,7 +84,8 @@ export interface TaskResource {
 export type ClientResultData = { result: string };
 export type FileResourceData = { filename: string; size: number; uploadedAt: number };
 export type ExecutionTraceData = { steps: AgentStep[] };
-export type TaskResourceData = ClientResultData | FileResourceData | ExecutionTraceData;
+export type LeaderReviewData = { success: boolean; data?: unknown; error?: string };
+export type TaskResourceData = ClientResultData | FileResourceData | ExecutionTraceData | LeaderReviewData;
 
 export interface TaskMessage {
   type: "task";

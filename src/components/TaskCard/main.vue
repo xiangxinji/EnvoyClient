@@ -104,17 +104,17 @@ const traceExpanded = ref(false);
         <SvgIcon name="check-circle" :size="13" />
         {{ $t('task.reviewLog') }}
       </div>
-      <div v-for="(review, i) in leaderReviews" :key="`review-${i}`" class="review-item" :class="(review.data as any)?.success ? 'approved' : 'rejected'">
+      <div v-for="(review, i) in leaderReviews" :key="`review-${i}`" class="review-item" :class="review.data?.success ? 'approved' : 'rejected'">
         <span class="resource-by">{{ review.by }}</span>
-        <span class="review-status" :class="(review.data as any)?.success ? 'approved' : 'rejected'">
-          {{ (review.data as any)?.success ? $t('task.approved') : $t('task.rejected') }}
+        <span class="review-status" :class="review.data?.success ? 'approved' : 'rejected'">
+          {{ review.data?.success ? $t('task.approved') : $t('task.rejected') }}
         </span>
         <span v-if="isAIReview(review)" class="source-badge ai">AI</span>
         <span v-else class="source-badge manual">{{ $t('task.manual') }}</span>
-        <div v-if="(review.data as any)?.data" class="review-data">
-          <div class="markdown-content" v-html="renderMarkdown(getResultText((review.data as any).data))" />
+        <div v-if="review.data?.data" class="review-data">
+          <div class="markdown-content" v-html="renderMarkdown(getResultText(review.data.data))" />
         </div>
-        <div v-if="(review.data as any)?.error" class="review-error">{{ (review.data as any).error }}</div>
+        <div v-if="review.data?.error" class="review-error">{{ review.data.error }}</div>
       </div>
     </div>
 
@@ -128,20 +128,20 @@ const traceExpanded = ref(false);
         <span class="resource-by">{{ res.by }}</span>
         <a
           class="file-link"
-          :class="{ disabled: downloading === (res.data as any).filename }"
+          :class="{ disabled: downloading === res.data.filename }"
           href="javascript:void(0)"
-          @click.stop="downloadFile((res.data as any).filename)"
+          @click.stop="downloadFile(res.data.filename)"
         >
-          <template v-if="downloading === (res.data as any).filename">
+          <template v-if="downloading === res.data.filename">
             <SvgIcon name="spinner" :size="12" class="spin" />
             {{ $t('task.downloading') }}
           </template>
           <template v-else>
             <SvgIcon name="download" :size="12" />
-            {{ (res.data as any).filename }}
+            {{ res.data.filename }}
           </template>
         </a>
-        <span class="file-meta">{{ formatFileSize((res.data as any).size) }} · {{ formatTimestamp((res.data as any).uploadedAt) }}</span>
+        <span class="file-meta">{{ formatFileSize(res.data.size) }} · {{ formatTimestamp(res.data.uploadedAt) }}</span>
       </div>
     </div>
 

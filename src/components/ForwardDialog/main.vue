@@ -3,6 +3,7 @@ import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { MemberInfo } from "../../types";
 import SvgIcon from "../SvgIcon";
+import { useUserProfile } from "../../composables/useUserProfile";
 
 const props = defineProps<{
   visible: boolean;
@@ -16,6 +17,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { getInitial } = useUserProfile();
 const selectedId = ref<string | null>(null);
 
 const targets = computed(() => props.members.filter((m) => m.id !== props.currentPeerId));
@@ -34,10 +36,6 @@ function handleConfirm() {
 function handleCancel() {
   selectedId.value = null;
   emit("cancel");
-}
-
-function getInitial(name: string): string {
-  return name.charAt(0).toUpperCase();
 }
 </script>
 

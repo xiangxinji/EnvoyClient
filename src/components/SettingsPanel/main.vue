@@ -6,6 +6,7 @@ import { useLocale } from "../../i18n";
 import { getMemberSettings, TeamClientKey, setTeamClientInstance } from "../../composables/teamClientContext";
 import type { TaskExecutionMode } from "../../composables/useMemberSettings";
 import { useUserProfile } from "../../composables/useUserProfile";
+import { pickFiles } from "../../utils/filePicker";
 import GlassSelect from "../GlassSelect";
 import GlassCheckbox from "../GlassCheckbox";
 import GlassButton from "../GlassButton";
@@ -27,13 +28,12 @@ const router = useRouter();
 
 const username = ctx.myId;
 
-const { updateMyProfile, uploadMyAvatar, getAvatarUrl, getDisplayName } = useUserProfile();
+const { updateMyProfile, uploadMyAvatar, getAvatarUrl, getDisplayName, getInitial } = useUserProfile();
 const avatarUrl = computed(() => getAvatarUrl(username));
 const displayName = computed(() => getDisplayName(username));
 const nickname = ref("");
 const nicknameSaving = ref(false);
 const avatarUploading = ref(false);
-let avatarInput: HTMLInputElement | null = null;
 
 const executionMode = ref<TaskExecutionMode>("auto");
 const workingDirectory = ref("");
@@ -63,20 +63,9 @@ async function saveNickname() {
   nicknameSaving.value = false;
 }
 
-function triggerAvatarUpload() {
-  if (!avatarInput) {
-    avatarInput = document.createElement("input");
-    avatarInput.type = "file";
-    avatarInput.accept = "image/*";
-    avatarInput.addEventListener("change", handleAvatarFile);
-  }
-  avatarInput.value = "";
-  avatarInput.click();
-}
-
-async function handleAvatarFile(e: Event) {
-  const target = e.target as HTMLInputElement;
-  const file = target.files?.[0];
+async function triggerAvatarUpload() {
+  const files = await pickFiles({ accept: "image/*" });
+  const file = files[0];
   if (!file) return;
   avatarUploading.value = true;
   try {
@@ -158,7 +147,7 @@ async function handleLogout() {
       <div class="profile-section">
         <div class="profile-avatar-wrapper" @click="triggerAvatarUpload" :title="$t('settings.changeAvatar')">
           <img v-if="avatarUrl" :src="avatarUrl" class="profile-avatar-img" alt="" />
-          <div v-else class="profile-avatar-fallback">{{ username.charAt(0).toUpperCase() }}</div>
+          <div v-else class="profile-avatar-fallback">{{ getInitial(username) }}</div>
           <div v-if="avatarUploading" class="profile-avatar-overlay">{{ $t('common.loading') }}</div>
           <div class="profile-avatar-badge">
             <SvgIcon name="camera" :size="12" />
@@ -259,7 +248,7 @@ async function handleLogout() {
     <div class="settings-footer">
       <div class="user-card">
         <img v-if="avatarUrl" :src="avatarUrl" class="user-avatar user-avatar-img" alt="" />
-        <div v-else class="user-avatar">{{ username.charAt(0).toUpperCase() }}</div>
+        <div v-else class="user-avatar">{{ getInitial(username) }}</div>
         <div class="user-meta">
           <span class="user-name">{{ displayName }}</span>
           <span class="user-role" :class="ctx.role">{{ ctx.role }}</span>

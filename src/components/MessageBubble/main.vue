@@ -5,6 +5,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ChatMessage, MemberInfo, TimelineItem } from "../../types";
 import { downloadFileWithDialog } from "../../utils/notification";
 import { useUserProfile } from "../../composables/useUserProfile";
+import { useHoverCard } from "../../composables/useHoverCard";
 import { formatTime, formatFileSize } from "../../utils/taskFormatters";
 import BubbleContent from "../BubbleContent";
 import MemberHoverCard from "../MemberHoverCard";
@@ -29,7 +30,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { getDisplayName, getAvatarUrl } = useUserProfile();
+const { getDisplayName, getAvatarUrl, getInitial } = useUserProfile();
+const { hoveredItem: hoverMember, hoverRect, visible: hoverVisible, show: showHoverCard, scheduleHide: hideHoverCard, cancelHide: cancelHoverHide } = useHoverCard<MemberInfo>();
 
 const isSticker = computed(() => !!props.message.sticker);
 const stickerUrl = computed(() => props.message.sticker?.url ?? "");
@@ -75,28 +77,16 @@ async function handleForwardedFileDownload(att: { url: string; name: string }) {
   finally { forwardedDownloading.value = false; }
 }
 
-const hoverVisible = ref(false);
-const hoverRect = ref<DOMRect | null>(null);
-const hoverMember = ref<MemberInfo | null>(null);
-let hoverTimer: ReturnType<typeof setTimeout> | null = null;
-
 function getMember(id: string): MemberInfo | null { return props.members?.find(m => m.id === id) ?? null; }
 
 function onAvatarEnter(e: MouseEvent) {
   const member = getMember(props.message.from);
-  if (!member) return;
-  const target = e.currentTarget as HTMLElement;
-  if (hoverTimer) clearTimeout(hoverTimer);
-  hoverTimer = setTimeout(() => { hoverMember.value = member; hoverRect.value = target.getBoundingClientRect(); hoverVisible.value = true; }, 150);
+  if (member) showHoverCard(member, e.currentTarget as HTMLElement);
 }
 
-function onAvatarLeave() {
-  if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
-  hoverTimer = setTimeout(() => { hoverVisible.value = false; }, 100);
-}
-
-function onCardEnter() { if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; } }
-function onCardLeave() { hoverTimer = setTimeout(() => { hoverVisible.value = false; }, 100); }
+function onAvatarLeave() { hideHoverCard(); }
+function onCardEnter() { cancelHoverHide(); }
+function onCardLeave() { hideHoverCard(); }
 
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === "Escape" && forwardedDialogVisible.value) forwardedDialogVisible.value = false;
@@ -105,7 +95,6 @@ function handleKeydown(e: KeyboardEvent) {
 document.addEventListener("keydown", handleKeydown);
 onUnmounted(() => {
   document.removeEventListener("keydown", handleKeydown);
-  if (hoverTimer) clearTimeout(hoverTimer);
 });
 
 function bubbleContextmenu() {
@@ -126,7 +115,7 @@ function bubbleClick(e: MouseEvent) {
     </div>
     <div class="channel-avatar" @mouseenter="onAvatarEnter" @mouseleave="onAvatarLeave">
       <img v-if="getAvatarUrl(message.from)" :src="getAvatarUrl(message.from)!" class="channel-avatar-img" />
-      <template v-else>{{ getDisplayName(message.from).charAt(0).toUpperCase() }}</template>
+      <template v-else>{{ getInitial(getDisplayName(message.from)) }}</template>
     </div>
     <div class="channel-body">
       <div class="channel-meta">
@@ -182,7 +171,7 @@ function bubbleClick(e: MouseEvent) {
         </div>
         <div class="channel-avatar mine-avatar">
           <img v-if="getAvatarUrl(message.from)" :src="getAvatarUrl(message.from)!" class="channel-avatar-img" />
-          <template v-else>{{ getDisplayName(message.from).charAt(0).toUpperCase() }}</template>
+          <template v-else>{{ getInitial(getDisplayName(message.from)) }}</template>
         </div>
       </div>
     </div>

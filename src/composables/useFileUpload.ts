@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import type { MessageAttachment } from "../types";
 import { isImageMime, compressImage } from "../utils/imageCompress";
+import { pickFiles } from "../utils/filePicker";
 import { apiUrl } from "../api";
 
 export interface PendingFileAttachment {
@@ -12,21 +13,15 @@ export function useFileUpload(myId: string, teamName: string) {
   const uploading = ref(false);
   const attachmentError = ref("");
 
-  function handlePickAttachment(insertImage: (file: File) => void) {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.multiple = true;
-    input.onchange = async () => {
-      const files = Array.from(input.files ?? []);
-      for (const file of files) {
-        if (file.type.startsWith("image/")) {
-          insertImage(file);
-        } else {
-          pendingFiles.value.push({ file });
-        }
+  async function handlePickAttachment(insertImage: (file: File) => void) {
+    const files = await pickFiles({ multiple: true });
+    for (const file of files) {
+      if (file.type.startsWith("image/")) {
+        insertImage(file);
+      } else {
+        pendingFiles.value.push({ file });
       }
-    };
-    input.click();
+    }
   }
 
   function removeFile(index: number) {

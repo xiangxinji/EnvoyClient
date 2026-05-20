@@ -23,6 +23,10 @@ export function useUserProfile() {
     return username;
   }
 
+  function getInitial(name: string): string {
+    return name.charAt(0).toUpperCase();
+  }
+
   function getAvatarUrl(username: string): string | null {
     const p = profiles.value.get(username);
     if (!p?.avatar_url) return null;
@@ -53,6 +57,7 @@ export function useUserProfile() {
     profiles,
     loadProfiles,
     getDisplayName,
+    getInitial,
     getAvatarUrl,
     getProfile,
     updateMyProfile,

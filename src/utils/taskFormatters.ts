@@ -1,6 +1,33 @@
 import type { TaskResource, AgentStep, TaskMessage } from "../types";
 import { apiUrl } from "../api";
 
+export interface ApiTask {
+  id: string;
+  createBy: string;
+  subscribe: string[];
+  content: string;
+  mode: string;
+  status: string;
+  resources: TaskResource[];
+  createdAt: number;
+  attempt: number;
+}
+
+export function apiTaskToTaskMessage(t: ApiTask): TaskMessage {
+  return {
+    type: "task",
+    id: `task-${t.id}`,
+    seq: 0,
+    taskId: t.id,
+    from: t.createBy,
+    content: t.content,
+    status: t.status as TaskMessage["status"],
+    resources: t.resources,
+    subscribe: t.subscribe,
+    timestamp: t.createdAt,
+  };
+}
+
 export function getStatusLabels(t: (key: string) => string): Record<TaskMessage["status"], string> {
   return {
     pending: t('task.status.pending'),
@@ -28,7 +55,8 @@ export function getResultText(data: unknown): string {
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
 export function formatTimestamp(ts: number): string {

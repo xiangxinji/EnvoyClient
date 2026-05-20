@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import type { TaskMessage, TaskResource } from "../../types";
+import type { TaskMessage } from "../../types";
 import type { Task } from "../../../envoy/packages/core/task.js";
-import { getResultText, formatFileSize, formatTimestamp, formatTime, getTraceSteps, formatToolArgs, formatToolResult, getStatusLabels } from "../../utils/taskFormatters";
+import { getResultText, formatFileSize, formatTimestamp, formatTime, getTraceSteps, formatToolArgs, formatToolResult, getStatusLabels, apiTaskToTaskMessage, type ApiTask } from "../../utils/taskFormatters";
 import { useTaskResources } from "../../composables/useTaskResources";
 import { useTaskPermissions } from "../../composables/useTaskPermissions";
 import { useTaskActions } from "../../composables/useTaskActions";
@@ -36,36 +36,14 @@ async function fetchTask() {
   try {
     const res = await managerFetch(`/api/teams/${encodeURIComponent(ctx.teamName)}/tasks/${liveTask.value.taskId}`);
     if (!res.ok) return;
-    const t = await res.json() as Record<string, unknown>;
-    liveTask.value = {
-      type: "task",
-      id: `task-${t.id}`,
-      seq: 0,
-      taskId: t.id as string,
-      from: t.createBy as string,
-      content: t.content as string,
-      status: t.status as TaskMessage["status"],
-      resources: t.resources as TaskResource[],
-      subscribe: t.subscribe as string[],
-      timestamp: t.createdAt as number,
-    };
+    const t = await res.json() as ApiTask;
+    liveTask.value = apiTaskToTaskMessage(t);
   } catch { /* ignore */ }
 }
 
 function onTaskUpdate(task: Task) {
   if (task.id === liveTask.value.taskId) {
-    liveTask.value = {
-      type: "task",
-      id: `task-${task.id}`,
-      seq: 0,
-      taskId: task.id,
-      from: task.createBy,
-      content: task.content,
-      status: task.status,
-      resources: task.resources as TaskResource[],
-      subscribe: task.subscribe,
-      timestamp: task.createdAt,
-    };
+    liveTask.value = apiTaskToTaskMessage(task as unknown as ApiTask);
   }
 }
 
@@ -111,7 +89,7 @@ const timelineEvents = computed<TimelineEvent[]>(() => {
   }
 
   for (const r of leaderReviews.value) {
-    const success = (r.data as Record<string, unknown>)?.success as boolean;
+    const success = r.data?.success;
     events.push({ time: r.timestamp, label: success ? t('task.reviewApprovedLabel') : t('task.reviewRejectedLabel'), by: r.by, icon: "review", success });
   }
 
@@ -281,15 +259,15 @@ function isTraceExpanded(_by: string): boolean {
       <!-- Leader reviews -->
       <div v-if="leaderReviews.length > 0" class="detail-section">
         <div class="section-title">{{ $t('task.reviewLog') }}</div>
-        <div v-for="(review, i) in leaderReviews" :key="`review-${i}`" class="review-item" :class="(review.data as Record<string, unknown>)?.success ? 'approved' : 'rejected'">
+        <div v-for="(review, i) in leaderReviews" :key="`review-${i}`" class="review-item" :class="review.data?.success ? 'approved' : 'rejected'">
           <span class="resource-by">{{ review.by }}</span>
-          <span class="review-status" :class="(review.data as Record<string, unknown>)?.success ? 'approved' : 'rejected'">
-            {{ (review.data as Record<string, unknown>)?.success ? $t('task.approved') : $t('task.rejected') }}
+          <span class="review-status" :class="review.data?.success ? 'approved' : 'rejected'">
+            {{ review.data?.success ? $t('task.approved') : $t('task.rejected') }}
           </span>
-          <div v-if="(review.data as Record<string, unknown>)?.data" class="review-data">
-            <div class="markdown-content" v-html="renderMarkdown(getResultText((review.data as Record<string, unknown>).data))" />
+          <div v-if="review.data?.data" class="review-data">
+            <div class="markdown-content" v-html="renderMarkdown(getResultText(review.data.data))" />
           </div>
-          <div v-if="(review.data as Record<string, unknown>)?.error" class="review-error">{{ (review.data as Record<string, unknown>)?.error }}</div>
+          <div v-if="review.data?.error" class="review-error">{{ review.data.error }}</div>
         </div>
       </div>
 
@@ -298,17 +276,17 @@ function isTraceExpanded(_by: string): boolean {
         <div class="section-title">{{ $t('task.resourceFiles') }}</div>
         <div v-for="(res, i) in fileResources" :key="`file-${i}`" class="file-item">
           <span class="resource-by">{{ res.by }}</span>
-          <a class="file-link" :class="{ disabled: downloading === (res.data as Record<string, unknown>).filename }" href="javascript:void(0)" @click="downloadFile((res.data as Record<string, unknown>).filename as string)">
-            <template v-if="downloading === (res.data as Record<string, unknown>).filename">
+          <a class="file-link" :class="{ disabled: downloading === res.data.filename }" href="javascript:void(0)" @click="downloadFile(res.data.filename)">
+            <template v-if="downloading === res.data.filename">
               <SvgIcon name="spinner" :size="12" class="spin" />
               {{ $t('task.downloading') }}
             </template>
             <template v-else>
               <SvgIcon name="download" :size="12" />
-              {{ (res.data as Record<string, unknown>).filename }}
+              {{ res.data.filename }}
             </template>
           </a>
-          <span class="file-meta">{{ formatFileSize((res.data as Record<string, unknown>).size as number) }} · {{ formatTimestamp((res.data as Record<string, unknown>).uploadedAt as number) }}</span>
+          <span class="file-meta">{{ formatFileSize(res.data.size) }} · {{ formatTimestamp(res.data.uploadedAt) }}</span>
         </div>
       </div>
 

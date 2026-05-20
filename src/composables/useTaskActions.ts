@@ -2,6 +2,7 @@ import { computed, ref, type Ref } from "vue";
 import { managerPost, apiUrl } from "../api";
 import { downloadFileWithDialog } from "../utils/notification";
 import { getTaskFileUrl } from "../utils/taskFormatters";
+import { pickFiles } from "../utils/filePicker";
 import { useToast } from "./useToast";
 import { useConfirm } from "./useConfirm";
 import { useI18n } from "vue-i18n";
@@ -45,17 +46,24 @@ export function useTaskActions(
   const uploading = ref(false);
   const reviewing = ref(false);
 
-  async function handleStart(onSuccess?: () => void) {
-    if (starting.value) return;
-    starting.value = true;
+  async function runAction(loading: Ref<boolean>, action: () => Promise<Response>, onSuccess?: () => void) {
+    if (loading.value) return;
+    loading.value = true;
     try {
-      const res = await managerPost(`/api/tasks/${taskId.value}/start`, { from: myId }, { team: teamName ?? "" });
+      const res = await action();
       if (res.ok) onSuccess?.();
       else showToast(t('common.operationFailed'), "error");
     } catch {
       showToast(t('common.operationFailed'), "error");
     }
-    starting.value = false;
+    loading.value = false;
+  }
+
+  async function handleStart(onSuccess?: () => void) {
+    await runAction(starting, () =>
+      managerPost(`/api/tasks/${taskId.value}/start`, { from: myId }, { team: teamName ?? "" }),
+      onSuccess,
+    );
   }
 
   function requestComplete(onSuccess?: () => void) {
@@ -63,16 +71,10 @@ export function useTaskActions(
   }
 
   async function doComplete(onSuccess?: () => void) {
-    if (completing.value) return;
-    completing.value = true;
-    try {
-      const res = await managerPost(`/api/tasks/${taskId.value}/complete`, { from: myId, data: { note: t('task.manualComplete'), source: "manual" } }, { team: teamName ?? "" });
-      if (res.ok) onSuccess?.();
-      else showToast(t('common.operationFailed'), "error");
-    } catch {
-      showToast(t('common.operationFailed'), "error");
-    }
-    completing.value = false;
+    await runAction(completing, () =>
+      managerPost(`/api/tasks/${taskId.value}/complete`, { from: myId, data: { note: t('task.manualComplete'), source: "manual" } }, { team: teamName ?? "" }),
+      onSuccess,
+    );
   }
 
   function requestApprove(onSuccess?: () => void) {
@@ -80,24 +82,10 @@ export function useTaskActions(
   }
 
   async function doApprove(onSuccess?: () => void) {
-    if (reviewing.value) return;
-    reviewing.value = true;
-    try {
-      const res = await managerPost(`/api/tasks/${taskId.value}/result`, {
-        from: myId,
-        success: true,
-        data: { review: t('task.approved'), source: "manual" },
-      }, { team: teamName ?? "" });
-      if (res.ok) {
-        onSuccess?.();
-        showToast(t('task.reviewApproved'), "success");
-      } else {
-        showToast(t('common.operationFailed'), "error");
-      }
-    } catch {
-      showToast(t('common.operationFailed'), "error");
-    }
-    reviewing.value = false;
+    await runAction(reviewing, () =>
+      managerPost(`/api/tasks/${taskId.value}/result`, { from: myId, success: true, data: { review: t('task.approved'), source: "manual" } }, { team: teamName ?? "" }),
+      () => { onSuccess?.(); showToast(t('task.reviewApproved'), "success"); },
+    );
   }
 
   function requestReject(onSuccess?: () => void) {
@@ -105,50 +93,32 @@ export function useTaskActions(
   }
 
   async function doReject(onSuccess?: () => void) {
-    if (reviewing.value) return;
-    reviewing.value = true;
-    try {
-      const res = await managerPost(`/api/tasks/${taskId.value}/result`, {
-        from: myId,
-        success: false,
-        error: t('task.reviewFailed'),
-      }, { team: teamName ?? "" });
-      if (res.ok) {
-        onSuccess?.();
-        showToast(t('task.taskRejected'), "info");
-      } else {
-        showToast(t('common.operationFailed'), "error");
-      }
-    } catch {
-      showToast(t('common.operationFailed'), "error");
-    }
-    reviewing.value = false;
+    await runAction(reviewing, () =>
+      managerPost(`/api/tasks/${taskId.value}/result`, { from: myId, success: false, error: t('task.reviewFailed') }, { team: teamName ?? "" }),
+      () => { onSuccess?.(); showToast(t('task.taskRejected'), "info"); },
+    );
   }
 
   async function handleUpload(onSuccess?: () => void) {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      uploading.value = true;
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("from", myId ?? "");
-        const res = await fetch(apiUrl(`/api/tasks/${taskId.value}/resources`), {
-          method: "POST",
-          headers: { team: teamName ?? "" },
-          body: formData,
-        });
-        if (!res.ok) throw new Error(t('common.uploadFailed'));
-        onSuccess?.();
-      } catch {
-        showToast(t('common.fileUploadFailed'), "error");
-      }
-      uploading.value = false;
-    };
-    input.click();
+    const files = await pickFiles();
+    const file = files[0];
+    if (!file) return;
+    uploading.value = true;
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("from", myId ?? "");
+      const res = await fetch(apiUrl(`/api/tasks/${taskId.value}/resources`), {
+        method: "POST",
+        headers: { team: teamName ?? "" },
+        body: formData,
+      });
+      if (!res.ok) throw new Error(t('common.uploadFailed'));
+      onSuccess?.();
+    } catch {
+      showToast(t('common.fileUploadFailed'), "error");
+    }
+    uploading.value = false;
   }
 
   const downloading = ref("");

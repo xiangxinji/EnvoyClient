@@ -1,21 +1,25 @@
 import { computed } from "vue";
-import type { TaskResource } from "../types";
+import type { TaskResource, FileResourceData, LeaderReviewData } from "../types";
+
+export interface TypedTaskResource<T> extends Omit<TaskResource, "data"> {
+  data: T;
+}
 
 export function useTaskResources(resources: { value: TaskResource[] }) {
   const clientResults = computed<TaskResource[]>(() =>
     resources.value.filter((r) => r.type === "client-result")
   );
 
-  const fileResources = computed<TaskResource[]>(() =>
-    resources.value.filter((r) => r.type === "file-resource")
+  const fileResources = computed<TypedTaskResource<FileResourceData>[]>(() =>
+    resources.value.filter((r) => r.type === "file-resource") as TypedTaskResource<FileResourceData>[]
   );
 
   const traceResources = computed<TaskResource[]>(() =>
     resources.value.filter((r) => r.type === "execution-trace")
   );
 
-  const leaderReviews = computed<TaskResource[]>(() =>
-    resources.value.filter((r) => r.type === "leader-review")
+  const leaderReviews = computed<TypedTaskResource<LeaderReviewData>[]>(() =>
+    resources.value.filter((r) => r.type === "leader-review") as TypedTaskResource<LeaderReviewData>[]
   );
 
   const traceByMember = computed(() => {

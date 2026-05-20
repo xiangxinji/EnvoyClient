@@ -9,6 +9,8 @@ import {
 } from "../../api";
 import { downloadFileWithDialog } from "../../utils/notification";
 import { getErrorMessage } from "../../utils/error";
+import { formatFileSize } from "../../utils/taskFormatters";
+import { pickFiles } from "../../utils/filePicker";
 import { getFileCategory } from "../../utils/fileCategories";
 import FileIcon from "../FileIcon";
 import Toast from "../Toast";
@@ -18,10 +20,6 @@ const { t } = useI18n();
 const ctx = inject(TeamClientKey)!;
 
 const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
-
-function showError(msg: string) {
-  showToast(msg, "error");
-}
 
 const currentPath = ref("");
 const items = ref<CloudFileItem[]>([]);
@@ -83,19 +81,15 @@ function enterDir(item: CloudFileItem) {
 }
 
 async function handleUpload() {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.onchange = async () => {
-    const file = input.files?.[0];
-    if (!file) return;
-    uploadProgress.value = 0;
-    try {
-      await uploadCloudFile(ctx.teamName, file, currentPath.value, ctx.myId, pct => { uploadProgress.value = pct; });
-      await loadFiles();
-    } catch (e: unknown) { showError(getErrorMessage(e) || t("common.uploadFailed")); }
-    finally { uploadProgress.value = null; }
-  };
-  input.click();
+  const files = await pickFiles();
+  const file = files[0];
+  if (!file) return;
+  uploadProgress.value = 0;
+  try {
+    await uploadCloudFile(ctx.teamName, file, currentPath.value, ctx.myId, pct => { uploadProgress.value = pct; });
+    await loadFiles();
+  } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.uploadFailed"), "error"); }
+  finally { uploadProgress.value = null; }
 }
 
 async function confirmNewDir() {
@@ -105,7 +99,7 @@ async function confirmNewDir() {
   try {
     await createCloudDirectory(ctx.teamName, name, currentPath.value, ctx.myId);
     await loadFiles();
-  } catch (e: unknown) { showError(getErrorMessage(e) || t("common.operationFailed")); }
+  } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.operationFailed"), "error"); }
 }
 
 function requestDeleteSingle(item: CloudFileItem) {
@@ -127,7 +121,7 @@ async function confirmDelete() {
   for (const item of targets) {
     const filePath = item.type === "directory" ? currentPath.value + item.name + "/" : currentPath.value + item.name;
     try { await deleteCloudFile(ctx.teamName, filePath, ctx.myId); }
-    catch (e: unknown) { showError(getErrorMessage(e) || t("common.operationFailed")); break; }
+    catch (e: unknown) { showToast(getErrorMessage(e) || t("common.operationFailed"), "error"); break; }
   }
   exitSelectMode();
   await loadFiles();
@@ -137,14 +131,7 @@ async function handleDownload(item: CloudFileItem) {
   try {
     const url = cloudDownloadUrl(ctx.teamName, currentPath.value + item.name);
     await downloadFileWithDialog(url, item.name, { team: ctx.teamName });
-  } catch (e: unknown) { showError(getErrorMessage(e) || t("common.fileDownloadFailed")); }
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-  if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + " MB";
-  return (bytes / 1073741824).toFixed(1) + " GB";
+  } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.fileDownloadFailed"), "error"); }
 }
 
 onMounted(loadFiles);
@@ -218,7 +205,7 @@ onMounted(loadFiles);
               <FileIcon :category="getFileCategory(item.name, item.type)" />
               <span>{{ item.name }}</span>
             </td>
-            <td class="col-size">{{ item.type === 'file' ? formatSize(item.size) : '-' }}</td>
+            <td class="col-size">{{ item.type === 'file' ? formatFileSize(item.size) : '-' }}</td>
             <td class="col-uploader">{{ item.uploadedBy }}</td>
             <td class="col-time">{{ new Date(item.createdAt).toLocaleString() }}</td>
             <td v-if="!selectMode" class="col-actions">

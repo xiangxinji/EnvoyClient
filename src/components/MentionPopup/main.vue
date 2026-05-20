@@ -15,7 +15,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-const { getDisplayName, getAvatarUrl } = useUserProfile();
+const { getDisplayName, getAvatarUrl, getInitial } = useUserProfile();
 
 const listRef = ref<HTMLDivElement | null>(null);
 const selectedIndex = ref(0);
@@ -83,7 +83,7 @@ defineExpose({ handleKeydown });
     >
       <span v-if="opt.id === 'all'" class="mention-icon">@</span>
       <img v-else-if="getAvatarUrl(opt.id)" :src="getAvatarUrl(opt.id)!" class="mention-avatar-img" />
-      <span v-else class="mention-avatar">{{ opt.label.charAt(0).toUpperCase() }}</span>
+      <span v-else class="mention-avatar">{{ getInitial(opt.label) }}</span>
       <span class="mention-label">{{ opt.id === 'all' ? 'all' : opt.label }}</span>
     </div>
   </div>

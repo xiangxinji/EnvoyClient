@@ -5,8 +5,9 @@ import { TeamClientKey } from "../../composables/teamClientContext";
 import { managerFetch } from "../../api";
 import TaskCard from "../../components/TaskCard";
 import SvgIcon from "../../components/SvgIcon";
-import type { TaskMessage, TaskResource } from "../../types";
+import type { TaskMessage } from "../../types";
 import type { Task } from "../../../envoy/packages/core/task.js";
+import { apiTaskToTaskMessage, type ApiTask } from "../../utils/taskFormatters";
 
 const { t } = useI18n();
 
@@ -16,33 +17,6 @@ const { teamName, myId, role } = ctx;
 const emit = defineEmits<{
   selectTask: [task: TaskMessage];
 }>();
-
-interface ApiTask {
-  id: string;
-  createBy: string;
-  subscribe: string[];
-  content: string;
-  mode: string;
-  status: string;
-  resources: TaskResource[];
-  createdAt: number;
-  attempt: number;
-}
-
-function apiTaskToTaskMessage(t: ApiTask): TaskMessage {
-  return {
-    type: "task",
-    id: `task-${t.id}`,
-    seq: 0,
-    taskId: t.id,
-    from: t.createBy,
-    content: t.content,
-    status: t.status as TaskMessage["status"],
-    resources: t.resources,
-    subscribe: t.subscribe,
-    timestamp: t.createdAt,
-  };
-}
 
 const tasks = ref<TaskMessage[]>([]);
 let loading = false;
