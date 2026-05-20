@@ -206,6 +206,148 @@ import SvgIcon from "../SvgIcon";
 
 cloud, tasks, lightning, search, keyboard, chat, settings, plus, close, check, check-circle, check-square, more-vertical, forward, reply, delete-back, paperclip, smile, chevron-right, zoom-out, zoom-in, rotate-ccw, rotate-cw, refresh, download, file, trash, camera, log-out
 
+## AI 功能架构
+
+系统 AI 功能分为三个独立层：聊天建议、任务管理、Agent 执行。每层有独立的 composable 和 API 端点，错误状态互不干扰。
+
+### useAIChat — 聊天建议
+
+**文件**: `src/composables/useAIChat.ts`
+
+SSE 流式生成聊天回复建议。通过 `/api/ai/chat/stream` 端点获取流式文本，内含通用 SSE 解析器 `consumeSSE`。
+
+```ts
+import { useAIChat } from "../../composables/useAIChat";
+
+const { suggestion, isStreaming, aiError, aiAvailable, suggestReply, acceptSuggestion, clearSuggestion } = useAIChat();
+```
+
+- `suggestReply(messages, context?)` — 取最近 N 条消息（N 由 `ai_suggestion_history_count` 控制），SSE 流式生成建议
+- `acceptSuggestion()` — 返回建议文本并清空
+- `clearSuggestion()` — 清空建议和错误状态
+- `aiAvailable` — 通过 `/api/ai/health` 健康检查判断 AI 是否可用
+- **使用方**: `ChatPanel/main.vue`（闪电按钮触发）
+
+### useAITask — 任务 AI 管理
+
+**文件**: `src/composables/useAITask.ts`
+
+任务生命周期中的 AI 辅助操作。全部通过 `managerPost` 发送 POST 请求。
+
+```ts
+import { useAITask } from "../../composables/useAITask";
+
+const { aiAvailable, aiError, planTask, dispatchTask, analyzeTaskResult, reviewTaskResult } = useAITask();
+```
+
+| 方法 | API 端点 | 用途 |
+|---|---|---|
+| `planTask(description, members)` | `/api/ai/task/generate` | 根据描述和成员生成任务计划 |
+| `dispatchTask(description, members)` | `/api/ai/task/dispatch` | AI 调度任务到指定成员，返回 `{ subscribe, content }` |
+| `analyzeTaskResult(desc, results)` | `/api/ai/task/analyze` | 分析任务执行结果 |
+| `reviewTaskResult(content, resources)` | `/api/ai/task/review` | Leader AI 评审成员结果，返回 `{ success, summary }` |
+
+- **使用方**: `TaskDispatchPanel/main.vue`（AI 调度）、`useTaskExecution.ts`（Leader 评审）
+
+### useAutoReply — 自动回复
+
+**文件**: `src/composables/useAutoReply.ts`
+
+收到消息后自动生成并发送 AI 回复。每个 peer 维护独立 5 秒防抖定时器。
+
+```ts
+import { useAutoReply } from "../../composables/useAutoReply";
+
+const autoReply = useAutoReply({
+  myId, teamName, role,
+  getConversation: (peerId) => conversations[peerId],
+  sendChat: (targetId, text, { source: "ai-auto" }) => { ... },
+});
+```
+
+- `trigger(peerId, historyCount)` — 触发防抖定时器，5 秒后调用 `/api/ai/auto-reply/generate` 生成回复并自动发送
+- `dispose()` — 清理所有定时器
+- **触发条件**: `useTeamClient` 收到消息时检查 `ai_auto_reply` 设置，开启时调用 `trigger`
+- **跳过条件**: 频道消息（`channel` 类型）不触发自动回复
+
+### useTaskExecution — Agent 任务执行
+
+**文件**: `src/composables/useTaskExecution.ts`
+
+编排 Agent 自动执行任务，由 `task_execution_mode` 设置控制。
+
+```ts
+import { useTaskExecution } from "../../composables/useTaskExecution";
+
+const { agent, registerHandler } = useTaskExecution({ role: "member", myId, teamName });
+```
+
+**执行流程**:
+1. `registerHandler(client)` — 注册 `client.doing` 回调
+2. 收到任务时检查 `task_execution_mode`，`manual` 模式返回 `SKIP_RESULT`
+3. **Leader 评审路径** (`role=leader`, `status=reviewing`): 调用 `reviewTaskResult` 评审
+4. **Member 执行路径**: 标记任务 running → 加载技能目录 → 调用 `agent.runAgent` → 上报结果
+5. 非 Tauri 环境降级为 browser mode（无 Agent 工具）
+
+### useAgent — Agent 运行器
+
+**文件**: `src/composables/useAgent.ts`
+
+封装 ReAct 循环调用。`reactLoop` 定义在 `src/agent/react.ts`。
+
+```ts
+const { isRunning, currentStep, error, runAgent } = useAgent();
+const result = await runAgent(taskContent, tools, workspacePath, skillCatalog);
+// result: { result: string, trace: AgentStep[] }
+```
+
+- 最多 20 步（`MAX_STEPS`）
+- 每步调用 `/api/ai/agent/reason` 获取推理 + 工具调用
+- 工具执行超时 60 秒，推理超时 120 秒
+- 输出截断：stdout > 2000 字符、stderr > 1000 字符
+
+### Agent Tools — 工具集
+
+**文件**: `src/agent/tools.ts`（内置工具）+ `src/agent/resourceTools.ts`（资源工具）
+
+| 工具名 | 文件 | 用途 | 环境要求 |
+|---|---|---|---|
+| `shell` | tools.ts | 执行 shell 命令 | Tauri |
+| `file_read` | tools.ts | 读取本地文件 | Tauri |
+| `file_write` | tools.ts | 写入本地文件 | Tauri |
+| `done` | tools.ts | 声明任务完成，终止 ReAct 循环 | - |
+| `upload_resource` | resourceTools.ts | 上传文件到 Manager 作为任务资源 | Tauri |
+| `query_resources` | resourceTools.ts | 查询任务的资源文件列表 | - |
+| `read_resource` | resourceTools.ts | 读取任务资源文件内容 | - |
+| `read_skill` | resourceTools.ts | 读取 `~/.envoy/brains/{user}/skills/` 下的技能文件 | Tauri |
+| `cloud_list` | tools.ts | 列出团队云资源目录 | - |
+| `cloud_upload` | tools.ts | 上传文件内容到团队云资源 | - |
+
+### AI 相关类型
+
+**文件**: `src/types.ts`
+
+| 类型 | 用途 |
+|---|---|
+| `AIHealthResponse` | AI 健康检查响应 `{ configured, provider?, model? }` |
+| `AgentResult` | Agent 运行结果 `{ result, trace }` |
+| `AgentStep` | 单步执行记录 `{ index, reasoning, toolCalls, toolResults }` |
+| `AgentToolCall` | 工具调用 `{ id, name, args }` |
+| `AgentReasonResponse` | 推理响应 `{ text, toolCalls }` |
+| `SkillCatalogResponse` | 技能目录 `{ skills: [{ name, description, filename }] }` |
+
+### AI 相关设置
+
+以下设置通过 `useMemberSettings` 管理，存储在 settings.yml 的 `users.{username}` 下：
+
+| 字段 | 类型 | 默认值 | 用途 |
+|---|---|---|---|
+| `ai_auto_reply` | boolean | `false` | 是否自动回复 |
+| `ai_suggestion_history_count` | number | `5` | AI 建议/自动回复的上下文消息条数 |
+| `task_execution_mode` | `"auto" \| "manual"` | `"auto"` | Agent 自动执行模式 |
+| `working_directory` | string | `""` | Agent 工作目录，空则用 `~/.envoy/workspace/{username}` |
+| `shortcut_auto_reply` | string | `""` | 切换自动回复的快捷键 |
+
 ## 高内聚低耦合重构指南
 
 ### 待提取的共享子组件（TaskCard 与 TaskDetailPanel 重复模板）
@@ -242,11 +384,9 @@ export function useTaskLiveData(taskId: Ref<string>) {
 
 从 `CloudResourcesPanel/main.vue` 提取约 75 行内联业务逻辑（加载、导航、上传、创建目录、删除、下载、选择模式）。
 
-#### `useAIChat` 与 `useAITask` — 拆分 `useAI`
+#### ~~`useAIChat` 与 `useAITask` — 已完成~~
 
-`useAI.ts`（238 行）混合了聊天建议和任务管理两类不相关的职责，共享一个 `aiError` ref 会导致互相覆盖。必须拆分为：
-- `useAIChat` — `suggestReply`、`acceptSuggestion`、`clearSuggestion`
-- `useAITask` — `planTask`、`analyzeTaskResult`、`dispatchTask`、`reviewTaskResult`
+已拆分为 `useAIChat.ts`（聊天建议 + SSE）和 `useAITask.ts`（任务管理），错误状态各自独立。详见上方 "AI 功能架构" 章节。
 
 #### `useChatSend` — 消息发送流水线
 
