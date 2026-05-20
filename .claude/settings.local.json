@@ -102,7 +102,12 @@
       "Bash(git commit *)",
       "Skill(superpowers:brainstorming)",
       "Bash(xxd \"C:/Users/Administrator/Desktop/EnvoyClient/src/components/MessageBubble.vue\")",
-      "Bash(xargs wc -l)"
+      "Bash(xargs wc -l)",
+      "Bash([ -f \"openspec/changes/$name/.openspec.yaml\" ])",
+      "Bash([ -f \"openspec/changes/$name/tasks.md\" ])",
+      "Bash([ -d \"openspec/changes/$name/specs\" ])",
+      "Bash([ -d \"openspec/changes/$name\" ])",
+      "Bash(mv openspec/changes/__TRACKED_VAR__ openspec/changes/archive/2026-05-20-__TRACKED_VAR__)"
     ]
   },
   "enabledPlugins": {
