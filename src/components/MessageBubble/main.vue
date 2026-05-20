@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, ref, onUnmounted, watch } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ChatMessage, MemberInfo, TimelineItem } from "../../types";
-import { downloadFileWithDialog } from "../../utils/notification";
 import { useUserProfile } from "../../composables/useUserProfile";
 import { useHoverCard } from "../../composables/useHoverCard";
-import { formatTime, formatFileSize } from "../../utils/taskFormatters";
+import { formatTime } from "../../utils/taskFormatters";
 import BubbleContent from "../BubbleContent";
 import AttachmentList from "../AttachmentList";
+import ForwardedDialog from "../ForwardedDialog";
 import MemberHoverCard from "../MemberHoverCard";
 import QuoteCard from "../QuoteCard";
 import StickerImage from "../StickerImage";
@@ -39,7 +39,7 @@ const { hoveredItem: hoverMember, hoverRect, visible: hoverVisible, show: showHo
 
 const isSticker = computed(() => !!props.message.sticker);
 const stickerUrl = computed(() => props.message.sticker?.url ?? "");
-const noText = computed(() => !props.message.text?.trim() && !props.message.forwarded?.length);
+const noText = computed(() => !props.message.text?.trim());
 
 const isQuoteRevoked = computed(() => {
   if (!props.message.quote || !props.timeline) return false;
@@ -73,14 +73,6 @@ function onBubbleClick(e: MouseEvent) {
 }
 
 const forwardedDialogVisible = ref(false);
-const forwardedDownloading = ref(false);
-
-async function handleForwardedFileDownload(att: { url: string; name: string }) {
-  if (forwardedDownloading.value) return;
-  forwardedDownloading.value = true;
-  try { await downloadFileWithDialog(att.url, att.name); } catch { /* download failed */ }
-  finally { forwardedDownloading.value = false; }
-}
 
 function getMember(id: string): MemberInfo | null { return props.members?.find(m => m.id === id) ?? null; }
 
@@ -92,19 +84,6 @@ function onAvatarEnter(e: MouseEvent) {
 function onAvatarLeave() { hideHoverCard(); }
 function onCardEnter() { cancelHoverHide(); }
 function onCardLeave() { hideHoverCard(); }
-
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === "Escape") forwardedDialogVisible.value = false;
-}
-
-watch(forwardedDialogVisible, (open) => {
-  if (open) document.addEventListener("keydown", handleKeydown);
-  else document.removeEventListener("keydown", handleKeydown);
-});
-
-onUnmounted(() => {
-  document.removeEventListener("keydown", handleKeydown);
-});
 
 function bubbleContextmenu() {
   if (!props.selectMode && bubbleRef.value) emit('contextmenu', bubbleRef.value.getBoundingClientRect(), props.message);
@@ -134,8 +113,13 @@ function bubbleClick(e: MouseEvent) {
       <div ref="bubbleRef" class="bubble channel-bubble" :class="{ selected: selected && selectMode, 'sticker-mode': isSticker }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
         <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
         <template v-else>
-          <BubbleContent v-if="!noText" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :forwarded="message.forwarded" :cloud-refs="message.cloudRefs" :team-name="teamName" @open-forwarded="forwardedDialogVisible = true" />
-          <AttachmentList v-if="message.attachments?.length" :items="message.attachments" :no-text="noText" />
+          <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :cloud-refs="message.cloudRefs" :team-name="teamName" />
+          <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
+            <SvgIcon name="chat" :size="14" />
+            <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>
+            <SvgIcon class="arrow" name="chevron-right" :size="12" />
+          </div>
+          <AttachmentList v-if="message.attachments?.length" :items="message.attachments" :no-text="noText && !message.forwarded?.length" />
         </template>
       </div>
       <QuoteCard v-if="quoteForContent" :from="quoteForContent.from" :text="quoteForContent.text" :revoked="isQuoteRevoked" @click="handleQuoteClick" />
@@ -157,8 +141,13 @@ function bubbleClick(e: MouseEvent) {
         <div ref="bubbleRef" class="bubble mine channel-bubble" :class="{ selected: selected && selectMode, 'sticker-mode': isSticker }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
           <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
           <template v-else>
-            <BubbleContent v-if="!noText" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :forwarded="message.forwarded" :cloud-refs="message.cloudRefs" :team-name="teamName" @open-forwarded="forwardedDialogVisible = true" />
-            <AttachmentList v-if="message.attachments?.length" :items="message.attachments" :no-text="noText" />
+            <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :cloud-refs="message.cloudRefs" :team-name="teamName" />
+            <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
+              <SvgIcon name="chat" :size="14" />
+              <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>
+              <SvgIcon class="arrow" name="chevron-right" :size="12" />
+            </div>
+            <AttachmentList v-if="message.attachments?.length" :items="message.attachments" :no-text="noText && !message.forwarded?.length" />
           </template>
         </div>
         <div class="channel-avatar mine-avatar">
@@ -179,8 +168,13 @@ function bubbleClick(e: MouseEvent) {
     <div ref="bubbleRef" class="bubble" :class="{ mine: message.mine, selected: selected && selectMode, 'sticker-mode': isSticker }" @click="bubbleClick($event)" @contextmenu.prevent="bubbleContextmenu">
       <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
       <template v-else>
-        <BubbleContent v-if="!noText" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :forwarded="message.forwarded" :show-sender="showSender" :sender-name="showSender ? getDisplayName(message.from) : undefined" :cloud-refs="message.cloudRefs" :team-name="teamName" @open-forwarded="forwardedDialogVisible = true" />
-        <AttachmentList v-if="message.attachments?.length" :items="message.attachments" :no-text="noText" />
+        <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :show-sender="showSender" :sender-name="showSender ? getDisplayName(message.from) : undefined" :cloud-refs="message.cloudRefs" :team-name="teamName" />
+        <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
+          <SvgIcon name="chat" :size="14" />
+          <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>
+          <SvgIcon class="arrow" name="chevron-right" :size="12" />
+        </div>
+        <AttachmentList v-if="message.attachments?.length" :items="message.attachments" :no-text="noText && !message.forwarded?.length" />
       </template>
     </div>
   </div>
@@ -194,33 +188,7 @@ function bubbleClick(e: MouseEvent) {
   </template>
 
   <!-- Forwarded history dialog -->
-  <Teleport to="body">
-    <Transition name="viewer">
-      <div v-if="forwardedDialogVisible" class="forwarded-dialog-overlay" @click="forwardedDialogVisible = false">
-        <div class="forwarded-dialog" @click.stop>
-          <div class="forwarded-dialog-header">
-            <span>{{ t('chat.chatHistory') }}</span>
-            <button class="forwarded-dialog-close" @click="forwardedDialogVisible = false"><SvgIcon name="close" :size="16" /></button>
-          </div>
-          <div class="forwarded-dialog-body">
-            <div v-for="(rec, i) in message.forwarded" :key="i" class="fd-record">
-              <div class="fd-meta">{{ getDisplayName(rec.from) }} · {{ formatTime(rec.timestamp) }}</div>
-              <div v-if="rec.text" class="fd-text">{{ rec.text }}</div>
-              <div v-if="rec.attachments?.length" class="fd-attachments">
-                <template v-for="(att, j) in rec.attachments" :key="j">
-                  <div v-if="att.type === 'image'" class="image-card"><img :src="att.url" :alt="att.name" loading="lazy" /></div>
-                  <div v-else class="file-card" @click="handleForwardedFileDownload(att)">
-                    <div class="file-icon"><SvgIcon name="file" :size="16" /></div>
-                    <div class="file-info"><span class="file-name">{{ att.name }}</span><span class="file-size">{{ formatFileSize(att.size) }}</span></div>
-                  </div>
-                </template>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <ForwardedDialog v-if="message.forwarded?.length" :records="message.forwarded" v-model:visible="forwardedDialogVisible" />
 
   <MemberHoverCard v-if="hoverMember" :member="hoverMember" :rect="hoverRect" :visible="hoverVisible" @mouseenter="onCardEnter" @mouseleave="onCardLeave" />
 </template>

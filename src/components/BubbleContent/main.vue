@@ -6,7 +6,6 @@ import { useUserProfile } from "../../composables/useUserProfile";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { getCloudResourceService } from "../../composables/teamClientContext";
-import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
 
@@ -14,15 +13,10 @@ const props = defineProps<{
   text: string;
   mentions?: string[];
   memberIds?: string[];
-  forwarded?: { from: string; text?: string; timestamp: number }[] | null;
   showSender?: boolean;
   senderName?: string;
   cloudRefs?: CloudRef[];
   teamName?: string;
-}>();
-
-const emit = defineEmits<{
-  "open-forwarded": [];
 }>();
 
 const { getDisplayName } = useUserProfile();
@@ -88,12 +82,7 @@ onUnmounted(() => { cancelled = true; });
   <template v-if="showSender">
     <span class="sender-name">{{ senderName }}</span>
   </template>
-  <div v-if="!forwarded?.length" class="content" v-html="renderedHtml"></div>
-  <div v-if="forwarded?.length" class="forwarded-summary" @click.stop="emit('open-forwarded')">
-    <SvgIcon name="chat" :size="14" />
-    <span>Chat History ({{ forwarded.length }})</span>
-    <SvgIcon class="arrow" name="chevron-right" :size="12" />
-  </div>
+  <div class="content" v-html="renderedHtml"></div>
 </template>
 
 <style scoped>
