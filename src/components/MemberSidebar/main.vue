@@ -202,10 +202,10 @@ function formatBadge(count: number): string {
         </li>
       </ul>
 
-      <div class="sidebar-header">
+      <div v-if="!searchQuery.trim()" class="sidebar-header">
         <h3>{{ t('sidebar.channel') }}</h3>
       </div>
-      <ul class="nav-group">
+      <ul v-if="!searchQuery.trim()" class="nav-group">
         <li
           class="channel-entry"
           :class="{ active: '__team__' === selectedPeer }"

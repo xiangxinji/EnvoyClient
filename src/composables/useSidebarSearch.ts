@@ -83,17 +83,12 @@ export function useSidebarSearch(
     return filteredTools.value.length === 0 && filteredMembers.value.length === 0;
   });
 
-  const channelVisible = computed(() => {
-    if (!query.value) return true;
-    return "general".includes(query.value) || "#general".includes(query.value);
-  });
-
   const filteredNavItems = computed(() => {
     const items: string[] = [];
     for (const tool of filteredTools.value) {
       items.push(tool.id);
     }
-    if (channelVisible.value) {
+    if (!query.value) {
       items.push("__team__");
     }
     for (const m of filteredMembers.value) {
