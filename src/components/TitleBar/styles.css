@@ -34,12 +34,12 @@
   padding: 0;
 }
 
-.light svg {
+.light .svg-icon {
   opacity: 0;
   transition: opacity 0.15s;
 }
 
-.traffic-lights:hover .light svg {
+.traffic-lights:hover .light .svg-icon {
   opacity: 1;
 }
 

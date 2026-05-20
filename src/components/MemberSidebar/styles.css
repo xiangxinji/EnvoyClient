@@ -165,7 +165,7 @@ li.active {
   text-align: center;
 }
 
-.empty svg {
+.empty .svg-icon {
   color: var(--empty-icon);
 }
 
@@ -204,7 +204,7 @@ li.active {
   color: var(--accent);
 }
 
-.channel-avatar svg {
+.channel-avatar .svg-icon {
   width: 14px;
   height: 14px;
 }
@@ -214,9 +214,9 @@ li.active {
   color: var(--accent);
 }
 
-.task-center-avatar svg,
-.dispatch-avatar svg,
-.cloud-avatar svg {
+.task-center-avatar .svg-icon,
+.dispatch-avatar .svg-icon,
+.cloud-avatar .svg-icon {
   width: 14px;
   height: 14px;
 }
