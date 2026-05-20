@@ -22,7 +22,7 @@ export const i18n = createI18n({
   messages: { "zh-CN": zhCN, en },
 });
 
-function applyLocale(lang: Locale) {
+export function applyLocale(lang: Locale) {
   i18n.global.locale.value = lang;
   localStorage.setItem(STORAGE_KEY, lang);
   document.documentElement.setAttribute("lang", lang);
