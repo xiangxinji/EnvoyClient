@@ -7,6 +7,7 @@ import { useFullscreenViewer } from "../../composables/useFullscreenViewer";
 import { formatTime, formatFileSize } from "../../utils/taskFormatters";
 import { getCloudResourceService } from "../../composables/teamClientContext";
 import { downloadFileWithDialog } from "../../utils/notification";
+import CloudDirDialog from "../CloudDirDialog";
 import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
@@ -31,6 +32,16 @@ const cleanedRecords = computed(() =>
     text: (rec.text || "").replace(/\{cloud:\d+\}/g, "").trim(),
   }))
 );
+
+const cloudDirDialogVisible = ref(false);
+const cloudDirPath = ref("");
+const cloudDirName = ref("");
+
+function handleOpenDir(data: { path: string; name: string }) {
+  cloudDirPath.value = data.path;
+  cloudDirName.value = data.name;
+  cloudDirDialogVisible.value = true;
+}
 
 async function handleFileDownload(att: { url: string; name: string }) {
   if (downloading.value) return;
@@ -58,7 +69,11 @@ function close() {
 }
 
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === "Escape") close();
+  if (e.key === "Escape") {
+    if (viewer.fullscreenUrl.value) { viewer.closeFullscreen(); return; }
+    if (cloudDirDialogVisible.value) { cloudDirDialogVisible.value = false; return; }
+    close();
+  }
 }
 
 watch(() => props.visible, (open) => {
@@ -80,7 +95,9 @@ watch(() => props.visible, (open) => {
             <div v-for="(rec, i) in cleanedRecords" :key="i" class="fd-record">
               <div class="fd-meta">{{ getDisplayName(rec.from) }} · {{ formatTime(rec.timestamp) }}</div>
               <div v-if="rec.text" class="fd-text">{{ rec.text }}</div>
-              <div v-if="rec.sticker" class="fd-sticker"><img :src="rec.sticker.url" :alt="rec.sticker.name" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" /></div>
+              <div v-if="rec.sticker" class="fd-sticker">
+                <img :src="rec.sticker.url" :alt="rec.sticker.name" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" @click="openFullscreen(rec.sticker!.url)" />
+              </div>
               <div v-if="rec.attachments?.length" class="fd-attachments">
                 <template v-for="(att, j) in rec.attachments" :key="j">
                   <div v-if="att.type === 'image'" class="image-card" @click="openFullscreen(att.url)"><img :src="att.url" :alt="att.name" loading="lazy" /></div>
@@ -91,7 +108,7 @@ watch(() => props.visible, (open) => {
                 </template>
               </div>
               <div v-if="rec.cloudRefs?.length" class="fd-cloud-refs">
-                <div v-for="(ref, j) in rec.cloudRefs" :key="j" class="cloud-card" :class="ref.type" @click="ref.type === 'file' ? handleCloudDownload(ref) : undefined">
+                <div v-for="(ref, j) in rec.cloudRefs" :key="j" class="cloud-card" :class="ref.type" @click="ref.type === 'file' ? handleCloudDownload(ref) : handleOpenDir({ path: ref.path, name: ref.name })">
                   <div class="cloud-card-icon"><SvgIcon :name="ref.type === 'directory' ? 'folder' : 'file'" :size="16" /></div>
                   <div class="cloud-card-info">
                     <span class="cloud-card-name">{{ ref.name }}</span>
@@ -130,6 +147,8 @@ watch(() => props.visible, (open) => {
         <img :src="viewer.fullscreenUrl.value" class="fullscreen-image" :class="{ dragging: viewer.isDragging.value }" :style="{ transform: viewer.imageTransform.value }" @click.stop @wheel.prevent="viewer.onImageWheel" @mousedown.prevent="viewer.onDragStart" />
       </div>
     </Transition>
+
+    <CloudDirDialog :visible="cloudDirDialogVisible" :dir-path="cloudDirPath" :dir-name="cloudDirName" :team-name="props.teamName" @update:visible="cloudDirDialogVisible = $event" />
   </Teleport>
 </template>
 
