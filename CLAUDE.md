@@ -348,6 +348,103 @@ const result = await runAgent(taskContent, tools, workspacePath, skillCatalog);
 | `working_directory` | string | `""` | Agent 工作目录，空则用 `~/.envoy/workspace/{username}` |
 | `shortcut_auto_reply` | string | `""` | 切换自动回复的快捷键 |
 
+## 设计规范
+
+### 毛玻璃效果规范
+
+所有使用毛玻璃效果的组件必须通过 CSS 变量引用，禁止硬编码 `backdrop-filter` 和 `background` 值。
+
+**CSS 变量定义** (`src/styles/variables.css`):
+
+| 变量 | 亮色模式 | 暗色模式 | 用途 |
+|---|---|---|---|
+| `--glass-bg` | `rgba(255,255,255,0.35)` | `rgba(28,28,30,0.35)` | 普通毛玻璃背景 |
+| `--glass-bg-heavy` | `rgba(255,255,255,0.5)` | `rgba(28,28,30,0.5)` | 对话框/面板等重背景 |
+| `--glass-bg-light` | `rgba(255,255,255,0.25)` | `rgba(28,28,30,0.25)` | 轻量卡片/标签背景 |
+| `--glass-border` | `rgba(255,255,255,0.5)` | `rgba(255,255,255,0.15)` | 毛玻璃边框 |
+| `--glass-blur` | `40px` | `40px` | 毛玻璃模糊强度 |
+| `--glass-shadow` | `0 4px 24px rgba(0,0,0,0.06)` | `0 4px 24px rgba(0,0,0,0.3)` | 普通阴影 |
+| `--glass-shadow-heavy` | `0 8px 40px rgba(0,0,0,0.12)` | `0 8px 40px rgba(0,0,0,0.5)` | 重阴影 |
+
+**标准用法**:
+```css
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+```
+
+### 组件样式规范
+
+**CSS 必须写在 `styles.css` 中**，禁止在 `.vue` 文件的 `<style scoped>` 内联样式（除非只有 1-2 行）。
+
+```
+src/components/ComponentName/
+├── main.vue      → <style scoped>@import './styles.css';</style>
+└── styles.css    → 所有样式定义
+```
+
+### 卡片组件统一风格
+
+文件卡片、云资源卡片、引用卡片等所有卡片组件必须保持一致的毛玻璃卡片风格：
+
+```css
+.card {
+  display: flex; align-items: center; gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, background 0.15s;
+  width: fit-content; min-width: 160px; max-width: 280px;
+}
+.card:hover { border-color: var(--accent); background: var(--glass-bg); }
+```
+
+### 交互动效规范
+
+项目使用 `@vueuse/motion` 作为交互动效库，禁止使用其他动画方案。
+
+**安装**: `npm install @vueuse/motion`
+**注册**: 在 `main.ts` 中 `createApp(App).use(MotionPlugin)`
+
+**预设动画** (在 `src/styles/motion-presets.ts` 中定义):
+```ts
+// 示例预设（待创建）
+export const motionPresets = {
+  fadeUp: {
+    initial: { opacity: 0, y: 20 },
+    enter: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } },
+  },
+  scaleIn: {
+    initial: { opacity: 0, scale: 0.9 },
+    enter: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } },
+  },
+  slideLeft: {
+    initial: { opacity: 0, x: -20 },
+    enter: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } },
+  },
+};
+```
+
+**组件用法**:
+```vue
+<div v-motion:initial="{ opacity: 0, y: 20 }"
+     v-motion:enter="{ opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } }">
+  内容
+</div>
+```
+
+**常用动效场景**:
+- 消息气泡入场：`fadeUp`（淡入 + 上移）
+- 对话框/浮层：`scaleIn`（缩放淡入）
+- 侧边栏滑入：`slideLeft` / `slideRight`
+- 按钮点击反馈：`scale: 0.95` 弹簧回弹
+- 列表项依次入场：使用 `:visible` + `delay` 参数
+
 ## 高内聚低耦合重构指南
 
 ### 待提取的共享子组件（TaskCard 与 TaskDetailPanel 重复模板）

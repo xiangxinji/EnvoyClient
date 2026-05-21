@@ -21,7 +21,7 @@ export function useMessages(
     const conv = messages.value.get(peerId) ?? [];
     if (item.id && conv.some(t => t.id === item.id)) return;
     conv.push(item);
-    messages.value.set(peerId, conv);
+    messages.value.set(peerId, [...conv]);
   }
 
   function incrementUnread(peerId: string) {

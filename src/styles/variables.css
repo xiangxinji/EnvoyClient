@@ -63,9 +63,9 @@
   --md-link-color: #2daa82;
   --md-blockquote-border: #d2d2d7;
   --md-blockquote-text: #6e6e73;
-  --glass-bg: rgba(255, 255, 255, 0.35);
-  --glass-bg-heavy: rgba(255, 255, 255, 0.5);
-  --glass-bg-light: rgba(255, 255, 255, 0.25);
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-heavy: rgba(255, 255, 255, 0.7);
+  --glass-bg-light: rgba(255, 255, 255, 0.4);
   --glass-border: rgba(255, 255, 255, 0.5);
   --glass-blur: 40px;
   --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
@@ -142,9 +142,9 @@ html.dark {
   --md-link-color: #2ea87a;
   --md-blockquote-border: #3a3a3c;
   --md-blockquote-text: #98989d;
-  --glass-bg: rgba(28, 28, 30, 0.35);
-  --glass-bg-heavy: rgba(28, 28, 30, 0.5);
-  --glass-bg-light: rgba(28, 28, 30, 0.25);
+  --glass-bg: rgba(28, 28, 30, 0.55);
+  --glass-bg-heavy: rgba(28, 28, 30, 0.7);
+  --glass-bg-light: rgba(28, 28, 30, 0.4);
   --glass-border: rgba(255, 255, 255, 0.15);
   --glass-blur: 40px;
   --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
@@ -167,4 +167,28 @@ html.dark {
   --orb-2: rgba(56, 205, 156, 0.22);
   --orb-3: rgba(56, 205, 156, 0.25);
   --orb-4: rgba(56, 205, 156, 0.18);
+}
+
+/* Global message animation */
+@keyframes message-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    filter: blur(6px);
+  }
+  40% {
+    filter: blur(0px);
+  }
+  60% {
+    transform: translateY(-3px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.msg-pop-in {
+  animation: message-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
