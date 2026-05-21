@@ -24,6 +24,7 @@ const ctx = getTeamClientInstance()!;
 const { members, unreadCounts, markRead, messages, myId, userProfile } = ctx;
 const { settings: memberSettings, toggleAutoReply, toggleExecutionMode } = getMemberSettings();
 
+const myAvatarUrl = computed(() => userProfile.getAvatarUrl(myId));
 const isAutoMode = computed(() => memberSettings.value.task_execution_mode === "auto");
 const isAutoReply = computed(() => memberSettings.value.ai_auto_reply);
 
@@ -263,7 +264,7 @@ function formatBadge(count: number): string {
     <div class="sidebar-footer">
       <div class="user-menu-wrapper">
         <div class="user-avatar-btn" :title="myId">
-          <img v-if="userProfile.getAvatarUrl(myId)" :src="userProfile.getAvatarUrl(myId)!" class="avatar-img" />
+          <img v-if="myAvatarUrl" :src="myAvatarUrl" class="avatar-img" />
           <template v-else>{{ userProfile.getInitial(myId) }}</template>
         </div>
         <div class="user-menu" @click.stop>

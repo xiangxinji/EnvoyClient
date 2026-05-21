@@ -235,6 +235,10 @@
     "groupGeneral": "通用",
     "nickname": "昵称",
     "nicknamePlaceholder": "输入昵称",
+    "capabilities": "能力",
+    "capabilitiesPlaceholder": "描述你的专业技能，如：前端开发、UI 设计",
+    "responsibilities": "职责",
+    "responsibilitiesPlaceholder": "描述你的工作职责，如：负责前端架构、代码审查",
     "autoStart": "开机自动启动",
     "autoStartDesc": "登录后自动在系统启动时运行"
   },

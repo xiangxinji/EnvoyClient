@@ -5,10 +5,12 @@ import { useI18n } from "vue-i18n";
 import { getMemberSettings, getTeamClientInstance, setTeamClientInstance } from "../../composables/teamClientContext";
 import { useConfirm } from "../../composables/useConfirm";
 import { useUserProfile } from "../../composables/useUserProfile";
+import { useToast } from "../../composables/useToast";
 import { pickFiles } from "../../utils/filePicker";
 import GlassButton from "../GlassButton";
 import BackButton from "../BackButton";
 import ConfirmDialog from "../ConfirmDialog";
+import Toast from "../Toast";
 import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
@@ -16,20 +18,27 @@ const emit = defineEmits<{ back: [] }>();
 
 const { loadSettings } = getMemberSettings();
 const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
+const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
 const ctx = getTeamClientInstance()!;
 const router = useRouter();
 
 const username = ctx.myId;
-const { updateMyProfile, uploadMyAvatar, getAvatarUrl, getDisplayName, getInitial } = useUserProfile();
+const { updateMyProfile, uploadMyAvatar, getAvatarUrl, getDisplayName, getInitial, getProfile, loadProfiles } = useUserProfile();
 const avatarUrl = computed(() => getAvatarUrl(username));
 const displayName = computed(() => getDisplayName(username));
 const nickname = ref("");
+const capabilities = ref("");
+const responsibilities = ref("");
 const nicknameSaving = ref(false);
 const avatarUploading = ref(false);
 
 onMounted(async () => {
   await loadSettings(username);
+  await loadProfiles([username]);
+  const profile = getProfile(username);
   nickname.value = getDisplayName(username);
+  capabilities.value = profile?.capabilities ?? "";
+  responsibilities.value = profile?.responsibilities ?? "";
 });
 
 async function saveNickname() {
@@ -42,6 +51,26 @@ async function saveNickname() {
     nickname.value = getDisplayName(username);
   }
   nicknameSaving.value = false;
+}
+
+async function saveProfile() {
+  const caps = capabilities.value.trim();
+  const resp = responsibilities.value.trim();
+  const profile = getProfile(username);
+  if (caps === (profile?.capabilities ?? "") && resp === (profile?.responsibilities ?? "")) {
+    showToast(t('common.saved'), "success");
+    return;
+  }
+  try {
+    await updateMyProfile(username, { capabilities: caps, responsibilities: resp });
+    showToast(t('common.saved'), "success");
+  } catch (e) {
+    console.error("[saveProfile] failed:", e);
+    const p = getProfile(username);
+    capabilities.value = p?.capabilities ?? "";
+    responsibilities.value = p?.responsibilities ?? "";
+    showToast(t('common.operationFailed'), "error");
+  }
 }
 
 async function triggerAvatarUpload() {
@@ -105,6 +134,33 @@ async function handleLogout() {
               >{{ t('common.save') }}</GlassButton>
             </div>
           </div>
+
+          <div class="setting-group">
+            <label class="setting-label">{{ t('settings.capabilities') }}</label>
+            <textarea
+              v-model="capabilities"
+              class="setting-textarea"
+              :placeholder="t('settings.capabilitiesPlaceholder')"
+              rows="3"
+            />
+          </div>
+
+          <div class="setting-group">
+            <label class="setting-label">{{ t('settings.responsibilities') }}</label>
+            <textarea
+              v-model="responsibilities"
+              class="setting-textarea"
+              :placeholder="t('settings.responsibilitiesPlaceholder')"
+              rows="3"
+            />
+          </div>
+
+          <div class="setting-group profile-actions">
+            <GlassButton
+              variant="primary"
+              @click="saveProfile"
+            >{{ t('common.save') }}</GlassButton>
+          </div>
         </div>
       </div>
     </div>
@@ -131,9 +187,40 @@ async function handleLogout() {
       @confirm="handleConfirm"
       @cancel="handleCancel"
     />
+    <Toast :visible="toastVisible" :message="toastMessage" :type="toastType" @done="hideToast" />
   </div>
 </template>
 
 <style scoped>
 @import '../SettingsPanel/styles.css';
+
+.setting-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--glass-bg-light);
+  color: var(--text-primary);
+  font-size: 0.9em;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.setting-textarea:focus {
+  border-color: var(--accent);
+}
+
+.setting-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-xs);
+}
 </style>

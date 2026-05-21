@@ -80,6 +80,8 @@ export interface UserProfile {
   readonly username: string;
   readonly nickname: string | null;
   readonly avatar_url: string | null;
+  readonly responsibilities: string;
+  readonly capabilities: string;
 }
 
 // ─── Sticker Types ───────────────────────────────────────────

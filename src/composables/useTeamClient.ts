@@ -51,18 +51,17 @@ export function useTeamClient(
   let isFirstConnect = true;
 
   conn.client.on("connected", () => {
+    const joinRole = role === "leader" ? "leader" : "member";
+
     if (isFirstConnect) {
       isFirstConnect = false;
-      msg.loadHistory();
-      // Load profiles for all configured members (including offline ones)
-      userProfile.loadProfiles(conn.configuredMembers.value.map((m) => m.id));
-      return;
+    } else {
+      conn.client.send("team:join", { role: joinRole });
     }
 
-    // Reconnect recovery: rejoin team + sync missed data
-    const joinRole = role === "leader" ? "leader" : "member";
-    conn.client.send("team:join", { role: joinRole });
     msg.loadHistory();
+
+    // Load configured members first, then load all profiles (including offline members)
     conn.loadConfiguredMembers().then(() => {
       userProfile.loadProfiles(conn.configuredMembers.value.map((m) => m.id));
     });

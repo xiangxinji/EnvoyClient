@@ -26,6 +26,9 @@ showToast("操作失败", "error");
 showToast("提示信息", "info");
 ```
 
+**设置保存操作必须使用 Toast 提示**:
+所有设置类面板（SettingsProfile、SettingsPanel、SettingsGeneral 等）中的保存操作，成功后必须调用 `showToast(t('common.saved'), "success")` 提示用户，失败时调用 `showToast(t('common.operationFailed'), "error")`。禁止使用按钮文字切换（如 "保存" → "已保存"）的方式代替 Toast。
+
 ### useConfirm — 确认对话框
 
 **文件**: `src/composables/useConfirm.ts`

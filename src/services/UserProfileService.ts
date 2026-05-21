@@ -9,13 +9,13 @@ export class UserProfileService {
     return res.json() as Promise<UserProfile[]>;
   }
 
-  async updateProfile(username: string, data: Readonly<{ nickname?: string | null }>): Promise<{ nickname: string | null; avatar_url: string | null }> {
+  async updateProfile(username: string, data: Readonly<{ nickname?: string | null; responsibilities?: string; capabilities?: string }>): Promise<{ nickname: string | null; avatar_url: string | null; responsibilities: string; capabilities: string }> {
     const res = await managerFetch(`/api/users/${username}/profile`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    return res.json() as Promise<{ nickname: string | null; avatar_url: string | null }>;
+    return res.json() as Promise<{ nickname: string | null; avatar_url: string | null; responsibilities: string; capabilities: string }>;
   }
 
   async uploadAvatar(username: string, file: File): Promise<{ avatar_url: string }> {
