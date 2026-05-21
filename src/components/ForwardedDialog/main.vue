@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ForwardedRecord, CloudRef } from "../../types";
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useUserProfile } from "../../composables/useUserProfile";
 import { useFullscreenViewer } from "../../composables/useFullscreenViewer";
@@ -24,6 +24,13 @@ const emit = defineEmits<{
 }>();
 
 const downloading = ref(false);
+
+const cleanedRecords = computed(() =>
+  props.records.map((rec) => ({
+    ...rec,
+    text: (rec.text || "").replace(/\{cloud:\d+\}/g, "").trim(),
+  }))
+);
 
 async function handleFileDownload(att: { url: string; name: string }) {
   if (downloading.value) return;
@@ -70,10 +77,10 @@ watch(() => props.visible, (open) => {
             <button class="forwarded-dialog-close" @click="close"><SvgIcon name="close" :size="16" /></button>
           </div>
           <div class="forwarded-dialog-body">
-            <div v-for="(rec, i) in records" :key="i" class="fd-record">
+            <div v-for="(rec, i) in cleanedRecords" :key="i" class="fd-record">
               <div class="fd-meta">{{ getDisplayName(rec.from) }} · {{ formatTime(rec.timestamp) }}</div>
               <div v-if="rec.text" class="fd-text">{{ rec.text }}</div>
-              <div v-if="rec.sticker" class="fd-sticker"><img :src="rec.sticker.url" :alt="rec.sticker.name" loading="lazy" /></div>
+              <div v-if="rec.sticker" class="fd-sticker"><img :src="rec.sticker.url" :alt="rec.sticker.name" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" /></div>
               <div v-if="rec.attachments?.length" class="fd-attachments">
                 <template v-for="(att, j) in rec.attachments" :key="j">
                   <div v-if="att.type === 'image'" class="image-card" @click="openFullscreen(att.url)"><img :src="att.url" :alt="att.name" loading="lazy" /></div>

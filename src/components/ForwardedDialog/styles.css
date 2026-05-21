@@ -8,7 +8,7 @@
 .fd-record:last-child { border-bottom: none; padding-bottom: 0; }
 .fd-meta { font-size: 0.75em; color: var(--text-muted); margin-bottom: var(--space-xs); }
 .fd-text { font-size: 0.9em; color: var(--text-primary); line-height: 1.5; word-break: break-word; }
-.fd-sticker img { max-width: 120px; max-height: 120px; object-fit: contain; border-radius: var(--radius-md); }
+.fd-sticker img { display: block; max-width: 150px; max-height: 150px; object-fit: contain; border-radius: var(--radius-md); }
 .fd-attachments { display: flex; flex-direction: column; gap: var(--space-xs); margin-top: var(--space-xs); }
 .fd-attachments .image-card { cursor: pointer; max-width: 280px; transition: opacity 0.15s; }
 .fd-attachments .image-card:hover { opacity: 0.92; }
