@@ -116,7 +116,10 @@
       "Bash(cargo add *)",
       "Bash(git ls-remote *)",
       "Bash(git -C website fetch origin)",
-      "Bash(git -C website branch -r)"
+      "Bash(git -C website branch -r)",
+      "Bash(npm view *)",
+      "Bash(npx astro *)",
+      "Bash(git push *)"
     ]
   },
   "enabledPlugins": {
