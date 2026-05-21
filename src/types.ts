@@ -2,6 +2,8 @@ export interface MemberInfo {
   id: string;
   role: "leader" | "member";
   status: "online" | "offline";
+  nickname?: string | null;
+  avatar_url?: string | null;
   responsibilities?: string;
   capabilities?: string;
 }

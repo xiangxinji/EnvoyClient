@@ -47,16 +47,18 @@ export function useConnection(
       console.log("[useConnection] fetching configured members:", url);
       const res = await managerFetch(url);
       const data = await res.json() as {
-        leader: string;
-        members: { username: string; role?: string; responsibilities?: string; capabilities?: string }[];
+        leader: { username: string; nickname?: string | null; avatar_url?: string | null };
+        members: { username: string; role?: string; nickname?: string | null; avatar_url?: string | null; responsibilities?: string; capabilities?: string }[];
       };
       console.log("[useConnection] configured members response:", data);
       const list: MemberInfo[] = [
-        { id: data.leader, role: "leader", status: "offline" },
+        { id: data.leader.username, role: "leader", status: "offline", nickname: data.leader.nickname, avatar_url: data.leader.avatar_url },
         ...data.members.map((m) => ({
           id: m.username,
           role: (m.role === "leader" ? "leader" : "member") as "leader" | "member",
           status: "offline" as const,
+          nickname: m.nickname ?? null,
+          avatar_url: m.avatar_url ?? null,
           responsibilities: m.responsibilities,
           capabilities: m.capabilities,
         })),

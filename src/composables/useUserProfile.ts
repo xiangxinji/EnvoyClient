@@ -3,6 +3,7 @@ import { getUserProfileService } from "./teamClientContext";
 import { apiUrl } from "../api";
 import { getErrorMessage } from "../utils/error";
 import type { UserProfile } from "../services/types";
+import type { MemberInfo } from "../types";
 
 interface ProfileEntry extends UserProfile {
   _v: number;
@@ -92,6 +93,22 @@ export function useUserProfile() {
     profiles.value = next;
   }
 
+  function syncFromMembers(members: MemberInfo[]): void {
+    const next = { ...profiles.value };
+    for (const m of members) {
+      const existing = next[m.id];
+      next[m.id] = {
+        username: m.id,
+        nickname: m.nickname ?? existing?.nickname ?? null,
+        avatar_url: m.avatar_url ?? existing?.avatar_url ?? null,
+        responsibilities: m.responsibilities ?? existing?.responsibilities ?? "",
+        capabilities: m.capabilities ?? existing?.capabilities ?? "",
+        _v: existing?._v ?? Date.now(),
+      };
+    }
+    profiles.value = next;
+  }
+
   return {
     profiles,
     loadProfiles,
@@ -101,5 +118,6 @@ export function useUserProfile() {
     getProfile,
     updateMyProfile,
     uploadMyAvatar,
+    syncFromMembers,
   };
 }

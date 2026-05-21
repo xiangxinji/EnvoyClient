@@ -2,6 +2,7 @@
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { getTeamClientInstance, getMemberSettings } from "../../composables/teamClientContext";
+import { apiUrl } from "../../api";
 import GlassInput from "../GlassInput";
 import MemberHoverCard from "../MemberHoverCard";
 import ToolHoverCard from "../ToolHoverCard";
@@ -245,12 +246,12 @@ function formatBadge(count: number): string {
           @mouseleave="handleMemberLeave"
         >
           <div class="avatar">
-            <img v-if="userProfile.getAvatarUrl(m.id)" :src="userProfile.getAvatarUrl(m.id) ?? undefined" class="avatar-img" />
+            <img v-if="m.avatar_url" :src="apiUrl(m.avatar_url)" class="avatar-img" />
             <template v-else>{{ userProfile.getInitial(m.id) }}</template>
             <span class="status-dot" :class="m.status"></span>
           </div>
           <div class="member-info">
-            <span class="member-name" :title="m.id">{{ userProfile.getDisplayName(m.id) }}</span>
+            <span class="member-name" :title="m.id">{{ m.nickname || m.id }}</span>
             <span class="member-role" :class="m.role">{{ m.role }}</span>
             <span v-if="matchHints.get(m.id)" class="member-hint" :title="matchHints.get(m.id)">{{ matchHints.get(m.id) }}</span>
           </div>

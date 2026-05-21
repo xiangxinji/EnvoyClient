@@ -61,9 +61,9 @@ export function useTeamClient(
 
     msg.loadHistory();
 
-    // Load configured members first, then load all profiles (including offline members)
+    // Load configured members (now includes profile data: nickname, avatar_url)
     conn.loadConfiguredMembers().then(() => {
-      userProfile.loadProfiles(conn.configuredMembers.value.map((m) => m.id));
+      userProfile.syncFromMembers(conn.configuredMembers.value);
     });
   });
 
@@ -72,8 +72,6 @@ export function useTeamClient(
     if (msgObj.type === "notify" && msgObj.subtype === "team:members") {
       const payload = msgObj.payload as { members: MemberInfo[] };
       conn.onlineIds.value = new Set(payload.members.map((m) => m.id));
-      // Load profiles for online members
-      userProfile.loadProfiles(payload.members.map((m) => m.id));
       if (conn.configuredMembers.value.length === 0) {
         conn.configuredMembers.value = payload.members.map((m) => ({
           ...m,
@@ -210,5 +208,7 @@ export function useTeamClient(
     revokeMessage: msg.revokeMessage,
     autoReplyDispose: autoReply.dispose,
     userProfile,
+    loadConfiguredMembers: conn.loadConfiguredMembers,
+    configuredMembers: conn.configuredMembers,
   };
 }

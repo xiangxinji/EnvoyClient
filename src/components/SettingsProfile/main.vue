@@ -23,7 +23,7 @@ const ctx = getTeamClientInstance()!;
 const router = useRouter();
 
 const username = ctx.myId;
-const { updateMyProfile, uploadMyAvatar, getAvatarUrl, getDisplayName, getInitial, getProfile, loadProfiles } = useUserProfile();
+const { updateMyProfile, uploadMyAvatar, getAvatarUrl, getDisplayName, getInitial, getProfile, loadProfiles, syncFromMembers } = useUserProfile();
 const avatarUrl = computed(() => getAvatarUrl(username));
 const displayName = computed(() => getDisplayName(username));
 const nickname = ref("");
@@ -47,6 +47,8 @@ async function saveNickname() {
   nicknameSaving.value = true;
   try {
     await updateMyProfile(username, { nickname: trimmed || null });
+    await ctx.loadConfiguredMembers();
+    syncFromMembers(ctx.configuredMembers.value);
   } catch {
     nickname.value = getDisplayName(username);
   }
@@ -63,6 +65,8 @@ async function saveProfile() {
   }
   try {
     await updateMyProfile(username, { capabilities: caps, responsibilities: resp });
+    await ctx.loadConfiguredMembers();
+    syncFromMembers(ctx.configuredMembers.value);
     showToast(t('common.saved'), "success");
   } catch (e) {
     console.error("[saveProfile] failed:", e);
@@ -80,6 +84,9 @@ async function triggerAvatarUpload() {
   avatarUploading.value = true;
   try {
     await uploadMyAvatar(username, file);
+    // Refresh configured members so sidebar avatar updates immediately
+    await ctx.loadConfiguredMembers();
+    syncFromMembers(ctx.configuredMembers.value);
   } catch {
     // silently fail
   }

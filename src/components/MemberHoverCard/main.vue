@@ -2,10 +2,9 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { MemberInfo } from "../../types";
-import { useUserProfile } from "../../composables/useUserProfile";
+import { apiUrl } from "../../api";
 
 const { t } = useI18n();
-const { getDisplayName, getAvatarUrl, getInitial } = useUserProfile();
 
 const props = defineProps<{
   member: MemberInfo;
@@ -24,6 +23,10 @@ const position = computed(() => {
   const top = `${props.rect.top}px`;
   return { left, top };
 });
+
+const displayName = computed(() => props.member.nickname || props.member.id);
+const avatarSrc = computed(() => props.member.avatar_url ? apiUrl(props.member.avatar_url) : null);
+const initial = computed(() => displayName.value.charAt(0).toUpperCase());
 </script>
 
 <template>
@@ -38,11 +41,11 @@ const position = computed(() => {
       >
         <div class="hover-card-header">
           <div class="hover-card-avatar">
-            <img v-if="getAvatarUrl(member.id)" :src="getAvatarUrl(member.id)!" class="hover-card-avatar-img" />
-            <template v-else>{{ getInitial(getDisplayName(member.id)) }}</template>
+            <img v-if="avatarSrc" :src="avatarSrc" class="hover-card-avatar-img" />
+            <template v-else>{{ initial }}</template>
           </div>
           <div class="hover-card-identity">
-            <span class="hover-card-name">{{ getDisplayName(member.id) }}</span>
+            <span class="hover-card-name">{{ displayName }}</span>
             <div class="hover-card-meta">
               <span class="hover-card-role" :class="member.role">{{ member.role }}</span>
               <span class="hover-card-status">
