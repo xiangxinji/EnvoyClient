@@ -53,32 +53,42 @@ function handleDirClick() {
 </script>
 
 <template>
-  <span v-if="expired" class="cloud-ref-card expired">
-    <span class="cloud-ref-icon-fallback">{{ data.type === 'directory' ? '📁' : '📄' }}</span>
-    <span v-if="data.type === 'file'" class="cloud-ref-info">
-      <span class="cloud-ref-name">{{ data.name }}</span>
-      <span class="cloud-ref-expired">({{ t('cloudMention.expired') }})</span>
-    </span>
-    <template v-else>
-      <span class="cloud-ref-name">{{ data.name }}</span>
-      <span class="cloud-ref-expired">({{ t('cloudMention.expired') }})</span>
-    </template>
-  </span>
+  <div v-if="expired" class="cloud-card expired">
+    <div class="cloud-card-icon"><SvgIcon :name="data.type === 'directory' ? 'folder' : 'file'" :size="16" /></div>
+    <div class="cloud-card-info">
+      <span class="cloud-card-name">{{ data.name }}</span>
+      <span class="cloud-card-meta">
+        <SvgIcon name="cloud" :size="10" class="cloud-badge-icon" />
+        <span class="cloud-badge-text">{{ t('cloudMention.cloudResource') }}</span>
+        <span class="cloud-card-expired">{{ t('cloudMention.expired') }}</span>
+      </span>
+    </div>
+  </div>
 
-  <span v-else-if="data.type === 'file'" class="cloud-ref-card file" @click="handleDownload">
-    <span class="cloud-ref-icon-fallback">📄</span>
-    <span class="cloud-ref-info">
-      <span class="cloud-ref-name">{{ data.name }}</span>
-      <span class="cloud-ref-size">{{ formatFileSize(data.size ?? 0) }}</span>
-    </span>
-    <SvgIcon class="cloud-ref-download" name="download" :size="14" />
-  </span>
+  <div v-else-if="data.type === 'file'" class="cloud-card file" @click="handleDownload">
+    <div class="cloud-card-icon"><SvgIcon name="file" :size="16" /></div>
+    <div class="cloud-card-info">
+      <span class="cloud-card-name">{{ data.name }}</span>
+      <span class="cloud-card-meta">
+        <SvgIcon name="cloud" :size="10" class="cloud-badge-icon" />
+        <span class="cloud-badge-text">{{ t('cloudMention.cloudResource') }}</span>
+        <span class="cloud-card-size">{{ formatFileSize(data.size ?? 0) }}</span>
+      </span>
+    </div>
+    <SvgIcon class="cloud-card-action" name="download" :size="14" />
+  </div>
 
-  <span v-else class="cloud-ref-card directory" @click="handleDirClick">
-    <span class="cloud-ref-icon-fallback">📁</span>
-    <span class="cloud-ref-name">{{ data.name }}</span>
-    <span class="cloud-ref-action">{{ t('cloudMention.openInCloud') }}</span>
-  </span>
+  <div v-else class="cloud-card directory" @click="handleDirClick">
+    <div class="cloud-card-icon"><SvgIcon name="folder" :size="16" /></div>
+    <div class="cloud-card-info">
+      <span class="cloud-card-name">{{ data.name }}</span>
+      <span class="cloud-card-meta">
+        <SvgIcon name="cloud" :size="10" class="cloud-badge-icon" />
+        <span class="cloud-badge-text">{{ t('cloudMention.cloudResource') }}</span>
+      </span>
+    </div>
+    <SvgIcon class="cloud-card-action" name="chevron-right" :size="14" />
+  </div>
 </template>
 
 <style scoped>

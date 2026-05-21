@@ -1,12 +1,14 @@
-.cloud-ref-card { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; margin: 1px 2px; background: var(--glass-bg-light); border: 1px solid var(--glass-border); border-radius: 6px; font-size: 0.85em; vertical-align: middle; transition: border-color 0.15s, background 0.15s; }
-.cloud-ref-card.file, .cloud-ref-card.directory { cursor: pointer; text-decoration: none; color: var(--text-primary); }
-.cloud-ref-card.file:hover, .cloud-ref-card.directory:hover { border-color: var(--accent); background: var(--glass-bg); }
-.cloud-ref-card.expired { opacity: 0.5; cursor: default; background: transparent; border-style: dashed; }
-.cloud-ref-icon-fallback { font-size: 1em; flex-shrink: 0; }
-.cloud-ref-info { display: flex; flex-direction: column; min-width: 0; }
-.cloud-ref-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
-.cloud-ref-size { font-size: 0.8em; color: var(--text-muted); }
-.cloud-ref-action { font-size: 0.78em; color: var(--accent); white-space: nowrap; }
-.cloud-ref-expired { font-size: 0.78em; color: var(--text-muted); font-style: italic; }
-.cloud-ref-download { color: var(--text-muted); flex-shrink: 0; }
-.cloud-ref-card.file:hover .cloud-ref-download { color: var(--accent); }
+.cloud-card { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: var(--glass-bg-light); border: 1px solid var(--glass-border); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.85em; transition: border-color 0.15s, background 0.15s; width: fit-content; min-width: 200px; max-width: 280px; }
+.cloud-card.file, .cloud-card.directory { cursor: pointer; }
+.cloud-card.file:hover, .cloud-card.directory:hover { border-color: var(--accent); background: var(--glass-bg); }
+.cloud-card.expired { opacity: 0.5; cursor: default; background: transparent; border-style: dashed; }
+.cloud-card-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--accent-light); border-radius: var(--radius-sm); color: var(--accent); flex-shrink: 0; }
+.cloud-card-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.cloud-card-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cloud-card-meta { display: flex; align-items: center; gap: 4px; font-size: 0.8em; color: var(--text-muted); }
+.cloud-badge-icon { color: var(--accent); flex-shrink: 0; }
+.cloud-badge-text { color: var(--accent); font-weight: 500; }
+.cloud-card-size { margin-left: 2px; }
+.cloud-card-expired { font-style: italic; }
+.cloud-card-action { color: var(--text-muted); flex-shrink: 0; transition: color 0.15s; }
+.cloud-card.file:hover .cloud-card-action, .cloud-card.directory:hover .cloud-card-action { color: var(--accent); }
