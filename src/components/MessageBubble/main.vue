@@ -212,7 +212,7 @@ function bubbleClick(e: MouseEvent) {
   </template>
 
   <!-- Forwarded history dialog -->
-  <ForwardedDialog v-if="message.forwarded?.length" :records="message.forwarded" v-model:visible="forwardedDialogVisible" />
+  <ForwardedDialog v-if="message.forwarded?.length" :records="message.forwarded" :team-name="teamName" v-model:visible="forwardedDialogVisible" />
 
   <CloudDirDialog :visible="cloudDirDialogVisible" :dir-path="cloudDirPath" :dir-name="cloudDirName" :team-name="teamName" @update:visible="cloudDirDialogVisible = $event" />
 

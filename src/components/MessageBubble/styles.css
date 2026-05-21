@@ -1,4 +1,4 @@
-.bubble-row { display: flex; align-items: flex-start; gap: 6px; max-width: 78%; }
+.bubble-row { display: flex; align-items: flex-start; gap: 6px; max-width: 45%; }
 .bubble-row.mine { align-self: flex-end; flex-direction: row-reverse; }
 .checkbox { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--glass-border); background: var(--glass-bg-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; margin-top: 10px; transition: all 0.15s; }
 .checkbox.checked { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); }

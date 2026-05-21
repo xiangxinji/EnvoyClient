@@ -115,7 +115,9 @@
     "quoteRevoked": "原消息已撤回",
     "quotePlaceholderImage": "[图片]",
     "quotePlaceholderFile": "[文件]",
-    "quotePlaceholderForwarded": "[聊天记录]"
+    "quotePlaceholderForwarded": "[聊天记录]",
+    "quotePlaceholderSticker": "[贴纸]",
+    "quotePlaceholderCloudRef": "[云资源]"
   },
   "sticker": {
     "empty": "还没有贴纸",

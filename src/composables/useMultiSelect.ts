@@ -48,6 +48,8 @@ export function useMultiSelect(
       text: m.text,
       timestamp: m.timestamp,
       attachments: m.attachments,
+      sticker: m.sticker,
+      cloudRefs: m.cloudRefs,
     }));
 
     sendChat(targetId, summaryText, { forwarded: records });

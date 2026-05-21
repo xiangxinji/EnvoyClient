@@ -1,0 +1,6 @@
+.quote-card { display: flex; flex-direction: column; gap: 2px; padding: var(--space-sm) var(--space-md); background: var(--glass-bg-light); border: 1px solid var(--glass-border); border-radius: var(--radius-md); cursor: pointer; transition: border-color 0.15s, background 0.15s; width: fit-content; min-width: 160px; max-width: 280px; }
+.quote-card:hover { border-color: var(--accent); background: var(--glass-bg); }
+.quote-card.revoked .quote-text { opacity: 0.5; font-style: italic; }
+.quote-label { display: flex; align-items: center; gap: 4px; font-size: 0.8em; font-weight: 600; color: var(--accent); }
+.quote-label .svg-icon { color: var(--accent); }
+.quote-text { font-size: 0.82em; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.4; }

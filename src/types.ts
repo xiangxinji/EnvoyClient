@@ -19,6 +19,8 @@ export interface ForwardedRecord {
   text: string;
   timestamp: number;
   attachments?: MessageAttachment[];
+  sticker?: StickerInfo;
+  cloudRefs?: CloudRef[];
 }
 
 export interface StickerInfo {

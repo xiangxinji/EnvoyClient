@@ -50,6 +50,8 @@ export function useMessageContextMenu(
 
   function generateSnapshotText(msg: ChatMessage): string {
     if (msg.forwarded?.length) return t('chat.quotePlaceholderForwarded');
+    if (msg.sticker) return t('chat.quotePlaceholderSticker');
+    if (msg.cloudRefs?.length) return t('chat.quotePlaceholderCloudRef');
     if (!msg.text || !msg.text.trim()) {
       if (msg.attachments?.some(a => a.type === 'image')) return t('chat.quotePlaceholderImage');
       const file = msg.attachments?.find(a => a.type === 'file');

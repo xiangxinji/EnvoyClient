@@ -115,7 +115,9 @@
     "quoteRevoked": "Original message revoked",
     "quotePlaceholderImage": "[Image]",
     "quotePlaceholderFile": "[File]",
-    "quotePlaceholderForwarded": "[Chat History]"
+    "quotePlaceholderForwarded": "[Chat History]",
+    "quotePlaceholderSticker": "[Sticker]",
+    "quotePlaceholderCloudRef": "[Cloud Resource]"
   },
   "sticker": {
     "empty": "No stickers yet",
