@@ -183,6 +183,27 @@ function formatBadge(count: number): string {
     </div>
 
     <template v-else>
+      <div v-if="!searchQuery.trim()" class="sidebar-header">
+        <h3>{{ t('sidebar.channel') }}</h3>
+      </div>
+      <ul v-if="!searchQuery.trim()" class="nav-group">
+        <li
+          class="channel-entry"
+          :class="{ active: '__team__' === selectedPeer }"
+          @click="handleClick('__team__')"
+        >
+          <div class="avatar channel-avatar">
+            <SvgIcon name="chat" :size="14" />
+          </div>
+          <div class="member-info">
+            <span class="member-name">{{ t('sidebar.channelGeneral') }}</span>
+          </div>
+          <span v-if="channelUnread > 0" class="badge">
+            {{ formatBadge(channelUnread) }}
+          </span>
+        </li>
+      </ul>
+
       <div v-if="filteredTools.length > 0" class="sidebar-header">
         <h3>{{ t('sidebar.tools') }}</h3>
       </div>
@@ -206,27 +227,6 @@ function formatBadge(count: number): string {
           </div>
           <span v-if="tool.id === '__tasks__' && taskCount > 0" class="badge badge-task">
             {{ formatBadge(taskCount) }}
-          </span>
-        </li>
-      </ul>
-
-      <div v-if="!searchQuery.trim()" class="sidebar-header">
-        <h3>{{ t('sidebar.channel') }}</h3>
-      </div>
-      <ul v-if="!searchQuery.trim()" class="nav-group">
-        <li
-          class="channel-entry"
-          :class="{ active: '__team__' === selectedPeer }"
-          @click="handleClick('__team__')"
-        >
-          <div class="avatar channel-avatar">
-            <SvgIcon name="chat" :size="14" />
-          </div>
-          <div class="member-info">
-            <span class="member-name">{{ t('sidebar.channelGeneral') }}</span>
-          </div>
-          <span v-if="channelUnread > 0" class="badge">
-            {{ formatBadge(channelUnread) }}
           </span>
         </li>
       </ul>

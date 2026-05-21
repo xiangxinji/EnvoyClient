@@ -68,8 +68,8 @@
   --glass-bg-light: rgba(255, 255, 255, 0.45);
   --glass-border: rgba(255, 255, 255, 0.3);
   --glass-blur: 20px;
-  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-  --glass-shadow-heavy: 0 8px 40px rgba(0, 0, 0, 0.12);
+  --glass-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --glass-shadow-heavy: 0 4px 20px rgba(0, 0, 0, 0.08);
   --overlay-bg: rgba(0, 0, 0, 0.3);
   --image-overlay-bg: rgba(0, 0, 0, 0.65);
   --image-toolbar-bg: rgba(255, 255, 255, 0.75);
@@ -147,8 +147,8 @@ html.dark {
   --glass-bg-light: rgba(28, 28, 30, 0.45);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-blur: 20px;
-  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
-  --glass-shadow-heavy: 0 8px 40px rgba(0, 0, 0, 0.4);
+  --glass-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  --glass-shadow-heavy: 0 4px 20px rgba(0, 0, 0, 0.3);
   --overlay-bg: rgba(0, 0, 0, 0.55);
   --image-overlay-bg: rgba(0, 0, 0, 0.85);
   --image-toolbar-bg: rgba(28, 28, 30, 0.85);
