@@ -2,7 +2,7 @@
 .bubble-row.mine { align-self: flex-end; flex-direction: row-reverse; }
 .checkbox { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--glass-border); background: var(--glass-bg-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; margin-top: 10px; transition: all 0.15s; }
 .checkbox.checked { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); }
-.bubble { max-width: 75%; padding: 10px 14px; border-radius: 18px; background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); color: var(--bubble-other-text); align-self: flex-start; border: 1px solid var(--glass-border); }
+.bubble {  padding: 10px 14px; border-radius: 18px; background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); color: var(--bubble-other-text); align-self: flex-start; border: 1px solid var(--glass-border); }
 .bubble.mine { background: var(--bubble-mine); color: var(--bubble-mine-text); align-self: flex-end; border-bottom-right-radius: 4px; }
 .bubble:not(.mine) { border-bottom-left-radius: 4px; }
 .bubble.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
