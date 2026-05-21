@@ -8,8 +8,7 @@ import Text from "@tiptap/extension-text";
 import HardBreak from "@tiptap/extension-hard-break";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
-import { CloudReference, type CloudRefAttrs } from "./cloudReferenceNode";
-import type { ContentSegment, CloudRef } from "../../types";
+import type { ContentSegment } from "../../types";
 
 const { t } = useI18n();
 
@@ -40,7 +39,6 @@ const editor = useEditor({
     HardBreak,
     Placeholder.configure({ placeholder: () => props.placeholder ?? t('chat.enterMessage') }),
     Image.configure({ inline: false, allowBase64: true }),
-    CloudReference,
   ],
   editorProps: {
     attributes: {
@@ -148,16 +146,6 @@ function extractSegments(): ContentSegment[] {
       if (pending) {
         segments.push({ type: "image", blob: pending.blob, name: pending.name });
       }
-      return;
-    }
-
-    if (type === "cloudReference") {
-      flushText();
-      const attrs = node.attrs as CloudRefAttrs;
-      segments.push({
-        type: "cloudRef",
-        ref: { name: attrs.name, path: attrs.path, type: attrs.type, size: attrs.size } as CloudRef,
-      });
       return;
     }
 

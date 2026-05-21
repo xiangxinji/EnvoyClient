@@ -51,12 +51,7 @@ export interface ContentSegmentImage {
   name: string;
 }
 
-export interface ContentSegmentCloudRef {
-  type: "cloudRef";
-  ref: CloudRef;
-}
-
-export type ContentSegment = ContentSegmentText | ContentSegmentImage | ContentSegmentCloudRef;
+export type ContentSegment = ContentSegmentText | ContentSegmentImage;
 
 export interface ChatMessage {
   type: "chat";

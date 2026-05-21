@@ -54,7 +54,7 @@ const conversation = computed<TimelineItem[]>(() => props.peerId ? getConversati
 const { visibleMessages, hasMoreHistory, loadingMore, handleScroll, resetDisplayCount, loadAll } = useMessagePagination(conversation, messageList);
 const { pendingFiles, uploading, attachmentError, handlePickAttachment, removeFile, uploadImages } = useFileUpload(myId, teamName);
 const { currentMentions, mentionPopupVisible, mentionQuery, mentionPopupRef, handleEditorInput, handleMentionSelect, handleMentionClose, handleEditorKeydown, clearMentions } = useMentionSystem(() => isChannel.value, () => members.value, richEditorRef);
-const { cloudPopupVisible, cloudQuery, cloudPopupRef, handleEditorInput: handleCloudEditorInput, handleCloudSelect, handleCloudClose, handleCloudKeydown, clearCloudRefs } = useCloudMention(richEditorRef);
+const { cloudPopupVisible, cloudQuery, cloudPopupRef, handleEditorInput: handleCloudEditorInput, handleCloudSelect, handleCloudClose, handleCloudKeydown, clearCloudRefs, pendingCloudRefs, removeCloudRef } = useCloudMention();
 const { selectMode, selectedIds, forwardDialogVisible, enterSelectMode, exitSelectMode, toggleMessageSelect, handleForwardClick, handleForwardConfirm } = useMultiSelect(conversation, sendChat, showToast);
 const { contextMenuVisible, contextMenuX, contextMenuY, contextMenuMsg, quotingMsg, handleMessageContextmenu, handleQuoteReply, handleContextForward, clearQuotingMsg, generateSnapshotText, handleRevoke, handleScrollToQuote, closeContextMenu } = useMessageContextMenu(messageList, loadAll, revokeMessage, enterSelectMode, (ids) => { selectMode.value = true; selectedIds.value = ids; }, showToast);
 
@@ -67,7 +67,7 @@ watch(() => props.peerId, () => { nextTick(() => { if (messageList.value) messag
 
 async function handleSegmentedSend(segments: ContentSegment[]) {
   if (!props.peerId) return;
-  if (segments.length === 0 && pendingFiles.value.length === 0) return;
+  if (segments.length === 0 && pendingFiles.value.length === 0 && pendingCloudRefs.value.length === 0) return;
   attachmentError.value = "";
 
   const quoteInfo: QuoteInfo | undefined = quotingMsg.value
@@ -94,17 +94,25 @@ async function handleSegmentedSend(segments: ContentSegment[]) {
           quote: isFirst ? quoteInfo : undefined,
           channel: isChannel.value ? "general" : undefined,
         });
-      } else if (seg.type === "cloudRef") {
-        await sendChat(props.peerId, "{cloud:0}", {
-          cloudRefs: [seg.ref],
-          quote: isFirst ? quoteInfo : undefined,
-          channel: isChannel.value ? "general" : undefined,
-        });
       }
       isFirst = false;
     } catch (e: unknown) {
       attachmentError.value = getErrorMessage(e);
       uploading.value = false;
+      break;
+    }
+  }
+
+  for (const ref of pendingCloudRefs.value) {
+    try {
+      await sendChat(props.peerId, "{cloud:0}", {
+        cloudRefs: [ref],
+        quote: isFirst ? quoteInfo : undefined,
+        channel: isChannel.value ? "general" : undefined,
+      });
+      isFirst = false;
+    } catch (e: unknown) {
+      attachmentError.value = getErrorMessage(e);
       break;
     }
   }
@@ -229,6 +237,14 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
             <button class="preview-remove" @click="removeFile(i)"><SvgIcon name="close" :size="12" /></button>
           </div>
         </div>
+
+        <div v-if="pendingCloudRefs.length > 0" class="cloud-ref-preview">
+          <div v-for="(ref, i) in pendingCloudRefs" :key="i" class="preview-item">
+            <div class="preview-file-icon"><SvgIcon :name="ref.type === 'directory' ? 'folder' : 'file'" :size="16" /></div>
+            <div class="preview-info"><span class="preview-name">{{ ref.name }}</span><span class="preview-size">{{ ref.type === 'file' ? formatFileSize(ref.size) : ref.type }}</span></div>
+            <button class="preview-remove" @click="removeCloudRef(i)"><SvgIcon name="close" :size="12" /></button>
+          </div>
+        </div>
         <div v-if="attachmentError" class="attachment-error">{{ attachmentError }}</div>
 
         <div v-if="quotingMsg" class="quote-preview">
@@ -252,8 +268,8 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
 
         <div class="editor-wrapper" style="position: relative;">
           <MentionPopup v-if="isChannel" ref="mentionPopupRef" :visible="mentionPopupVisible" :members="members" :query="mentionQuery" :my-id="myId" @select="handleMentionSelect" @close="handleMentionClose" />
-          <CloudMentionPopup ref="cloudPopupRef" :visible="cloudPopupVisible" :query="cloudQuery" :team-name="teamName" @select="handleCloudSelect" @close="handleCloudClose" />
-          <RichEditor ref="richEditorRef" :enterSendDisabled="mentionPopupVisible || cloudPopupVisible" @send="handleSegmentedSend" @input="handleEditorInput(); handleCloudEditorInput()" @keydown="handleEditorKeydown($event); handleCloudKeydown($event)" />
+          <CloudMentionPopup ref="cloudPopupRef" :visible="cloudPopupVisible" :query="cloudQuery" :team-name="teamName" @select="(item: any) => handleCloudSelect(item, richEditorRef?.editor)" @close="handleCloudClose" />
+          <RichEditor ref="richEditorRef" :enterSendDisabled="mentionPopupVisible || cloudPopupVisible" @send="handleSegmentedSend" @input="handleEditorInput(); handleCloudEditorInput(richEditorRef?.editor)" @keydown="handleEditorKeydown($event); handleCloudKeydown($event)" />
         </div>
       </div>
     </template>

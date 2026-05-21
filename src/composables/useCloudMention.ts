@@ -1,18 +1,16 @@
 import { ref } from "vue";
 import type { CloudSearchResult } from "../services/types";
-import type RichEditor from "../components/RichEditor";
+import type { CloudRef } from "../types";
 import type CloudMentionPopup from "../components/CloudMentionPopup";
 
-export function useCloudMention(
-  richEditorRef: ReturnType<typeof ref<InstanceType<typeof RichEditor> | null>>,
-) {
-  const currentCloudRefs = ref<CloudSearchResult[]>([]);
+export function useCloudMention() {
+  const pendingCloudRefs = ref<CloudRef[]>([]);
   const cloudPopupVisible = ref(false);
   const cloudQuery = ref("");
   const cloudPopupRef = ref<InstanceType<typeof CloudMentionPopup> | null>(null);
 
-  function handleEditorInput() {
-    const editor = richEditorRef.value?.editor;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function handleEditorInput(editor?: any) {
     if (!editor) return;
     const { from } = editor.state.selection;
     const $pos = editor.state.selection.$from;
@@ -26,25 +24,29 @@ export function useCloudMention(
     }
   }
 
-  function handleCloudSelect(item: CloudSearchResult) {
-    const editor = richEditorRef.value?.editor;
-    if (!editor) return;
-    const { from } = editor.state.selection;
-    const $pos = editor.state.selection.$from;
-    const textBefore = editor.state.doc.textBetween($pos.start(), from, "\n", "");
-    const hashMatch = textBefore.match(/#([\w.\-]*)$/);
-    if (hashMatch) {
-      const fromInNode = $pos.parentOffset - (hashMatch[0]?.length ?? 0);
-      const deleteFrom = from - ($pos.parentOffset - fromInNode);
-      editor.chain().focus().deleteRange({ from: deleteFrom, to: from }).insertContent({
-        type: "cloudReference",
-        attrs: { name: item.name, path: item.path, type: item.type, size: item.size },
-      }).run();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function handleCloudSelect(item: CloudSearchResult, editor?: any) {
+    // Remove the #query text from editor
+    if (editor) {
+      const { from } = editor.state.selection;
+      const $from = editor.state.selection.$from;
+      const docText = editor.state.doc.textBetween($from.start(), from, "\n", "");
+      const hashMatch = docText.match(/#([\w.\-]*)$/);
+      if (hashMatch) {
+        const startPos = from - hashMatch[0].length;
+        editor.chain().focus().deleteRange({ from: startPos, to: from }).run();
+      }
     }
-    if (!currentCloudRefs.value.some(r => r.path === item.path)) {
-      currentCloudRefs.value.push(item);
+
+    const ref: CloudRef = { name: item.name, path: item.path, type: item.type, size: item.size };
+    if (!pendingCloudRefs.value.some(r => r.path === ref.path)) {
+      pendingCloudRefs.value.push(ref);
     }
     cloudPopupVisible.value = false;
+  }
+
+  function removeCloudRef(index: number) {
+    pendingCloudRefs.value.splice(index, 1);
   }
 
   function handleCloudClose() {
@@ -57,17 +59,18 @@ export function useCloudMention(
   }
 
   function clearCloudRefs() {
-    currentCloudRefs.value = [];
+    pendingCloudRefs.value = [];
     cloudPopupVisible.value = false;
   }
 
   return {
-    currentCloudRefs,
+    pendingCloudRefs,
     cloudPopupVisible,
     cloudQuery,
     cloudPopupRef,
     handleEditorInput,
     handleCloudSelect,
+    removeCloudRef,
     handleCloudClose,
     handleCloudKeydown,
     clearCloudRefs,
