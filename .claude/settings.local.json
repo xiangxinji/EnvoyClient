@@ -113,7 +113,10 @@
       "mcp__plugin_ecc_sequential-thinking__sequentialthinking",
       "Bash(grep -r \"autostart\" src-tauri/ --include=\"*.toml\" --include=\"*.rs\" -l)",
       "Bash(grep -r \"autostart\" package.json)",
-      "Bash(cargo add *)"
+      "Bash(cargo add *)",
+      "Bash(git ls-remote *)",
+      "Bash(git -C website fetch origin)",
+      "Bash(git -C website branch -r)"
     ]
   },
   "enabledPlugins": {

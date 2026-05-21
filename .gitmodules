@@ -5,3 +5,6 @@
 	path = manager
 	url = https://github.com/xiangxinji/EnvoyManager.git
 	branch = main
+[submodule "website"]
+	path = website
+	url = https://github.com/xiangxinji/EnvoyWebsite.git
