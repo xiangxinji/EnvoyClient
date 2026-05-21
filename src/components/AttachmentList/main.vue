@@ -4,7 +4,7 @@ import { formatFileSize } from "../../utils/taskFormatters";
 import { useFullscreenViewer } from "../../composables/useFullscreenViewer";
 import SvgIcon from "../SvgIcon";
 
-const props = defineProps<{
+defineProps<{
   items: MessageAttachment[];
   noText?: boolean;
 }>();

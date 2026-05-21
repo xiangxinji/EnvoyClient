@@ -5,7 +5,10 @@ import MemberSidebar from "../../components/MemberSidebar";
 import ChatPanel from "../../components/ChatPanel";
 import TaskCenterView from "../TaskCenterView";
 import TaskDispatchPanel from "../TaskDispatchPanel";
-import SettingsPanel from "../../components/SettingsPanel";
+import SettingsProfile from "../../components/SettingsProfile";
+import SettingsTask from "../../components/SettingsTask";
+import SettingsAI from "../../components/SettingsAI";
+import SettingsGeneral from "../../components/SettingsGeneral";
 import QuickSettingsPanel from "../../components/QuickSettingsPanel";
 import TaskDetailPanel from "../../components/TaskDetailPanel";
 import CloudResourcesPanel from "../../components/CloudResourcesPanel";
@@ -32,7 +35,7 @@ function handleSelectPeer(peerId: string) {
   // Switching sidebar tab clears the detail view
   selectedTask.value = null;
   detailReturnPeer.value = null;
-  if (selectedPeer.value !== "__settings__" && selectedPeer.value !== "__quick__") {
+  if (selectedPeer.value !== "__quick__" && !selectedPeer.value.startsWith("__settings_")) {
     previousPeer.value = selectedPeer.value;
   }
   selectedPeer.value = peerId;
@@ -82,7 +85,10 @@ function handleLogout() {
       :selected-peer="selectedPeer"
       @select="handleSelectPeer"
     />
-    <SettingsPanel v-if="selectedPeer === '__settings__'" @back="handleSettingsBack" />
+    <SettingsProfile v-if="selectedPeer === '__settings_profile__'" @back="handleSettingsBack" />
+    <SettingsTask v-else-if="selectedPeer === '__settings_task__'" @back="handleSettingsBack" />
+    <SettingsAI v-else-if="selectedPeer === '__settings_ai__'" @back="handleSettingsBack" />
+    <SettingsGeneral v-else-if="selectedPeer === '__settings_general__'" @back="handleSettingsBack" />
     <QuickSettingsPanel v-else-if="selectedPeer === '__quick__'" @back="handleSettingsBack" />
     <CloudResourcesPanel v-else-if="selectedPeer === '__cloud__'" />
     <TaskDispatchPanel v-else-if="selectedPeer === '__dispatch__'" />

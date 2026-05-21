@@ -9,7 +9,7 @@ import type { StickerItem } from "../../services/types";
 import ConfirmDialog from "../ConfirmDialog";
 import SvgIcon from "../SvgIcon";
 
-const props = defineProps<{
+defineProps<{
   myId: string;
   teamName: string;
 }>();

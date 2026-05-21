@@ -49,6 +49,14 @@ function handleCardLeave() { memberHover.scheduleHide(); }
 const toolDescMap: Record<string, string> = { __cloud__: "sidebar.cloudResourcesDesc", __tasks__: "sidebar.taskCenterDesc", __dispatch__: "sidebar.taskDispatchDesc" };
 const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch"> = { __cloud__: "cloud", __tasks__: "tasks", __dispatch__: "dispatch" };
 
+const menuItems = [
+  { id: "__settings_profile__", icon: "user" as const, labelKey: "sidebar.profile" },
+  { id: "__settings_task__", icon: "tasks" as const, labelKey: "sidebar.taskSettings" },
+  { id: "__settings_ai__", icon: "lightning" as const, labelKey: "sidebar.aiSettings" },
+  { id: "__settings_general__", icon: "settings" as const, labelKey: "sidebar.general" },
+  { id: "__quick__", icon: "keyboard" as const, labelKey: "sidebar.shortcuts" },
+];
+
 function handleToolEnter(toolId: string, e: MouseEvent) { toolHover.show(toolId, e.currentTarget as HTMLElement); }
 function handleToolLeave() { toolHover.scheduleHide(); }
 function handleToolCardEnter() { toolHover.cancelHide(); }
@@ -259,13 +267,15 @@ function formatBadge(count: number): string {
           <template v-else>{{ userProfile.getInitial(myId) }}</template>
         </div>
         <div class="user-menu" @click.stop>
-          <button class="user-menu-item" :class="{ active: selectedPeer === '__quick__' }" @click="emit('select', '__quick__')">
-            <SvgIcon name="keyboard" :size="14" />
-            {{ t('sidebar.shortcuts') }}
-          </button>
-          <button class="user-menu-item" :class="{ active: selectedPeer === '__settings__' }" @click="emit('select', '__settings__')">
-            <SvgIcon name="settings" :size="14" />
-            {{ t('sidebar.settings') }}
+          <button
+            v-for="item in menuItems"
+            :key="item.id"
+            class="user-menu-item"
+            :class="{ active: selectedPeer === item.id }"
+            @click="emit('select', item.id)"
+          >
+            <SvgIcon :name="item.icon" :size="14" />
+            {{ t(item.labelKey) }}
           </button>
         </div>
       </div>
