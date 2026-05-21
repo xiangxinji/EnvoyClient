@@ -309,5 +309,13 @@
     "attempt": "正在重新连接... (第 {attempt} 次)",
     "slowRetry": "重连失败，正在持续尝试中...",
     "backToLogin": "返回登录页"
+  },
+  "lock": {
+    "title": "屏幕已锁定",
+    "desc": "请输入密码以解锁",
+    "enterPassword": "输入密码",
+    "unlock": "解锁",
+    "invalidPassword": "密码错误，请重试",
+    "lockScreen": "锁定屏幕"
   }
 }

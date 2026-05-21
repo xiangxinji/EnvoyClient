@@ -6,6 +6,7 @@ import { getMemberSettings, getTeamClientInstance, setTeamClientInstance } from 
 import { useConfirm } from "../../composables/useConfirm";
 import { useUserProfile } from "../../composables/useUserProfile";
 import { useToast } from "../../composables/useToast";
+import { useLockScreen } from "../../composables/useLockScreen";
 import { pickFiles } from "../../utils/filePicker";
 import GlassButton from "../GlassButton";
 import BackButton from "../BackButton";
@@ -19,6 +20,7 @@ const emit = defineEmits<{ back: [] }>();
 const { loadSettings } = getMemberSettings();
 const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
 const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
+const { lock } = useLockScreen();
 const ctx = getTeamClientInstance()!;
 const router = useRouter();
 
@@ -180,6 +182,9 @@ async function handleLogout() {
           <span class="user-name">{{ displayName }}</span>
           <span class="user-role" :class="ctx.role">{{ ctx.role }}</span>
         </div>
+        <button class="lock-btn" :title="t('lock.lockScreen')" @click="lock">
+          <SvgIcon name="lock" :size="18" />
+        </button>
         <button class="logout-btn" :title="t('settings.logout')" @click="requestLogout">
           <SvgIcon name="log-out" :size="18" />
         </button>

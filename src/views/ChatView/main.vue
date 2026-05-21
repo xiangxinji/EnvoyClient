@@ -13,8 +13,10 @@ import QuickSettingsPanel from "../../components/QuickSettingsPanel";
 import TaskDetailPanel from "../../components/TaskDetailPanel";
 import CloudResourcesPanel from "../../components/CloudResourcesPanel";
 import ReconnectOverlay from "../../components/ReconnectOverlay";
+import LockScreen from "../../components/LockScreen";
 import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { useGlobalShortcuts } from "../../composables/useGlobalShortcuts";
+import { useLockScreen } from "../../composables/useLockScreen";
 import type { TaskMessage } from "../../types";
 
 const router = useRouter();
@@ -30,6 +32,7 @@ const previousPeer = ref("__tasks__");
 const selectedTask = ref<TaskMessage | null>(null);
 // When opening detail from chat, remember which peer to return to
 const detailReturnPeer = ref<string | null>(null);
+const { locked, unlock } = useLockScreen();
 
 function handleSelectPeer(peerId: string) {
   // Switching sidebar tab clears the detail view
@@ -117,6 +120,11 @@ function handleLogout() {
       :status="ctx.status.value as 'disconnected' | 'connecting' | 'reconnecting' | 'reconnect_failed'"
       :attempt="ctx.reconnectAttempt.value"
       @logout="handleLogout"
+    />
+    <LockScreen
+      :locked="locked"
+      :username="ctx.myId"
+      @unlock="unlock"
     />
   </div>
 </template>

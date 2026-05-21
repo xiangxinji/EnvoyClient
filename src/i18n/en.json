@@ -309,5 +309,13 @@
     "attempt": "Reconnecting... (attempt {attempt})",
     "slowRetry": "Reconnect failed, still trying...",
     "backToLogin": "Back to Login"
+  },
+  "lock": {
+    "title": "Screen Locked",
+    "desc": "Enter your password to unlock",
+    "enterPassword": "Enter password",
+    "unlock": "Unlock",
+    "invalidPassword": "Invalid password, please try again",
+    "lockScreen": "Lock Screen"
   }
 }

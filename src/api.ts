@@ -5,6 +5,10 @@ export function setManagerUrl(url: string) {
   _managerUrl = url;
 }
 
+export function getManagerUrl(): string {
+  return _managerUrl;
+}
+
 export function setClientToken(token: string) {
   _clientToken = token;
 }

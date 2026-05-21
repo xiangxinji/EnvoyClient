@@ -285,6 +285,26 @@
   color: var(--role-member-text);
 }
 
+.lock-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.lock-btn:hover {
+  background: var(--glass-bg-light);
+  color: var(--accent);
+}
+
 .logout-btn {
   display: flex;
   align-items: center;
