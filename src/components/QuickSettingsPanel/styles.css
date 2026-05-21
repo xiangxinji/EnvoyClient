@@ -84,7 +84,7 @@
   background: var(--glass-bg-light);
   color: var(--text-secondary);
   font-size: 0.82em;
-  font-family: monospace;
+  font-family: var(--font-sans);
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;

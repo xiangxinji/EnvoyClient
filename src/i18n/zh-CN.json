@@ -36,6 +36,7 @@
     "connect": "连接",
     "connecting": "连接中...",
     "logout": "退出",
+    "clearPassword": "清除密码",
     "leader": "leader",
     "member": "member"
   },

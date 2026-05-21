@@ -10,6 +10,7 @@ import { setManagerUrl, setClientToken } from "../../api";
 import { rsaEncrypt } from "../../utils/rsa";
 import GlassSelect from "../../components/GlassSelect";
 import logo from "../../assets/logo.png";
+import SvgIcon from "../../components/SvgIcon";
 import { isTauri } from "../../utils/platform";
 import { getErrorMessage } from "../../utils/error";
 const { t } = useI18n();
@@ -43,19 +44,12 @@ async function loadSettings() {
   try {
     const { invoke } = await import("@tauri-apps/api/core");
     const settings = (await invoke("get_settings")) as any;
-    if (settings?.env?.manager_url) managerUrl.value = settings.env.manager_url;
+    if (settings?.env?.manager_url) managerUrl.value = settings.env.manager_url.trim();
     if (settings?.last_login) {
-      const { username: savedUser, team: savedTeam } = settings.last_login;
+      const { username: savedUser, team: savedTeam, password: savedPass } = settings.last_login;
       if (savedUser) username.value = savedUser;
       if (savedTeam) selectedTeam.value = savedTeam;
-      // Load password from OS keychain
-      const account = `${savedUser}|${managerUrl.value}`;
-      try {
-        const pass = (await invoke("get_credential", { account })) as string;
-        if (pass) password.value = pass;
-      } catch {
-        // Credential not found in keychain, ignore
-      }
+      if (savedPass) { password.value = savedPass; }
     }
   } catch {}
 }
@@ -74,11 +68,16 @@ async function handleLogin() {
   try {
     const base = managerUrl.value.trim();
 
-    // Fetch server public key and encrypt password
-    const keyRes = await fetch(`${base}/api/public-key`);
-    if (!keyRes.ok) throw new Error(t("role.fetchKeyFailed"));
-    const { key: pubKey } = await keyRes.json();
-    const encrypted = await rsaEncrypt(pubKey, pass);
+    // Determine if password is already encrypted (from settings) or plaintext
+    let encrypted: string;
+    if (pass.startsWith("ENC:")) {
+      encrypted = pass.slice(4);
+    } else {
+      const keyRes = await fetch(`${base}/api/public-key`);
+      if (!keyRes.ok) throw new Error(t("role.fetchKeyFailed"));
+      const { key: pubKey } = await keyRes.json();
+      encrypted = await rsaEncrypt(pubKey, pass);
+    }
 
     const res = await fetch(`${base}/api/auth`, {
       method: "POST",
@@ -101,15 +100,13 @@ async function handleLogin() {
     if (isTauri) {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
-        const account = `${user}|${base}`;
-        await invoke("save_credential", { account, password: pass });
         const settings = (await invoke("get_settings")) as any;
-        settings.last_login = { username: user, team: selectedTeam.value || null };
+        settings.last_login = { username: user, team: selectedTeam.value || null, password: "ENC:" + encrypted };
         await invoke("save_settings", { settings });
         await invoke("init_brains", { username: user });
         await invoke("init_workspace", { username: user });
       } catch (e) {
-        console.warn("save credentials / init workspace failed:", e);
+        console.warn("save settings / init workspace failed:", e);
       }
     }
 
@@ -174,6 +171,10 @@ async function handleConnect() {
   }
 }
 
+function clearPassword() {
+  password.value = "";
+}
+
 function handleLogout() {
   authenticated.value = false;
   teams.value = [];
@@ -210,7 +211,12 @@ onMounted(loadSettings);
           </div>
           <div class="field">
             <label for="password">{{ $t('role.password') }}</label>
-            <input id="password" v-model="password" type="password" :placeholder="$t('role.enterPassword')" :disabled="loading" @keydown.enter="handleLogin" />
+            <div class="password-field">
+              <input id="password" v-model="password" type="password" :placeholder="$t('role.enterPassword')" :disabled="loading" @keydown.enter="handleLogin" />
+              <button v-if="password" class="clear-password" type="button" @click="clearPassword" :title="$t('role.clearPassword')">
+                <SvgIcon name="close" :size="12" />
+              </button>
+            </div>
           </div>
         </div>
 

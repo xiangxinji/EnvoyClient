@@ -37,6 +37,7 @@
     "connecting": "Connecting...",
     "logout": "Logout",
     "leader": "leader",
+    "clearPassword": "Clear password",
     "member": "member"
   },
   "titlebar": {
