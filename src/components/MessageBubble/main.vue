@@ -9,6 +9,7 @@ import { formatTime } from "../../utils/taskFormatters";
 import BubbleContent from "../BubbleContent";
 import AttachmentList from "../AttachmentList";
 import CloudRefCard from "../CloudRefCard";
+import CloudDirDialog from "../CloudDirDialog";
 import ForwardedDialog from "../ForwardedDialog";
 import MemberHoverCard from "../MemberHoverCard";
 import QuoteCard from "../QuoteCard";
@@ -84,6 +85,15 @@ function onBubbleClick(e: MouseEvent) {
 }
 
 const forwardedDialogVisible = ref(false);
+const cloudDirDialogVisible = ref(false);
+const cloudDirPath = ref("");
+const cloudDirName = ref("");
+
+function handleOpenDir(data: { path: string; name: string }) {
+  cloudDirPath.value = data.path;
+  cloudDirName.value = data.name;
+  cloudDirDialogVisible.value = true;
+}
 
 function getMember(id: string): MemberInfo | null { return props.members?.find(m => m.id === id) ?? null; }
 
@@ -125,7 +135,7 @@ function bubbleClick(e: MouseEvent) {
         <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
         <template v-else>
           <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" />
-          <CloudRefCard v-for="(ref, ri) in message.cloudRefs" :key="'cr'+ri" :data="ref" :team-name="teamName" />
+          <CloudRefCard v-for="(ref, ri) in message.cloudRefs" :key="'cr'+ri" :data="ref" :team-name="teamName" @open-dir="handleOpenDir" />
           <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
             <SvgIcon name="chat" :size="14" />
             <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>
@@ -154,7 +164,7 @@ function bubbleClick(e: MouseEvent) {
           <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
           <template v-else>
             <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" />
-            <CloudRefCard v-for="(ref, ri) in message.cloudRefs" :key="'cr'+ri" :data="ref" :team-name="teamName" />
+            <CloudRefCard v-for="(ref, ri) in message.cloudRefs" :key="'cr'+ri" :data="ref" :team-name="teamName" @open-dir="handleOpenDir" />
             <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
               <SvgIcon name="chat" :size="14" />
               <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>
@@ -182,7 +192,7 @@ function bubbleClick(e: MouseEvent) {
       <StickerImage v-if="isSticker" :url="stickerUrl" :name="message.sticker?.name" />
       <template v-else>
         <BubbleContent v-if="!noText && !message.forwarded?.length" :text="message.text" :mentions="isChannel ? message.mentions : undefined" :member-ids="memberIds" :show-sender="showSender" :sender-name="showSender ? getDisplayName(message.from) : undefined" />
-        <CloudRefCard v-for="(ref, ri) in message.cloudRefs" :key="'cr'+ri" :data="ref" :team-name="teamName" />
+        <CloudRefCard v-for="(ref, ri) in message.cloudRefs" :key="'cr'+ri" :data="ref" :team-name="teamName" @open-dir="handleOpenDir" />
         <div v-if="message.forwarded?.length" class="forwarded-summary" @click.stop="forwardedDialogVisible = true">
           <SvgIcon name="chat" :size="14" />
           <span>{{ t('chat.chatHistory') }} ({{ message.forwarded.length }})</span>
@@ -203,6 +213,8 @@ function bubbleClick(e: MouseEvent) {
 
   <!-- Forwarded history dialog -->
   <ForwardedDialog v-if="message.forwarded?.length" :records="message.forwarded" v-model:visible="forwardedDialogVisible" />
+
+  <CloudDirDialog :visible="cloudDirDialogVisible" :dir-path="cloudDirPath" :dir-name="cloudDirName" :team-name="teamName" @update:visible="cloudDirDialogVisible = $event" />
 
   <MemberHoverCard v-if="hoverMember" :member="hoverMember" :rect="hoverRect" :visible="hoverVisible" @mouseenter="onCardEnter" @mouseleave="onCardLeave" />
 </template>

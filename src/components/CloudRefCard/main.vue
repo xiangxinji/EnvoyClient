@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import type { CloudRef } from "../../types";
 import { formatFileSize } from "../../utils/taskFormatters";
 import { getCloudResourceService } from "../../composables/teamClientContext";
+import { downloadFileWithDialog } from "../../utils/notification";
 import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
@@ -13,7 +14,12 @@ const props = defineProps<{
   teamName?: string;
 }>();
 
+const emit = defineEmits<{
+  openDir: [data: CloudRef];
+}>();
+
 const expired = ref(false);
+const downloading = ref(false);
 let cancelled = false;
 
 onMounted(async () => {
@@ -28,8 +34,21 @@ onMounted(async () => {
 
 onUnmounted(() => { cancelled = true; });
 
-function downloadUrl() {
-  return props.data.path && props.teamName ? getCloudResourceService().downloadUrl(props.data.path) : "#";
+async function handleDownload() {
+  if (downloading.value || expired.value) return;
+  downloading.value = true;
+  try {
+    const url = getCloudResourceService().downloadUrl(props.data.path);
+    await downloadFileWithDialog(url, props.data.name, props.teamName ? { team: props.teamName } : undefined);
+  } catch {
+    // silent
+  } finally {
+    downloading.value = false;
+  }
+}
+
+function handleDirClick() {
+  if (!expired.value) emit("openDir", props.data);
 }
 </script>
 
@@ -46,16 +65,16 @@ function downloadUrl() {
     </template>
   </span>
 
-  <a v-else-if="data.type === 'file'" class="cloud-ref-card file" :href="downloadUrl()" target="_blank" rel="noopener">
+  <span v-else-if="data.type === 'file'" class="cloud-ref-card file" @click="handleDownload">
     <span class="cloud-ref-icon-fallback">📄</span>
     <span class="cloud-ref-info">
       <span class="cloud-ref-name">{{ data.name }}</span>
       <span class="cloud-ref-size">{{ formatFileSize(data.size ?? 0) }}</span>
     </span>
     <SvgIcon class="cloud-ref-download" name="download" :size="14" />
-  </a>
+  </span>
 
-  <span v-else class="cloud-ref-card directory" :data-cloud-path="data.path">
+  <span v-else class="cloud-ref-card directory" @click="handleDirClick">
     <span class="cloud-ref-icon-fallback">📁</span>
     <span class="cloud-ref-name">{{ data.name }}</span>
     <span class="cloud-ref-action">{{ t('cloudMention.openInCloud') }}</span>
