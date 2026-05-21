@@ -50,11 +50,11 @@ const toolDescMap: Record<string, string> = { __cloud__: "sidebar.cloudResources
 const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch"> = { __cloud__: "cloud", __tasks__: "tasks", __dispatch__: "dispatch" };
 
 const menuItems = [
+  { id: "__quick__", icon: "keyboard" as const, labelKey: "sidebar.shortcuts" },
   { id: "__settings_profile__", icon: "user" as const, labelKey: "sidebar.profile" },
   { id: "__settings_task__", icon: "tasks" as const, labelKey: "sidebar.taskSettings" },
   { id: "__settings_ai__", icon: "lightning" as const, labelKey: "sidebar.aiSettings" },
   { id: "__settings_general__", icon: "settings" as const, labelKey: "sidebar.general" },
-  { id: "__quick__", icon: "keyboard" as const, labelKey: "sidebar.shortcuts" },
 ];
 
 function handleToolEnter(toolId: string, e: MouseEvent) { toolHover.show(toolId, e.currentTarget as HTMLElement); }

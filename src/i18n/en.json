@@ -233,7 +233,9 @@
     "groupAI": "AI Assistant",
     "groupGeneral": "General",
     "nickname": "Nickname",
-    "nicknamePlaceholder": "Enter nickname"
+    "nicknamePlaceholder": "Enter nickname",
+    "autoStart": "Launch at Login",
+    "autoStartDesc": "Automatically start the app when the system boots"
   },
   "notification": {
     "newTask": "New Task",

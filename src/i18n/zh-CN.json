@@ -233,7 +233,9 @@
     "groupAI": "AI 助手",
     "groupGeneral": "通用",
     "nickname": "昵称",
-    "nicknamePlaceholder": "输入昵称"
+    "nicknamePlaceholder": "输入昵称",
+    "autoStart": "开机自动启动",
+    "autoStartDesc": "登录后自动在系统启动时运行"
   },
   "notification": {
     "newTask": "新任务",
