@@ -154,6 +154,6 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style>
 @import './App/styles.css';
 </style>
