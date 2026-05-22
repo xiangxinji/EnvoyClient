@@ -184,7 +184,7 @@ function handleAcceptSuggestion() { const text = acceptSuggestion(); if (text) s
 function handleForwardConfirmWrapper(targetId: string) { handleForwardConfirm(targetId, t('chat.chatHistory')); }
 
 function handleStickerSend(stickerUrl: string, stickerName: string) {
-  sendChat(props.peerId, " ", { sticker: { url: stickerUrl, name: stickerName } });
+  sendChat(props.peerId, " ", { sticker: { url: stickerUrl, name: stickerName }, channel: isChannel.value ? "general" : undefined });
   stickerPanelVisible.value = false;
 }
 

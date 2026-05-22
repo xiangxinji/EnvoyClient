@@ -93,6 +93,9 @@ export function useMessages(
           if (att.url.startsWith("/")) att.url = apiUrl(att.url);
         }
       }
+      if (payload.sticker?.url?.startsWith("/")) {
+        payload.sticker.url = apiUrl(payload.sticker.url);
+      }
       const chatMsg = buildChatMessage({
         id: payload.id ?? msg.id,
         seq: payload.seq ?? 0,
