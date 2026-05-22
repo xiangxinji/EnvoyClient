@@ -118,6 +118,8 @@
     "noForwardTarget": "No members to forward to",
     "quote": "Quote Reply",
     "copy": "Copy",
+    "addSticker": "Add Sticker",
+    "addStickerSuccess": "Sticker added",
     "quoteRevoked": "Original message revoked",
     "quotePlaceholderImage": "[Image]",
     "quotePlaceholderFile": "[File]",

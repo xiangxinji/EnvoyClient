@@ -137,6 +137,26 @@ export function useMessageContextMenu(
     return !!(msg.text || msg.attachments?.some(a => a.type === "image"));
   }
 
+  async function handleAddSticker() {
+    contextMenuVisible.value = false;
+    if (!contextMenuMsg.value?.sticker) return;
+    const { url, name } = contextMenuMsg.value.sticker;
+    contextMenuMsg.value = null;
+
+    try {
+      const { getStickerService } = await import("./teamClientContext");
+      const { apiUrl } = await import("../api");
+      const res = await fetch(apiUrl(url));
+      const blob = await res.blob();
+      const ext = blob.type.split("/")[1] || "png";
+      const file = new File([blob], name || `sticker.${ext}`, { type: blob.type });
+      await getStickerService().add(file);
+      toastCallback(t("chat.addStickerSuccess"), "success");
+    } catch {
+      toastCallback(t("common.operationFailed"), "error");
+    }
+  }
+
   return {
     contextMenuVisible,
     contextMenuX,
@@ -153,5 +173,6 @@ export function useMessageContextMenu(
     closeContextMenu,
     handleCopy,
     canCopyMessage,
+    handleAddSticker,
   };
 }

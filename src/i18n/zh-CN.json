@@ -118,6 +118,8 @@
     "noForwardTarget": "没有可转发的成员",
     "quote": "引用回复",
     "copy": "复制",
+    "addSticker": "添加表情",
+    "addStickerSuccess": "表情已添加",
     "quoteRevoked": "原消息已撤回",
     "quotePlaceholderImage": "[图片]",
     "quotePlaceholderFile": "[文件]",
