@@ -22,6 +22,7 @@
 | 11 | AI Provider 每次创建新实例 | [medium/11-provider-instance-cache.md](medium/11-provider-instance-cache.md) |
 | 12 | 团队路由校验代码重复 | [medium/12-team-route-middleware.md](medium/12-team-route-middleware.md) |
 | 13 | Session 无持久化和清理 | [medium/13-session-management.md](medium/13-session-management.md) |
+| 19 | App.vue 代码规范整改 | [medium/19-app-vue-code-review.md](medium/19-app-vue-code-review.md) |
 
 ## 低优先级（锦上添花）
 

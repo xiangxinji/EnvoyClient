@@ -25,7 +25,8 @@ async function getCloseAction(): Promise<string> {
     const { invoke } = await import("@tauri-apps/api/core");
     const settings = (await invoke("get_settings")) as Record<string, unknown>;
     return (settings.close_action as string) || "ask";
-  } catch {
+  } catch (e) {
+    console.error("Failed to get close action:", e);
     return "ask";
   }
 }
@@ -37,7 +38,9 @@ async function saveCloseAction(action: string): Promise<void> {
     const settings = (await invoke("get_settings")) as Record<string, unknown>;
     settings.close_action = action;
     await invoke("save_settings", { settings });
-  } catch {}
+  } catch (e) {
+    console.error("Failed to save close action:", e);
+  }
 }
 
 async function handleHide() {
@@ -51,7 +54,9 @@ async function handleExit() {
   try {
     const { invoke } = await import("@tauri-apps/api/core");
     await invoke("app_exit");
-  } catch {}
+  } catch (e) {
+    console.error("Failed to exit app:", e);
+  }
 }
 
 async function handleCloseRequested() {
@@ -83,10 +88,6 @@ function preventRefresh(e: KeyboardEvent) {
   }
 }
 
-function preventContextMenu(e: MouseEvent) {
-  e.preventDefault();
-}
-
 onMounted(async () => {
   const splash = document.getElementById("splash");
   if (splash) {
@@ -95,14 +96,14 @@ onMounted(async () => {
     setTimeout(() => splash.classList.add("gone"), 600);
   }
 
-  // window.addEventListener("contextmenu", preventContextMenu);
   window.addEventListener("focus", cancelTaskbarAttention);
 
   if (isTauri) {
     window.addEventListener("keydown", preventRefresh);
     try {
       const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      const unlistenFn = await (getCurrentWindow() as any).listen(
+      const currentWindow = getCurrentWindow();
+      const unlistenFn = await currentWindow.listen(
         "close-requested",
         () => {
           handleCloseRequested();
@@ -110,7 +111,7 @@ onMounted(async () => {
       );
       unlisten = unlistenFn;
 
-      const unlistenQuitFn = await (getCurrentWindow() as any).listen(
+      const unlistenQuitFn = await currentWindow.listen(
         "quit-requested",
         () => {
           if (locked.value) {
@@ -121,14 +122,15 @@ onMounted(async () => {
         }
       );
       unlistenQuit = unlistenQuitFn;
-    } catch {}
+    } catch (e) {
+      console.error("Failed to setup window listeners:", e);
+    }
   }
 });
 
 onUnmounted(() => {
   unlisten?.();
   unlistenQuit?.();
-  window.removeEventListener("contextmenu", preventContextMenu);
   window.removeEventListener("focus", cancelTaskbarAttention);
   if (isTauri) {
     window.removeEventListener("keydown", preventRefresh);
@@ -152,100 +154,6 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style>
-@import './styles/variables.css';
-
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
-  background: var(--app-gradient);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-#app {
-  height: 100%;
-}
-
-.app-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-  position: relative;
-  z-index: 1;
-}
-
-input, button, textarea {
-  font-family: inherit;
-  font-size: inherit;
-}
-
-::selection {
-  background: var(--accent);
-  color: var(--text-on-accent);
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-.page-enter-active {
-  transition:
-    opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
-    filter 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform, filter;
-}
-
-.page-leave-active {
-  transition:
-    opacity 0.18s cubic-bezier(0.4, 0, 1, 1),
-    transform 0.18s cubic-bezier(0.4, 0, 1, 1),
-    filter 0.18s cubic-bezier(0.4, 0, 1, 1);
-  will-change: opacity, transform, filter;
-}
-
-.page-enter-from {
-  opacity: 0;
-  transform: scale(0.94);
-  filter: blur(8px);
-}
-
-.page-leave-to {
-  opacity: 0;
-  transform: scale(0.97);
-  filter: blur(4px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .page-enter-active,
-  .page-leave-active {
-    transition: opacity 0.1s ease;
-  }
-  .page-enter-from,
-  .page-leave-to {
-    transform: none;
-    filter: none;
-  }
-}
+<style scoped>
+@import './App/styles.css';
 </style>
