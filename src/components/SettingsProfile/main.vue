@@ -9,10 +9,12 @@ import { useToast } from "../../composables/useToast";
 import { useLockScreen } from "../../composables/useLockScreen";
 import { pickFiles } from "../../utils/filePicker";
 import GlassButton from "../GlassButton";
+import GlassInput from "../GlassInput";
 import BackButton from "../BackButton";
 import ConfirmDialog from "../ConfirmDialog";
 import Toast from "../Toast";
 import SvgIcon from "../SvgIcon";
+import { useMouseGradient } from "../../composables/useMouseGradient";
 
 const { t } = useI18n();
 const emit = defineEmits<{ back: [] }>();
@@ -33,6 +35,11 @@ const capabilities = ref("");
 const responsibilities = ref("");
 const nicknameSaving = ref(false);
 const avatarUploading = ref(false);
+const userCardRef = ref<HTMLElement | null>(null);
+const { onMouseMove: onCardMouseMove, onMouseLeave: onCardMouseLeave } = useMouseGradient(userCardRef, {
+  radius: 200,
+  opacity: 0.12,
+});
 
 onMounted(async () => {
   await loadSettings(username);
@@ -129,12 +136,11 @@ async function handleLogout() {
           <div class="setting-group">
             <label class="setting-label">{{ t('settings.nickname') }}</label>
             <div class="nickname-row">
-              <input
+              <GlassInput
                 v-model="nickname"
                 type="text"
-                class="setting-input"
                 :placeholder="t('settings.nicknamePlaceholder')"
-                @keydown.enter="saveNickname"
+                @keydown="saveNickname"
               />
               <GlassButton
                 variant="primary"
@@ -175,19 +181,19 @@ async function handleLogout() {
     </div>
 
     <div class="settings-footer">
-      <div class="user-card">
+      <div ref="userCardRef" class="user-card" @mousemove="onCardMouseMove" @mouseleave="onCardMouseLeave">
         <img v-if="avatarUrl" :src="avatarUrl" class="user-avatar user-avatar-img" alt="" />
         <div v-else class="user-avatar">{{ getInitial(username) }}</div>
         <div class="user-meta">
           <span class="user-name">{{ displayName }}</span>
           <span class="user-role" :class="ctx.role">{{ ctx.role }}</span>
         </div>
-        <button class="lock-btn" :title="t('lock.lockScreen')" @click="lock">
+        <GlassButton variant="default" class="icon-btn" :title="t('lock.lockScreen')" @click="lock">
           <SvgIcon name="lock" :size="18" />
-        </button>
-        <button class="logout-btn" :title="t('settings.logout')" @click="requestLogout">
+        </GlassButton>
+        <GlassButton variant="danger" class="icon-btn" :title="t('settings.logout')" @click="requestLogout">
           <SvgIcon name="log-out" :size="18" />
-        </button>
+        </GlassButton>
       </div>
     </div>
 

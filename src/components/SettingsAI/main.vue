@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import { getMemberSettings, getTeamClientInstance } from "../../composables/teamClientContext";
 import BackButton from "../BackButton";
 import GlassCheckbox from "../GlassCheckbox";
+import GlassInput from "../GlassInput";
 
 const { t } = useI18n();
 const emit = defineEmits<{ back: [] }>();
@@ -68,10 +69,9 @@ async function saveAiHistoryCount() {
 
           <div class="setting-group">
             <label class="setting-label">{{ t('settings.aiHistoryCount') }}</label>
-            <input
+            <GlassInput
               v-model.number="aiHistoryCount"
               type="number"
-              class="setting-input"
               min="1"
               max="50"
               @blur="saveAiHistoryCount"

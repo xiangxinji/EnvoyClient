@@ -3,6 +3,8 @@ import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { useAITask } from "../../composables/useAITask";
+import GlassButton from "../../components/GlassButton";
+import { useMouseGradient } from "../../composables/useMouseGradient";
 
 const ctx = getTeamClientInstance()!;
 const { members, dispatchTask } = ctx;
@@ -13,6 +15,11 @@ const { dispatchTask: aiDispatchTask, aiAvailable, aiError: dispatchAiError } = 
 const taskContent = ref("");
 const dispatchPreview = ref<{ subscribe: string[]; content: string } | null>(null);
 const dispatchLoading = ref(false);
+const sectionRef = ref<HTMLElement | null>(null);
+const { onMouseMove, onMouseLeave } = useMouseGradient(sectionRef, {
+  radius: 200,
+  opacity: 0.12,
+});
 
 async function handleSubmit() {
   const content = taskContent.value.trim();
@@ -113,20 +120,21 @@ function getMatchedMembers() {
       <!-- Error display -->
       <div v-if="dispatchAiError" class="notice notice-error">{{ dispatchAiError }}</div>
 
-      <button
+      <GlassButton
+        variant="primary"
         class="btn-dispatch"
-        :disabled="!taskContent.trim() || dispatchLoading || !aiAvailable"
+        :disabled="!taskContent.trim() || !aiAvailable"
+        :loading="dispatchLoading"
         @click="handleSubmit"
       >
-        <span v-if="dispatchLoading" class="spinner-small"></span>
         <span>{{ dispatchLoading ? $t('task.dispatch.aiAnalyzing') : $t('task.dispatch.aiSmartDispatch') }}</span>
-      </button>
+      </GlassButton>
     </div>
 
     <!-- Preview -->
     <div v-if="dispatchPreview" class="section">
       <h3 class="section-title">{{ $t('task.dispatch.matchResult') }}</h3>
-      <div class="preview-card">
+      <div ref="sectionRef" class="preview-card" @mousemove="onMouseMove" @mouseleave="onMouseLeave">
         <div class="preview-content">{{ dispatchPreview.content }}</div>
         <div class="preview-members">
           <span class="preview-label">{{ $t('task.dispatch.assignTo') }}</span>
@@ -144,10 +152,10 @@ function getMatchedMembers() {
           </div>
         </div>
         <div class="preview-actions">
-          <button class="btn-confirm" @click="handleConfirm" :disabled="dispatchPreview.subscribe.length === 0">
+          <GlassButton variant="primary" :disabled="dispatchPreview.subscribe.length === 0" @click="handleConfirm">
             {{ $t('task.dispatch.confirmDispatch') }}
-          </button>
-          <button class="btn-cancel" @click="handleCancel">{{ $t('common.cancel') }}</button>
+          </GlassButton>
+          <GlassButton variant="default" @click="handleCancel">{{ $t('common.cancel') }}</GlassButton>
         </div>
       </div>
     </div>

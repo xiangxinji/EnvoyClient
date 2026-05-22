@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import GlassButton from "../GlassButton";
 
 const { t } = useI18n();
 
@@ -50,8 +51,8 @@ function handleBackdropClick() {
         <div class="confirm-title">{{ title ?? t('common.confirm') }}</div>
         <div class="confirm-message">{{ message }}</div>
         <div class="confirm-actions">
-          <button class="btn-cancel" @click="handleCancel">{{ cancelText ?? t('common.cancel') }}</button>
-          <button class="btn-confirm" :class="{ danger }" @click="handleConfirm">{{ confirmText ?? t('common.confirm') }}</button>
+          <GlassButton variant="default" @click="handleCancel">{{ cancelText ?? t('common.cancel') }}</GlassButton>
+          <GlassButton :variant="danger ? 'danger' : 'primary'" @click="handleConfirm">{{ confirmText ?? t('common.confirm') }}</GlassButton>
         </div>
       </div>
     </div>

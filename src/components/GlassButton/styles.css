@@ -18,6 +18,26 @@
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    200px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.glass-btn:hover:not(:disabled)::before {
+  opacity: 1;
 }
 
 .glass-btn:hover:not(:disabled) {
@@ -30,10 +50,19 @@
   cursor: not-allowed;
 }
 
+/* Primary variant - uses white gradient for contrast */
 .glass-btn.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--text-on-accent);
+}
+
+.glass-btn.primary::before {
+  background: radial-gradient(
+    200px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(255, 255, 255, 0.2) 0%,
+    transparent 70%
+  );
 }
 
 .glass-btn.primary:hover:not(:disabled) {
@@ -42,13 +71,45 @@
   color: var(--text-on-accent);
 }
 
+/* Danger variant */
 .glass-btn.danger {
   border-color: var(--error);
   color: var(--error);
   background: transparent;
 }
 
+.glass-btn.danger::before {
+  background: radial-gradient(
+    200px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(255, 59, 48, 0.1) 0%,
+    transparent 70%
+  );
+}
+
 .glass-btn.danger:hover:not(:disabled) {
   background: var(--error);
   color: var(--text-on-accent);
+}
+
+.glass-btn.danger:hover:not(:disabled)::before {
+  background: radial-gradient(
+    200px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(255, 255, 255, 0.2) 0%,
+    transparent 70%
+  );
+}
+
+/* Loading spinner */
+.glass-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: glass-spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes glass-spin {
+  to { transform: rotate(360deg); }
 }

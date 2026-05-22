@@ -9,8 +9,10 @@ import { setTeamClientInstance } from "../../composables/teamClientContext";
 import { setManagerUrl, setClientToken } from "../../api";
 import { rsaEncrypt } from "../../utils/rsa";
 import GlassSelect from "../../components/GlassSelect";
+import GlassInput from "../../components/GlassInput";
+import GlassButton from "../../components/GlassButton";
+import { useMouseGradient } from "../../composables/useMouseGradient";
 import logo from "../../assets/logo.png";
-import SvgIcon from "../../components/SvgIcon";
 import { isTauri } from "../../utils/platform";
 import { getErrorMessage } from "../../utils/error";
 const { t } = useI18n();
@@ -28,6 +30,11 @@ const managerUrl = ref("http://localhost:8080");
 const username = ref("");
 const password = ref("");
 const loading = ref(false);
+const cardRef = ref<HTMLElement | null>(null);
+const { onMouseMove, onMouseLeave } = useMouseGradient(cardRef, {
+  radius: 200,
+  opacity: 0.12,
+});
 const error = ref("");
 const role = ref<"leader" | "member">("member");
 const teams = ref<{ name: string; port: number }[]>([]);
@@ -171,10 +178,6 @@ async function handleConnect() {
   }
 }
 
-function clearPassword() {
-  password.value = "";
-}
-
 function handleLogout() {
   authenticated.value = false;
   teams.value = [];
@@ -197,7 +200,7 @@ onMounted(loadSettings);
         <option value="en">English</option>
       </GlassSelect>
     </div>
-    <div class="card">
+    <div ref="cardRef" class="card" @mousemove="onMouseMove" @mouseleave="onMouseLeave">
       <img :src="logo" class="logo" alt="Envoy" />
       <h1>Envoy</h1>
       <p class="subtitle">{{ $t('role.subtitle') }}</p>
@@ -207,25 +210,21 @@ onMounted(loadSettings);
         <div class="fields">
           <div class="field">
             <label for="username">{{ $t('role.username') }}</label>
-            <input id="username" v-model="username" :placeholder="$t('role.enterUsername')" :disabled="loading" @keydown.enter="handleLogin" />
+            <GlassInput id="username" v-model="username" :placeholder="$t('role.enterUsername')" :disabled="loading" @keydown.enter="handleLogin" />
           </div>
           <div class="field">
             <label for="password">{{ $t('role.password') }}</label>
             <div class="password-field">
-              <input id="password" v-model="password" type="password" :placeholder="$t('role.enterPassword')" :disabled="loading" @keydown.enter="handleLogin" />
-              <button v-if="password" class="clear-password" type="button" @click="clearPassword" :title="$t('role.clearPassword')">
-                <SvgIcon name="close" :size="12" />
-              </button>
+              <GlassInput id="password" v-model="password" type="password" :placeholder="$t('role.enterPassword')" :disabled="loading" clearable @keydown.enter="handleLogin" />
             </div>
           </div>
         </div>
 
-        <button class="connect-btn" @click="handleLogin" :disabled="loading">
-          <span v-if="loading" class="spinner"></span>
+        <GlassButton variant="primary" class="connect-btn" :disabled="loading" :loading="loading" @click="handleLogin">
           <span>{{ loading ? $t("role.loggingIn") : $t("role.login") }}</span>
-        </button>
+        </GlassButton>
 
-        <button class="btn-settings" @click="router.push('/settings')">{{ $t('common.settings') }}</button>
+        <GlassButton variant="default" class="btn-settings" @click="router.push('/settings')">{{ $t('common.settings') }}</GlassButton>
       </template>
 
       <!-- Step 2: Select team -->
@@ -233,7 +232,7 @@ onMounted(loadSettings);
         <div class="auth-info">
           <span class="auth-user">{{ username }}</span>
           <span class="role-badge" :class="role">{{ role }}</span>
-          <button class="btn-logout" @click="handleLogout">{{ $t('role.logout') }}</button>
+          <GlassButton variant="default" class="btn-logout" @click="handleLogout">{{ $t('role.logout') }}</GlassButton>
         </div>
 
         <div class="fields">
@@ -247,10 +246,9 @@ onMounted(loadSettings);
           </div>
         </div>
 
-        <button class="connect-btn" @click="handleConnect" :disabled="loading">
-          <span v-if="loading" class="spinner"></span>
+        <GlassButton variant="primary" class="connect-btn" :disabled="loading" :loading="loading" @click="handleConnect">
           <span>{{ loading ? $t("role.connecting") : $t("role.connect") }}</span>
-        </button>
+        </GlassButton>
       </template>
 
       <p v-if="error" class="error">{{ error }}</p>

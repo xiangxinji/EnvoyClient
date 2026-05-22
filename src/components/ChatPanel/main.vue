@@ -23,6 +23,7 @@ import StickerPanel from "../StickerPanel";
 import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
 import SvgIcon from "../SvgIcon";
+import GlassInput from "../GlassInput";
 import type { TimelineItem, ChatMessage, TaskMessage, QuoteInfo, ContentSegment } from "../../types";
 import { formatFileSize } from "../../utils/taskFormatters";
 
@@ -256,7 +257,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
       <div v-if="!selectMode" class="input-area">
         <div v-if="taskInputVisible && role === 'leader'" class="task-input-wrapper">
           <div class="task-input">
-            <input v-model="taskContent" :placeholder="$t('chat.enterTask')" @keydown.enter="handleDispatchTask" />
+            <GlassInput v-model="taskContent" :placeholder="$t('chat.enterTask')" @keydown.enter="handleDispatchTask" />
             <button class="btn-icon btn-confirm" @click="handleDispatchTask" :title="$t('chat.dispatchTask')" :disabled="!taskContent.trim()"><SvgIcon name="lightning" :size="18" /></button>
             <button class="btn-icon btn-cancel" @click="taskInputVisible = false" :title="$t('common.cancel')"><SvgIcon name="close" :size="18" /></button>
           </div>

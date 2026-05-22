@@ -200,13 +200,10 @@ input::placeholder {
 
 .password-field {
   position: relative;
-  display: flex;
-  align-items: center;
 }
 
-.password-field input {
-  flex: 1;
-  padding-right: 32px;
+.password-field :deep(.glass-input) {
+  width: 100%;
 }
 
 .clear-password {

@@ -1,29 +1,32 @@
 <template>
   <Transition name="lock">
     <div v-if="locked" class="lock-screen">
-      <div class="lock-card">
+      <div ref="lockCardRef" class="lock-card" @mousemove="onMouseMove" @mouseleave="onMouseLeave">
         <div class="lock-icon">
           <SvgIcon name="lock" :size="28" />
         </div>
         <h2 class="lock-title">{{ t('lock.title') }}</h2>
         <p class="lock-desc">{{ t('lock.desc') }}</p>
         <div class="lock-field">
-          <input
+          <GlassInput
             ref="passwordInput"
             v-model="password"
             type="password"
-            class="lock-input"
             :placeholder="t('lock.enterPassword')"
-            :disabled="verifying"
             @keydown.enter="handleUnlock"
           />
         </div>
         <p v-if="error" class="lock-error">{{ error }}</p>
         <p v-if="quitAttempted && !error" class="lock-warning">{{ t('lock.quitBlocked') }}</p>
-        <button class="lock-btn" :disabled="verifying || !password" @click="handleUnlock">
-          <span v-if="verifying" class="spinner"></span>
+        <GlassButton
+          variant="primary"
+          class="lock-btn"
+          :disabled="!password"
+          :loading="verifying"
+          @click="handleUnlock"
+        >
           <span>{{ verifying ? t('common.loading') : t('lock.unlock') }}</span>
-        </button>
+        </GlassButton>
       </div>
     </div>
   </Transition>
@@ -35,6 +38,9 @@ import { useI18n } from "vue-i18n";
 import { getManagerUrl, managerFetch } from "../../api";
 import { rsaEncrypt } from "../../utils/rsa";
 import { useLockScreen } from "../../composables/useLockScreen";
+import { useMouseGradient } from "../../composables/useMouseGradient";
+import GlassInput from "../GlassInput";
+import GlassButton from "../GlassButton";
 import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
@@ -52,7 +58,12 @@ const emit = defineEmits<{
 const password = ref("");
 const error = ref("");
 const verifying = ref(false);
-const passwordInput = ref<HTMLInputElement | null>(null);
+const passwordInput = ref<InstanceType<typeof GlassInput> | null>(null);
+const lockCardRef = ref<HTMLElement | null>(null);
+const { onMouseMove, onMouseLeave } = useMouseGradient(lockCardRef, {
+  radius: 200,
+  opacity: 0.12,
+});
 
 watch(() => props.locked, async (val) => {
   if (val) {

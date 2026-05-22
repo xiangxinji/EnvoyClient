@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import GlassCheckbox from "../GlassCheckbox";
+import GlassButton from "../GlassButton";
 
 useI18n();
 
@@ -23,25 +24,9 @@ const remember = ref(false);
 	          <p class="dialog-desc">{{ $t('dialog.closeConfirmDesc') }}</p>
 
           <div class="dialog-actions">
-            <button class="btn btn-secondary" @click="visible = false">{{ $t('common.cancel') }}</button>
-            <button
-              class="btn btn-primary"
-              @click="
-                visible = false;
-                emit('hide', remember);
-              "
-            >
-              {{ $t('dialog.hideToTray') }}
-            </button>
-            <button
-              class="btn btn-danger"
-              @click="
-                visible = false;
-                emit('exit', remember);
-              "
-            >
-              {{ $t('dialog.quitApp') }}
-            </button>
+            <GlassButton variant="default" @click="visible = false">{{ $t('common.cancel') }}</GlassButton>
+            <GlassButton variant="primary" @click="visible = false; emit('hide', remember);">{{ $t('dialog.hideToTray') }}</GlassButton>
+            <GlassButton variant="danger" @click="visible = false; emit('exit', remember);">{{ $t('dialog.quitApp') }}</GlassButton>
           </div>
 
           <GlassCheckbox v-model="remember">{{ $t('dialog.rememberChoice') }}</GlassCheckbox>

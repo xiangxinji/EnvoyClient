@@ -4,6 +4,9 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import logo from "../../assets/logo.png";
 import { isTauri } from "../../utils/platform";
+import GlassInput from "../../components/GlassInput";
+import GlassButton from "../../components/GlassButton";
+import { useMouseGradient } from "../../composables/useMouseGradient";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -11,6 +14,11 @@ const router = useRouter();
 const managerUrl = ref("http://localhost:8080");
 const saved = ref(false);
 const error = ref("");
+const cardRef = ref<HTMLElement | null>(null);
+const { onMouseMove, onMouseLeave } = useMouseGradient(cardRef, {
+  radius: 200,
+  opacity: 0.12,
+});
 
 async function loadSettings() {
   if (!isTauri) return;
@@ -63,14 +71,14 @@ onMounted(loadSettings);
 
 <template>
   <div class="settings-page">
-    <div class="card">
+    <div ref="cardRef" class="card" @mousemove="onMouseMove" @mouseleave="onMouseLeave">
       <img :src="logo" class="logo" alt="Envoy" />
       <h1>{{ $t('loginSettings.title') }}</h1>
 
       <div class="fields">
         <div class="field">
           <label for="managerUrl">Manager URL</label>
-          <input
+          <GlassInput
             id="managerUrl"
             v-model="managerUrl"
             placeholder="http://localhost:8080"
@@ -82,11 +90,11 @@ onMounted(loadSettings);
       </div>
 
       <div class="actions">
-        <button class="btn-back" @click="handleBack">{{ $t('common.back') }}</button>
-        <button class="btn-save" @click="handleSave">
+        <GlassButton variant="default" @click="handleBack">{{ $t('common.back') }}</GlassButton>
+        <GlassButton variant="primary" :loading="saved" @click="handleSave">
           <span v-if="saved" class="check">✓</span>
           <span>{{ saved ? $t('common.saved') : $t('common.save') }}</span>
-        </button>
+        </GlassButton>
       </div>
 
       <p v-if="error" class="error">{{ error }}</p>

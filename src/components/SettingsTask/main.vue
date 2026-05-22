@@ -5,6 +5,7 @@ import { getMemberSettings, getTeamClientInstance } from "../../composables/team
 import type { TaskExecutionMode } from "../../composables/useMemberSettings";
 import BackButton from "../BackButton";
 import GlassSelect from "../GlassSelect";
+import GlassInput from "../GlassInput";
 
 const { t } = useI18n();
 const emit = defineEmits<{ back: [] }>();
@@ -69,10 +70,9 @@ async function saveWorkingDirectory() {
 
           <div class="setting-group">
             <label class="setting-label">{{ t('settings.workingDirectory') }}</label>
-            <input
+            <GlassInput
               v-model="workingDirectory"
               type="text"
-              class="setting-input"
               :placeholder="t('settings.workingDirectoryPlaceholder')"
               @blur="saveWorkingDirectory"
               @keydown.enter="saveWorkingDirectory"

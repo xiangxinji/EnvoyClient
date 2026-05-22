@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import GlassButton from "../GlassButton";
 import type { MemberInfo } from "../../types";
 import SvgIcon from "../SvgIcon";
 import { useUserProfile } from "../../composables/useUserProfile";
@@ -64,8 +65,8 @@ function handleCancel() {
           </div>
         </div>
         <div class="forward-actions">
-          <button class="btn-cancel" @click="handleCancel">{{ t('common.cancel') }}</button>
-          <button class="btn-confirm" @click="handleConfirm" :disabled="!selectedId">{{ t('chat.confirmForward') }}</button>
+          <GlassButton variant="default" @click="handleCancel">{{ t('common.cancel') }}</GlassButton>
+          <GlassButton variant="primary" :disabled="!selectedId" @click="handleConfirm">{{ t('chat.confirmForward') }}</GlassButton>
         </div>
       </div>
     </div>

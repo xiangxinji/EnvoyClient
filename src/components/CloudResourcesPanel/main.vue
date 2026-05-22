@@ -14,6 +14,8 @@ import FileIcon from "../FileIcon";
 import ConfirmDialog from "../ConfirmDialog";
 import Toast from "../Toast";
 import SvgIcon from "../SvgIcon";
+import GlassInput from "../GlassInput";
+import GlassButton from "../GlassButton";
 
 const { t } = useI18n();
 const ctx = getTeamClientInstance()!;
@@ -223,10 +225,10 @@ onMounted(loadFiles);
     <div v-if="showNewDirDialog" class="dialog-overlay" @click.self="showNewDirDialog = false">
       <div class="dialog">
         <h3>{{ t('cloud.createDir') }}</h3>
-        <input v-model="newDirName" class="dialog-input" :placeholder="t('cloud.createDirPrompt')" autofocus @keyup.enter="confirmNewDir" @keyup.escape="showNewDirDialog = false" />
+        <GlassInput v-model="newDirName" :placeholder="t('cloud.createDirPrompt')" @keydown.enter="confirmNewDir" @keydown.escape="showNewDirDialog = false" />
         <div class="dialog-actions">
-          <button class="dialog-btn cancel" @click="showNewDirDialog = false">{{ t('common.cancel') }}</button>
-          <button class="dialog-btn confirm" :disabled="!newDirName.trim()" @click="confirmNewDir">{{ t('common.confirm') }}</button>
+          <GlassButton variant="default" @click="showNewDirDialog = false">{{ t('common.cancel') }}</GlassButton>
+          <GlassButton variant="primary" :disabled="!newDirName.trim()" @click="confirmNewDir">{{ t('common.confirm') }}</GlassButton>
         </div>
       </div>
     </div>
