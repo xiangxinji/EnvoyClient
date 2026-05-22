@@ -8,11 +8,13 @@ import { UserProfileService } from "../services/UserProfileService";
 import { StickerService } from "../services/StickerService";
 import { SystemSettingService } from "../services/SystemSettingService";
 import type { ServiceConfig } from "../services/types";
+import type { useClientTaskQueue } from "./useClientTaskQueue";
 
 export type TeamClientContext = ReturnType<typeof useTeamClient>;
 
 const _instance = shallowRef<TeamClientContext | null>(null);
 const _memberSettings = useMemberSettings();
+let _clientTaskQueue: ReturnType<typeof useClientTaskQueue> | null = null;
 
 const _serviceConfig = (): Readonly<ServiceConfig> => ({
   myId: _instance.value?.myId ?? "",
@@ -36,6 +38,15 @@ export function getTeamClientInstance(): TeamClientContext | null {
 
 export function useTeamClientInstance() {
   return _instance;
+}
+
+export function setClientTaskQueue(q: ReturnType<typeof useClientTaskQueue> | null) {
+  _clientTaskQueue = q;
+}
+
+export function getClientTaskQueue(): ReturnType<typeof useClientTaskQueue> {
+  if (!_clientTaskQueue) throw new Error("ClientTaskQueue not initialized");
+  return _clientTaskQueue;
 }
 
 export function getMemberSettings() {

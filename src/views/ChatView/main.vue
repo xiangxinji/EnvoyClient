@@ -12,6 +12,7 @@ import SettingsGeneral from "../../components/SettingsGeneral";
 import QuickSettingsPanel from "../../components/QuickSettingsPanel";
 import TaskDetailPanel from "../../components/TaskDetailPanel";
 import CloudResourcesPanel from "../../components/CloudResourcesPanel";
+import TaskQueuePanel from "../../components/TaskQueuePanel";
 import ReconnectOverlay from "../../components/ReconnectOverlay";
 import LockScreen from "../../components/LockScreen";
 import { getTeamClientInstance } from "../../composables/teamClientContext";
@@ -94,6 +95,7 @@ function handleLogout() {
     <SettingsGeneral v-else-if="selectedPeer === '__settings_general__'" @back="handleSettingsBack" />
     <QuickSettingsPanel v-else-if="selectedPeer === '__quick__'" @back="handleSettingsBack" />
     <CloudResourcesPanel v-else-if="selectedPeer === '__cloud__'" />
+    <TaskQueuePanel v-else-if="selectedPeer === '__queue__'" />
     <TaskDispatchPanel v-else-if="selectedPeer === '__dispatch__'" />
     <template v-else-if="selectedPeer === '__tasks__'">
       <TaskCenterView v-show="!selectedTask" @select-task="handleSelectTask" />

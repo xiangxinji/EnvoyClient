@@ -71,7 +71,9 @@
     "channelGeneral": "General",
     "cloudResourcesDesc": "Upload, download and manage shared team files in the cloud.",
     "taskCenterDesc": "View all tasks by status, track progress, and review task details.",
-    "taskDispatchDesc": "Create new tasks with AI-assisted member matching and smart dispatch."
+    "taskDispatchDesc": "Create new tasks with AI-assisted member matching and smart dispatch.",
+    "taskQueue": "Task Queue",
+    "taskQueueDesc": "View the current client's task queue, including queued, running, and recently completed tasks."
   },
   "chat": {
     "selectPeer": "Select a member to start chatting",
@@ -315,6 +317,14 @@
     "attempt": "Reconnecting... (attempt {attempt})",
     "slowRetry": "Reconnect failed, still trying...",
     "backToLogin": "Back to Login"
+  },
+  "queue": {
+    "title": "Task Queue",
+    "running": "Running",
+    "queued": "Queued",
+    "recent": "Recent",
+    "empty": "Queue is empty, waiting for tasks...",
+    "starting": "Starting..."
   },
   "lock": {
     "title": "Screen Locked",

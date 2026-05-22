@@ -1,0 +1,209 @@
+.queue-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.queue-header {
+  position: relative;
+  z-index: 10;
+  height: 52px;
+  box-sizing: border-box;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.queue-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.queue-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-weight: 500;
+}
+
+.queue-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* Section labels */
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-top: var(--space-sm);
+}
+
+.section-label:first-child {
+  padding-top: 0;
+}
+
+.section-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.section-dot.running { background: var(--task-running-border); }
+.section-dot.queued { background: var(--text-muted); }
+.section-dot.recent { background: var(--task-completed-border); }
+
+/* Task cards */
+.task-card {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-light);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.task-card.running {
+  border-left: 3px solid var(--task-running-border);
+  background: var(--task-running-bg);
+  padding: var(--space-md);
+}
+
+.task-card.queued {
+  padding: 8px var(--space-md);
+}
+
+.task-card.completed {
+  background: var(--task-completed-bg);
+  border-color: var(--task-completed-border);
+}
+
+.task-card.failed {
+  background: var(--task-failed-bg);
+  border-color: var(--task-failed-border);
+}
+
+.task-card.skipped {
+  background: var(--task-pending-bg);
+}
+
+.task-content {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.task-card.queued .task-content,
+.task-card.completed .task-content,
+.task-card.failed .task-content,
+.task-card.skipped .task-content {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Task meta */
+.task-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.step-info {
+  color: var(--task-running-text);
+  font-weight: 500;
+}
+
+.elapsed {
+  color: var(--text-muted);
+}
+
+/* Recent card layout */
+.task-card.completed,
+.task-card.failed,
+.task-card.skipped {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px var(--space-md);
+}
+
+.task-status-icon {
+  flex-shrink: 0;
+  font-size: 12px;
+  width: 16px;
+  text-align: center;
+}
+
+.task-card.completed .task-status-icon { color: var(--task-completed-text); }
+.task-card.failed .task-status-icon { color: var(--task-failed-text); }
+
+.task-card.completed .task-content,
+.task-card.failed .task-content,
+.task-card.skipped .task-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-duration {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.task-error {
+  font-size: 11px;
+  color: var(--task-failed-text);
+  padding-top: 2px;
+}
+
+/* Empty state */
+.queue-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  color: var(--text-muted);
+  font-size: 13px;
+}

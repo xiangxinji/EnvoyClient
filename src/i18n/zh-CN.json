@@ -71,7 +71,9 @@
     "channelGeneral": "综合频道",
     "cloudResourcesDesc": "上传、下载和管理团队共享的云端文件资源。",
     "taskCenterDesc": "按状态查看所有任务，追踪进度并查看任务详情。",
-    "taskDispatchDesc": "创建新任务，AI 辅助匹配合适成员并智能分派。"
+    "taskDispatchDesc": "创建新任务，AI 辅助匹配合适成员并智能分派。",
+    "taskQueue": "任务队列",
+    "taskQueueDesc": "查看当前客户端的任务队列，包含排队中、执行中和已完成的任务。"
   },
   "chat": {
     "selectPeer": "选择一位成员开始聊天",
@@ -315,6 +317,14 @@
     "attempt": "正在重新连接... (第 {attempt} 次)",
     "slowRetry": "重连失败，正在持续尝试中...",
     "backToLogin": "返回登录页"
+  },
+  "queue": {
+    "title": "任务队列",
+    "running": "执行中",
+    "queued": "排队中",
+    "recent": "最近",
+    "empty": "队列为空，等待任务派发...",
+    "starting": "正在启动..."
   },
   "lock": {
     "title": "屏幕已锁定",
