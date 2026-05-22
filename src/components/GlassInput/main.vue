@@ -8,6 +8,7 @@ defineProps<{
   placeholder?: string;
   clearable?: boolean;
   type?: string;
+  bordered?: boolean;
 }>();
 
 defineEmits<{
@@ -47,7 +48,7 @@ defineExpose({ focus, blur, inputRef });
   <div
     ref="wrapperRef"
     class="glass-input"
-    :class="{ focused }"
+    :class="{ focused, bordered }"
     @mousemove="onInputMouseMove"
     @mouseleave="onInputMouseLeave"
   >

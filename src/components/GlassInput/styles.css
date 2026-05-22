@@ -15,6 +15,14 @@
   border-color: var(--accent);
 }
 
+.glass-input.bordered {
+  border-color: var(--border);
+}
+
+.glass-input.bordered.focused {
+  border-color: var(--accent);
+}
+
 .glass-input-prefix {
   display: flex;
   align-items: center;

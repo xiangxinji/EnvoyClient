@@ -86,6 +86,50 @@ showConfirm("删除确认", "确定要删除吗？", () => {
 3. **大段 CSS 变量 → 独立样式文件**: 全局 CSS 变量（如主题色）应放在 `src/styles/` 目录，不在组件中定义
 4. **内嵌对话框/浮层 → 独立组件**: 组件内的 Teleport 弹窗（如全屏图片查看器、转发对话框）应提取为独立组件
 
+### 弹框组件规范
+
+所有弹框（Dialog/Modal）组件必须遵循以下规范：
+
+1. **遵循毛玻璃设计规范**: 弹框背景使用 `--glass-bg-heavy`，边框使用 `--glass-border`，阴影使用 `--glass-shadow-heavy`，模糊使用 `--glass-blur`。遮罩层使用半透明背景（`rgba(0,0,0,0.4)` 亮色 / `rgba(0,0,0,0.6)` 暗色）。禁止硬编码背景色。
+
+2. **默认聚焦首个输入框**: 弹框内部包含 `<input>`、`<textarea>` 或 `GlassInput` 等输入控件时，打开后必须自动聚焦第一个输入框。使用 `nextTick` + `focus()` 实现：
+   ```ts
+   watch(visible, (val) => {
+     if (val) {
+       nextTick(() => {
+         firstInputRef.value?.focus();
+       });
+     }
+   });
+   ```
+
+3. **必须有唤起动效**: 弹框出现时必须使用 `scaleIn` 动效（缩放 + 淡入），遮罩层使用淡入。使用 `@vueuse/motion` 实现，禁止使用 CSS `@keyframes`：
+   ```vue
+   <!-- 遮罩层 -->
+   <Transition name="fade">
+     <div v-if="visible" class="overlay" />
+   </Transition>
+   <!-- 弹框主体 -->
+   <div v-if="visible"
+        v-motion:initial="{ opacity: 0, scale: 0.95 }"
+        v-motion:enter="{ opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } }"
+        class="dialog">
+   </div>
+   ```
+
+4. **支持 ESC 关闭**: 弹框打开时必须监听 `Escape` 键关闭弹框，使用 `@vueuse/core` 的 `onKeyStroke` 或 `useEventListener` 实现，确保在组件卸载时自动清理：
+   ```ts
+   import { useEventListener } from "@vueuse/core";
+
+   useEventListener("keydown", (e) => {
+     if (e.key === "Escape" && visible.value) {
+       visible.value = false;
+     }
+   });
+   ```
+
+5. **点击遮罩层不关闭弹框**: 遮罩层的 `click` 事件不得触发关闭操作。弹框仅通过明确操作（关闭按钮、确认/取消按钮、ESC 键）关闭，防止用户误触丢失已填写内容。
+
 ## 通用工具函数规范
 
 ### 平台判断 — `src/utils/platform.ts`
