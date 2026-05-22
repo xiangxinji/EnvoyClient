@@ -15,7 +15,7 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  send: [stickerUrl: string, stickerName: string];
+  send: [stickerId: string, stickerUrl: string, stickerName: string];
 }>();
 
 const { t } = useI18n();
@@ -66,7 +66,7 @@ function handleDeleteClick(sticker: StickerItem) {
 }
 
 function handleStickerClick(sticker: StickerItem) {
-  emit("send", stickerService.stickerUrl(sticker.url), sticker.name);
+  emit("send", sticker.id, stickerService.stickerUrl(sticker.url), sticker.name);
 }
 
 onMounted(loadStickers);

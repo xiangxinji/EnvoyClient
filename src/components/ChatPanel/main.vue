@@ -183,8 +183,8 @@ function handleAISuggest() { const chatMsgs = conversation.value.filter((m): m i
 function handleAcceptSuggestion() { const text = acceptSuggestion(); if (text) sendChat(props.peerId, text); }
 function handleForwardConfirmWrapper(targetId: string) { handleForwardConfirm(targetId, t('chat.chatHistory')); }
 
-function handleStickerSend(stickerUrl: string, stickerName: string) {
-  sendChat(props.peerId, " ", { sticker: { url: stickerUrl, name: stickerName }, channel: isChannel.value ? "general" : undefined });
+function handleStickerSend(stickerId: string, stickerUrl: string, stickerName: string) {
+  sendChat(props.peerId, " ", { sticker: { id: stickerId, url: stickerUrl, name: stickerName }, channel: isChannel.value ? "general" : undefined });
   stickerPanelVisible.value = false;
 }
 

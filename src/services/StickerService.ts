@@ -1,4 +1,4 @@
-import { managerFetch, managerDelete, managerUpload, apiUrl } from "../api";
+import { managerFetch, managerDelete, managerUpload, managerPost, apiUrl } from "../api";
 import type { ServiceConfig, StickerItem } from "./types";
 
 export class StickerService {
@@ -21,6 +21,11 @@ export class StickerService {
     form.append("file", file);
     form.append("from", myId);
     await managerUpload("/api/stickers", form, { team: teamName });
+  }
+
+  async collect(stickerId: string): Promise<void> {
+    const { myId, teamName } = this.getConfig();
+    await managerPost("/api/stickers/collect", { sticker_id: stickerId, user_id: myId }, { team: teamName });
   }
 
   async remove(stickerId: string): Promise<void> {
