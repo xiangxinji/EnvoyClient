@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { useTheme } from "../../composables/useTheme";
 import { useI18n } from "vue-i18n";
+import { useMouseGradient } from "../../composables/useMouseGradient";
 import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
@@ -42,21 +43,10 @@ async function togglePin() {
 }
 
 const titlebarRef = ref<HTMLElement | null>(null);
-
-function onTitlebarMouse(e: MouseEvent) {
-  const el = titlebarRef.value;
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  el.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-  el.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-}
-
-function onTitlebarLeave() {
-  const el = titlebarRef.value;
-  if (!el) return;
-  el.style.removeProperty('--mouse-x');
-  el.style.removeProperty('--mouse-y');
-}
+const { onMouseMove, onMouseLeave } = useMouseGradient(titlebarRef, {
+  initialX: 50,
+  initialY: 50,
+});
 
 function close() {
   emit("close-requested");
@@ -64,7 +54,7 @@ function close() {
 </script>
 
 <template>
-  <div class="titlebar" ref="titlebarRef" data-tauri-drag-region @mousemove="onTitlebarMouse" @mouseleave="onTitlebarLeave">
+  <div class="titlebar" ref="titlebarRef" data-tauri-drag-region @mousemove="onMouseMove" @mouseleave="onMouseLeave">
     <div class="titlebar-left">
       <div class="window-controls">
         <button class="traffic-btn close-btn" @click="close" :title="t('titlebar.close')">

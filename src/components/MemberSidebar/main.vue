@@ -8,6 +8,7 @@ import MemberHoverCard from "../MemberHoverCard";
 import ToolHoverCard from "../ToolHoverCard";
 import { useSidebarSearch } from "../../composables/useSidebarSearch";
 import { useHoverCard } from "../../composables/useHoverCard";
+import { useMouseGradient } from "../../composables/useMouseGradient";
 import SvgIcon from "../SvgIcon";
 import type { MemberInfo } from "../../types";
 
@@ -154,21 +155,10 @@ const taskCount = computed(() => {
 });
 
 const sidebarRef = ref<HTMLElement | null>(null);
-
-function onSidebarMouse(e: MouseEvent) {
-  const el = sidebarRef.value;
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  el.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-  el.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-}
-
-function onSidebarLeave() {
-  const el = sidebarRef.value;
-  if (!el) return;
-  el.style.removeProperty('--mouse-x');
-  el.style.removeProperty('--mouse-y');
-}
+const { onMouseMove, onMouseLeave } = useMouseGradient(sidebarRef, {
+  initialX: 50,
+  initialY: 0,
+});
 
 function handleClick(peerId: string) {
   markRead(peerId);
@@ -182,7 +172,7 @@ function formatBadge(count: number): string {
 </script>
 
 <template>
-  <aside class="sidebar" ref="sidebarRef" @mousemove="onSidebarMouse" @mouseleave="onSidebarLeave">
+  <aside class="sidebar" ref="sidebarRef" @mousemove="onMouseMove" @mouseleave="onMouseLeave">
     <div class="sidebar-search">
       <GlassInput
         ref="searchInputRef"
