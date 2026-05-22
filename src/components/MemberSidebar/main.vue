@@ -153,6 +153,23 @@ const taskCount = computed(() => {
   return count;
 });
 
+const sidebarRef = ref<HTMLElement | null>(null);
+
+function onSidebarMouse(e: MouseEvent) {
+  const el = sidebarRef.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  el.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+  el.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+}
+
+function onSidebarLeave() {
+  const el = sidebarRef.value;
+  if (!el) return;
+  el.style.removeProperty('--mouse-x');
+  el.style.removeProperty('--mouse-y');
+}
+
 function handleClick(peerId: string) {
   markRead(peerId);
   emit("select", peerId);
@@ -165,7 +182,7 @@ function formatBadge(count: number): string {
 </script>
 
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" ref="sidebarRef" @mousemove="onSidebarMouse" @mouseleave="onSidebarLeave">
     <div class="sidebar-search">
       <GlassInput
         ref="searchInputRef"

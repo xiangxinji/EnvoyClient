@@ -41,13 +41,30 @@ async function togglePin() {
   isPinned.value = !pinned;
 }
 
+const titlebarRef = ref<HTMLElement | null>(null);
+
+function onTitlebarMouse(e: MouseEvent) {
+  const el = titlebarRef.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  el.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+  el.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+}
+
+function onTitlebarLeave() {
+  const el = titlebarRef.value;
+  if (!el) return;
+  el.style.removeProperty('--mouse-x');
+  el.style.removeProperty('--mouse-y');
+}
+
 function close() {
   emit("close-requested");
 }
 </script>
 
 <template>
-  <div class="titlebar" data-tauri-drag-region>
+  <div class="titlebar" ref="titlebarRef" data-tauri-drag-region @mousemove="onTitlebarMouse" @mouseleave="onTitlebarLeave">
     <div class="titlebar-left">
       <div class="window-controls">
         <button class="traffic-btn close-btn" @click="close" :title="t('titlebar.close')">
