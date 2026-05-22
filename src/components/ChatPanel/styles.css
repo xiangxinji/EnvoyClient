@@ -91,12 +91,13 @@
 .context-menu-item.danger:hover { background: var(--task-failed-bg); }
 
 .revoked-notice { align-self: center; font-size: 0.78em; color: var(--text-muted); padding: var(--space-xs) var(--space-md); }
-.quote-preview { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs) var(--space-sm); margin-bottom: var(--space-xs); background: var(--glass-bg-light); border: 1px solid var(--glass-border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); }
+.quote-preview { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-sm); background: var(--glass-bg-light); border: 1px solid var(--glass-border); border-radius: var(--radius-md); transition: border-color 0.15s, background 0.15s; }
+.quote-preview:hover { border-color: var(--accent); background: var(--glass-bg); }
 .quote-preview-content { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: var(--space-xs); overflow: hidden; }
-.quote-preview-sender { font-size: 0.78em; font-weight: 600; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
-.quote-preview-text { font-size: 0.78em; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.quote-preview-close { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; flex-shrink: 0; transition: all 0.15s; }
-.quote-preview-close:hover { background: var(--glass-bg); color: var(--text-primary); }
+.quote-preview-sender { font-size: 0.8em; font-weight: 600; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+.quote-preview-text { font-size: 0.82em; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.4; }
+.quote-preview-close { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; flex-shrink: 0; transition: all 0.15s; }
+.quote-preview-close:hover { background: var(--glass-bg-light); color: var(--text-primary); }
 
 .quote-highlight { animation: quote-highlight-pulse 1.5s ease-out; }
 @keyframes quote-highlight-pulse { 0% { box-shadow: 0 0 0 0 var(--accent); } 30% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 0 transparent; } }

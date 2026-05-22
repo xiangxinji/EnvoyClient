@@ -56,7 +56,7 @@ const { pendingFiles, uploading, attachmentError, handlePickAttachment, removeFi
 const { currentMentions, mentionPopupVisible, mentionQuery, mentionPopupRef, handleEditorInput, handleMentionSelect, handleMentionClose, handleEditorKeydown, clearMentions } = useMentionSystem(() => isChannel.value, () => members.value, richEditorRef);
 const { cloudPopupVisible, cloudQuery, cloudPopupRef, handleEditorInput: handleCloudEditorInput, handleCloudSelect, handleCloudClose, handleCloudKeydown, clearCloudRefs, pendingCloudRefs, removeCloudRef } = useCloudMention();
 const { selectMode, selectedIds, forwardDialogVisible, enterSelectMode, exitSelectMode, toggleMessageSelect, handleForwardClick, handleForwardConfirm } = useMultiSelect(conversation, sendChat, showToast);
-const { contextMenuVisible, contextMenuX, contextMenuY, contextMenuMsg, quotingMsg, handleMessageContextmenu, handleQuoteReply, handleContextForward, clearQuotingMsg, generateSnapshotText, handleRevoke, handleScrollToQuote, closeContextMenu } = useMessageContextMenu(messageList, loadAll, revokeMessage, enterSelectMode, (ids) => { selectMode.value = true; selectedIds.value = ids; }, showToast);
+const { contextMenuVisible, contextMenuX, contextMenuY, contextMenuMsg, quotingMsg, handleMessageContextmenu, handleQuoteReply, handleContextForward, clearQuotingMsg, generateSnapshotText, handleRevoke, handleScrollToQuote, closeContextMenu, handleCopy, canCopyMessage } = useMessageContextMenu(messageList, loadAll, revokeMessage, enterSelectMode, (ids) => { selectMode.value = true; selectedIds.value = ids; }, showToast);
 
 // AI
 const { suggestion, isStreaming, aiError, aiAvailable, suggestReply, acceptSuggestion, clearSuggestion } = useAI();
@@ -319,6 +319,10 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
         <button class="context-menu-item" @click="handleContextForward">
           <SvgIcon name="forward" :size="14" />
           {{ $t('chat.forward') }}
+        </button>
+        <button v-if="contextMenuMsg && canCopyMessage(contextMenuMsg)" class="context-menu-item" @click="handleCopy">
+          <SvgIcon name="copy" :size="14" />
+          {{ $t('chat.copy') }}
         </button>
         <button v-if="contextMenuMsg?.mine" class="context-menu-item danger" @click="handleRevoke(peerId)">
           <SvgIcon name="delete-back" :size="14" />

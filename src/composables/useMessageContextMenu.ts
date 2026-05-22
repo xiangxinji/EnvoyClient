@@ -109,6 +109,34 @@ export function useMessageContextMenu(
     }
   }
 
+  async function handleCopy() {
+    contextMenuVisible.value = false;
+    if (!contextMenuMsg.value) return;
+    const msg = contextMenuMsg.value;
+
+    try {
+      if (msg.attachments?.some(a => a.type === "image") && msg.attachments.length > 0) {
+        const img = msg.attachments.find(a => a.type === "image")!;
+        const response = await fetch(img.url);
+        const blob = await response.blob();
+        await navigator.clipboard.write([
+          new ClipboardItem({ [blob.type]: blob }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(msg.text);
+      }
+      toastCallback(t("common.copied"), "success");
+    } catch {
+      toastCallback(t("common.operationFailed"), "error");
+    }
+    contextMenuMsg.value = null;
+  }
+
+  function canCopyMessage(msg: ChatMessage): boolean {
+    if (msg.sticker || msg.cloudRefs?.length) return false;
+    return !!(msg.text || msg.attachments?.some(a => a.type === "image"));
+  }
+
   return {
     contextMenuVisible,
     contextMenuX,
@@ -123,5 +151,7 @@ export function useMessageContextMenu(
     handleRevoke,
     handleScrollToQuote,
     closeContextMenu,
+    handleCopy,
+    canCopyMessage,
   };
 }

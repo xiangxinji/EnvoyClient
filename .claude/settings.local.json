@@ -121,7 +121,8 @@
       "Bash(npx astro *)",
       "Bash(git push *)",
       "mcp__plugin_ecc_context7__resolve-library-id",
-      "mcp__plugin_ecc_context7__query-docs"
+      "mcp__plugin_ecc_context7__query-docs",
+      "mcp__ide__getDiagnostics"
     ]
   },
   "enabledPlugins": {
