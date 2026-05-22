@@ -140,12 +140,22 @@ export function useMessageContextMenu(
   async function handleAddSticker() {
     contextMenuVisible.value = false;
     if (!contextMenuMsg.value?.sticker) return;
-    const stickerId = contextMenuMsg.value.sticker.id;
+    const { id: stickerId, url, name } = contextMenuMsg.value.sticker;
     contextMenuMsg.value = null;
 
     try {
       const { getStickerService } = await import("./teamClientContext");
-      await getStickerService().collect(stickerId);
+      if (stickerId) {
+        await getStickerService().collect(stickerId);
+      } else {
+        // Fallback for legacy stickers without id: download and re-upload
+        const { apiUrl } = await import("../api");
+        const res = await fetch(apiUrl(url));
+        const blob = await res.blob();
+        const ext = blob.type.split("/")[1] || "png";
+        const file = new File([blob], name || `sticker.${ext}`, { type: blob.type });
+        await getStickerService().add(file);
+      }
       toastCallback(t("chat.addStickerSuccess"), "success");
     } catch {
       toastCallback(t("common.operationFailed"), "error");

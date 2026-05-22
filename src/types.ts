@@ -26,7 +26,7 @@ export interface ForwardedRecord {
 }
 
 export interface StickerInfo {
-  id: string;
+  id?: string;
   url: string;
   name: string;
 }
