@@ -18,26 +18,6 @@
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
-  position: relative;
-  overflow: hidden;
-}
-
-.glass-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    200px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, 0.15) 0%,
-    transparent 70%
-  );
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-.glass-btn:hover:not(:disabled)::before {
-  opacity: 1;
 }
 
 .glass-btn:hover:not(:disabled) {
@@ -57,14 +37,6 @@
   color: var(--text-on-accent);
 }
 
-.glass-btn.primary::before {
-  background: radial-gradient(
-    200px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, 0.2) 0%,
-    transparent 70%
-  );
-}
-
 .glass-btn.primary:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
@@ -78,25 +50,10 @@
   background: transparent;
 }
 
-.glass-btn.danger::before {
-  background: radial-gradient(
-    200px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 59, 48, 0.1) 0%,
-    transparent 70%
-  );
-}
-
 .glass-btn.danger:hover:not(:disabled) {
   background: var(--error);
+  border-color: var(--error);
   color: var(--text-on-accent);
-}
-
-.glass-btn.danger:hover:not(:disabled)::before {
-  background: radial-gradient(
-    200px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, 0.2) 0%,
-    transparent 70%
-  );
 }
 
 /* Loading spinner */
