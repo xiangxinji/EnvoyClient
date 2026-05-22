@@ -5,7 +5,7 @@ html, body {
   padding: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--app-gradient);
+  background: transparent;
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 14px;
@@ -16,6 +16,9 @@ html, body {
 
 #app {
   height: 100%;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--app-gradient);
 }
 
 .app-container {

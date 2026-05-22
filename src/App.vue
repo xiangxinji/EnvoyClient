@@ -103,6 +103,10 @@ onMounted(async () => {
     try {
       const { getCurrentWindow } = await import("@tauri-apps/api/window");
       const currentWindow = getCurrentWindow();
+
+      // Show window after content is ready (avoids white flash)
+      await currentWindow.show();
+
       const unlistenFn = await currentWindow.listen(
         "close-requested",
         () => {

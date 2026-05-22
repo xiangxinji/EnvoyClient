@@ -474,6 +474,7 @@ pub fn run() {
                 let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))
                     .expect("failed to load icon");
                 window.set_icon(icon.clone()).ok();
+                window.set_shadow(false).ok();
 
                 // Intercept close: prevent default, emit event to frontend
                 let win = window.clone();
