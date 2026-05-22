@@ -48,27 +48,30 @@ function close() {
 
 <template>
   <div class="titlebar" data-tauri-drag-region>
-    <div class="traffic-lights">
-      <button class="light close" @click="close" :title="t('titlebar.close')">
-        <SvgIcon name="window-close" :size="8" />
-      </button>
-      <button class="light minimize" @click="minimize" :title="t('titlebar.minimize')">
-        <SvgIcon name="window-minimize" :size="8" />
-      </button>
-      <button class="light maximize" @click="toggleMaximize" :title="t('titlebar.maximize')">
-        <SvgIcon name="window-maximize" :size="8" />
-      </button>
+    <div class="titlebar-left">
+      <div class="window-controls">
+        <button class="traffic-btn close-btn" @click="close" :title="t('titlebar.close')">
+          <SvgIcon name="close" :size="8" />
+        </button>
+        <button class="traffic-btn minimize-btn" @click="minimize" :title="t('titlebar.minimize')">
+          <SvgIcon name="minus" :size="8" />
+        </button>
+        <button class="traffic-btn maximize-btn" @click="toggleMaximize" :title="t('titlebar.maximize')">
+          <SvgIcon name="expand" :size="8" />
+        </button>
+      </div>
     </div>
-    <div class="title" data-tauri-drag-region>
-      <span>{{ username ? `Envoy · ${username}` : 'Envoy' }}</span>
+    <div class="titlebar-center" data-tauri-drag-region>
+      <span class="titlebar-dot"></span>
+      <span class="titlebar-title">{{ username ? `Envoy · ${username}` : 'Envoy' }}</span>
     </div>
-    <div class="titlebar-actions">
-      <button class="theme-toggle" @click="toggle" :title="theme === 'dark' ? t('titlebar.lightMode') : t('titlebar.darkMode')">
+    <div class="titlebar-right">
+      <button class="tool-btn" :class="{ active: isPinned }" @click="togglePin" :title="isPinned ? t('titlebar.unpin') : t('titlebar.pin')">
+        <SvgIcon name="pin" :size="14" />
+      </button>
+      <button class="tool-btn" @click="toggle" :title="theme === 'dark' ? t('titlebar.lightMode') : t('titlebar.darkMode')">
         <SvgIcon v-if="theme === 'dark'" name="sun" :size="14" />
         <SvgIcon v-else name="moon" :size="14" />
-      </button>
-      <button class="pin-toggle" :class="{ active: isPinned }" @click="togglePin" :title="isPinned ? t('titlebar.unpin') : t('titlebar.pin')">
-        <SvgIcon name="pin" :size="14" />
       </button>
     </div>
   </div>
