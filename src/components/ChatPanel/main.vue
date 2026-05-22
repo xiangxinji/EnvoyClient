@@ -80,7 +80,7 @@ watch(
         ids.add(conversation.value[i].id);
       }
       newMessageIds.value = ids;
-      setTimeout(() => { newMessageIds.value = new Set(); }, 600);
+      setTimeout(() => { newMessageIds.value = new Set(); }, 700);
     }
     prevConvLength = newLen;
     // Scroll to bottom on new message
