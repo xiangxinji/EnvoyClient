@@ -37,6 +37,26 @@
   opacity: 0.06;
 }
 
+.titlebar::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: radial-gradient(
+    400px circle at var(--mouse-x, 50%) 100%,
+    var(--accent) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.titlebar:hover::after {
+  opacity: 0.5;
+}
+
 .titlebar-left {
   display: flex;
   align-items: center;
