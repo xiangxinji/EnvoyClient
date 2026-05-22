@@ -10,6 +10,7 @@ export interface MemberSettings {
   ai_auto_reply: boolean;
   shortcut_auto_reply: string;
   shortcut_execution_mode: string;
+  shortcut_lock_screen: string;
 }
 
 const DEFAULT_SETTINGS: MemberSettings = {
@@ -19,6 +20,7 @@ const DEFAULT_SETTINGS: MemberSettings = {
   ai_auto_reply: false,
   shortcut_auto_reply: "",
   shortcut_execution_mode: "",
+  shortcut_lock_screen: "",
 };
 
 const _settings = ref<MemberSettings>({ ...DEFAULT_SETTINGS });
@@ -53,6 +55,9 @@ export function useMemberSettings() {
         shortcut_execution_mode: typeof userSettings.shortcut_execution_mode === "string"
           ? userSettings.shortcut_execution_mode
           : DEFAULT_SETTINGS.shortcut_execution_mode,
+        shortcut_lock_screen: typeof userSettings.shortcut_lock_screen === "string"
+          ? userSettings.shortcut_lock_screen
+          : DEFAULT_SETTINGS.shortcut_lock_screen,
       };
     } catch (e) {
       console.error(`[settings] loadSettings failed for ${username}:`, e);
@@ -94,6 +99,10 @@ export function useMemberSettings() {
     if (updates.shortcut_execution_mode !== undefined) {
       existing.shortcut_execution_mode = updates.shortcut_execution_mode;
       _settings.value.shortcut_execution_mode = updates.shortcut_execution_mode;
+    }
+    if (updates.shortcut_lock_screen !== undefined) {
+      existing.shortcut_lock_screen = updates.shortcut_lock_screen;
+      _settings.value.shortcut_lock_screen = updates.shortcut_lock_screen;
     }
 
     users[username] = existing;

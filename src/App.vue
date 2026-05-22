@@ -4,6 +4,7 @@ import TitleBar from "./components/TitleBar";
 import CloseConfirmDialog from "./components/CloseConfirmDialog";
 import { useTheme } from "./composables/useTheme";
 import { useTeamClientInstance } from "./composables/teamClientContext";
+import { useLockScreen } from "./composables/useLockScreen";
 import { cancelTaskbarAttention } from "./utils/notification";
 import { isTauri } from "./utils/platform";
 
@@ -11,10 +12,12 @@ useTheme();
 
 const instance = useTeamClientInstance();
 const username = computed(() => instance.value?.myId ?? undefined);
+const { locked, notifyQuitAttempt } = useLockScreen();
 
 const showDialog = ref(false);
 
 let unlisten: (() => void) | null = null;
+let unlistenQuit: (() => void) | null = null;
 
 async function getCloseAction(): Promise<string> {
   if (!isTauri) return "ask";
@@ -106,12 +109,25 @@ onMounted(async () => {
         }
       );
       unlisten = unlistenFn;
+
+      const unlistenQuitFn = await (getCurrentWindow() as any).listen(
+        "quit-requested",
+        () => {
+          if (locked.value) {
+            notifyQuitAttempt();
+          } else {
+            handleExit();
+          }
+        }
+      );
+      unlistenQuit = unlistenQuitFn;
     } catch {}
   }
 });
 
 onUnmounted(() => {
   unlisten?.();
+  unlistenQuit?.();
   window.removeEventListener("contextmenu", preventContextMenu);
   window.removeEventListener("focus", cancelTaskbarAttention);
   if (isTauri) {

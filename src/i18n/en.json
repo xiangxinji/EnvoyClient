@@ -279,6 +279,8 @@
     "clearShortcut": "Clear Shortcut",
     "aiAutoReply": "AI Auto Reply",
     "aiAutoReplyDesc": "Toggle AI auto reply for chat messages",
+    "lockScreen": "Lock Screen",
+    "lockScreenDesc": "Lock the screen with one click, requires password to unlock",
     "recordHint": "At least one modifier key (Ctrl / Alt / Meta) is required. Press Esc to cancel recording"
   },
   "cloud": {
@@ -316,6 +318,7 @@
     "enterPassword": "Enter password",
     "unlock": "Unlock",
     "invalidPassword": "Invalid password, please try again",
-    "lockScreen": "Lock Screen"
+    "lockScreen": "Lock Screen",
+    "quitBlocked": "App is locked. Please unlock before quitting"
   }
 }

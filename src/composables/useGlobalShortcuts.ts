@@ -3,6 +3,7 @@ import { i18n } from "../i18n";
 import { getMemberSettings } from "./teamClientContext";
 import type { TeamClientContext } from "./teamClientContext";
 import type { TaskExecutionMode } from "./useMemberSettings";
+import { useLockScreen } from "./useLockScreen";
 import { sendDesktopNotification } from "../utils/notification";
 import { getErrorMessage } from "../utils/error";
 
@@ -66,6 +67,7 @@ async function getShortcutModule(): Promise<GlobalShortcutModule | null> {
 export function useGlobalShortcuts(ctx: TeamClientContext) {
 
   const { settings, loadSettings, toggleAutoReply, toggleExecutionMode } = getMemberSettings();
+  const { lock } = useLockScreen();
 
   const registeredShortcuts = new Set<string>();
 
@@ -78,6 +80,7 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
 
     if (s.shortcut_auto_reply) desired.add(s.shortcut_auto_reply);
     if (s.shortcut_execution_mode) desired.add(s.shortcut_execution_mode);
+    if (s.shortcut_lock_screen) desired.add(s.shortcut_lock_screen);
 
     // Unregister removed shortcuts
     for (const combo of registeredShortcuts) {
@@ -119,6 +122,10 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
       await toggleExecutionMode(ctx.myId);
       sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('notification.taskModeChanged', { mode: next === "auto" ? i18n.global.t('notification.modeAuto') : i18n.global.t('notification.modeManual') }));
     }
+
+    if (s.shortcut_lock_screen && combo === s.shortcut_lock_screen) {
+      lock();
+    }
   }
 
   // Watch settings changes and re-register
@@ -129,7 +136,7 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
     await updateRegistrations();
 
     stopWatch = watch(
-      () => [settings.value.shortcut_auto_reply, settings.value.shortcut_execution_mode],
+      () => [settings.value.shortcut_auto_reply, settings.value.shortcut_execution_mode, settings.value.shortcut_lock_screen],
       () => updateRegistrations(),
     );
   });

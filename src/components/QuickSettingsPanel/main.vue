@@ -12,7 +12,7 @@ const emit = defineEmits<{
   back: [];
 }>();
 
-type ShortcutType = "auto_reply" | "execution_mode";
+type ShortcutType = "auto_reply" | "execution_mode" | "lock_screen";
 
 const ctx = getTeamClientInstance()!;
 const { settings, loadSettings, saveSettings } = getMemberSettings();
@@ -21,11 +21,13 @@ const username = ctx.myId;
 const recording = ref<ShortcutType | null>(null);
 const shortcutAutoReply = ref("");
 const shortcutExecutionMode = ref("");
+const shortcutLockScreen = ref("");
 
 onMounted(async () => {
   await loadSettings(username);
   shortcutAutoReply.value = settings.value.shortcut_auto_reply;
   shortcutExecutionMode.value = settings.value.shortcut_execution_mode;
+  shortcutLockScreen.value = settings.value.shortcut_lock_screen;
   window.addEventListener("keydown", handleRecordingKey, true);
 });
 
@@ -59,20 +61,35 @@ function handleRecordingKey(e: KeyboardEvent) {
   if (!combo) return;
 
   const type = recording.value;
-  const field = type === "auto_reply" ? "shortcut_auto_reply" : "shortcut_execution_mode";
-  saveSettings(username, { [field]: combo });
-
-  if (type === "auto_reply") shortcutAutoReply.value = combo;
-  else shortcutExecutionMode.value = combo;
+  const fieldMap: Record<ShortcutType, string> = {
+    auto_reply: "shortcut_auto_reply",
+    execution_mode: "shortcut_execution_mode",
+    lock_screen: "shortcut_lock_screen",
+  };
+  const refMap: Record<ShortcutType, typeof shortcutAutoReply> = {
+    auto_reply: shortcutAutoReply,
+    execution_mode: shortcutExecutionMode,
+    lock_screen: shortcutLockScreen,
+  };
+  saveSettings(username, { [fieldMap[type]]: combo });
+  refMap[type].value = combo;
 
   cancelRecording();
 }
 
 function clearShortcut(type: ShortcutType) {
-  const field = type === "auto_reply" ? "shortcut_auto_reply" : "shortcut_execution_mode";
-  saveSettings(username, { [field]: "" });
-  if (type === "auto_reply") shortcutAutoReply.value = "";
-  else shortcutExecutionMode.value = "";
+  const fieldMap: Record<ShortcutType, string> = {
+    auto_reply: "shortcut_auto_reply",
+    execution_mode: "shortcut_execution_mode",
+    lock_screen: "shortcut_lock_screen",
+  };
+  const refMap: Record<ShortcutType, typeof shortcutAutoReply> = {
+    auto_reply: shortcutAutoReply,
+    execution_mode: shortcutExecutionMode,
+    lock_screen: shortcutLockScreen,
+  };
+  saveSettings(username, { [fieldMap[type]]: "" });
+  refMap[type].value = "";
 }
 </script>
 
@@ -144,6 +161,39 @@ function clearShortcut(type: ShortcutType) {
             class="clear-btn"
             :title="$t('shortcut.clearShortcut')"
             @click="clearShortcut('auto_reply')"
+          >
+            <SvgIcon name="close" :size="12" />
+          </button>
+        </div>
+      </div>
+
+      <div class="shortcut-card">
+        <div class="shortcut-info">
+          <span class="shortcut-label">{{ $t('shortcut.lockScreen') }}</span>
+          <span class="shortcut-desc">{{ $t('shortcut.lockScreenDesc') }}</span>
+        </div>
+        <div class="shortcut-actions">
+          <button
+            class="key-badge"
+            :class="{ recording: recording === 'lock_screen' }"
+            @click="startRecording('lock_screen')"
+          >
+            <template v-if="recording === 'lock_screen'">
+              <span class="recording-dot" />
+              {{ $t('shortcut.pressing') }}
+            </template>
+            <template v-else-if="shortcutLockScreen">
+              {{ shortcutLockScreen }}
+            </template>
+            <template v-else>
+              {{ $t('shortcut.clickToRecord') }}
+            </template>
+          </button>
+          <button
+            v-if="shortcutLockScreen && recording !== 'lock_screen'"
+            class="clear-btn"
+            :title="$t('shortcut.clearShortcut')"
+            @click="clearShortcut('lock_screen')"
           >
             <SvgIcon name="close" :size="12" />
           </button>

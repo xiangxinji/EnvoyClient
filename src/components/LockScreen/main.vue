@@ -19,6 +19,7 @@
           />
         </div>
         <p v-if="error" class="lock-error">{{ error }}</p>
+        <p v-if="quitAttempted && !error" class="lock-warning">{{ t('lock.quitBlocked') }}</p>
         <button class="lock-btn" :disabled="verifying || !password" @click="handleUnlock">
           <span v-if="verifying" class="spinner"></span>
           <span>{{ verifying ? t('common.loading') : t('lock.unlock') }}</span>
@@ -33,9 +34,11 @@ import { ref, nextTick, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { getManagerUrl, managerFetch } from "../../api";
 import { rsaEncrypt } from "../../utils/rsa";
+import { useLockScreen } from "../../composables/useLockScreen";
 import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
+const { quitAttempted } = useLockScreen();
 
 const props = defineProps<{
   locked: boolean;
@@ -174,6 +177,13 @@ async function handleUnlock() {
   color: var(--error);
 }
 
+.lock-warning {
+  margin: 0;
+  font-size: 0.82em;
+  color: var(--warning, #f59e0b);
+  animation: shake 0.4s ease;
+}
+
 .lock-btn {
   margin-top: var(--space-sm);
   width: 100%;
@@ -212,6 +222,14 @@ async function handleUnlock() {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
 }
 
 .lock-enter-active {

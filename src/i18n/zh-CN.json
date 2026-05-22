@@ -279,6 +279,8 @@
     "clearShortcut": "清除快捷键",
     "aiAutoReply": "AI 自动回复",
     "aiAutoReplyDesc": "开关 AI 自动回复聊天消息",
+    "lockScreen": "锁定屏幕",
+    "lockScreenDesc": "一键锁定屏幕，需输入密码解锁",
     "recordHint": "需要至少一个修饰键（Ctrl / Alt / Meta），按 Esc 取消录制"
   },
   "cloud": {
@@ -316,6 +318,7 @@
     "enterPassword": "输入密码",
     "unlock": "解锁",
     "invalidPassword": "密码错误，请重试",
-    "lockScreen": "锁定屏幕"
+    "lockScreen": "锁定屏幕",
+    "quitBlocked": "应用已锁定，请先解锁再退出"
   }
 }
