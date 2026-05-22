@@ -120,7 +120,7 @@ watch(() => props.visible, (open) => {
             <div v-else-if="items.length === 0" class="dir-empty">{{ t('cloud.empty') }}</div>
             <div v-else class="dir-list">
               <div v-for="item in items" :key="item.id" class="dir-item" :class="{ clickable: item.type === 'directory' }" @click="item.type === 'directory' ? enterDir(item) : undefined">
-                <span class="dir-item-icon">{{ item.type === 'directory' ? '📁' : '📄' }}</span>
+                <div class="dir-item-icon"><SvgIcon :name="item.type === 'directory' ? 'folder' : 'file'" :size="16" /></div>
                 <span class="dir-item-name">{{ item.name }}</span>
                 <span v-if="item.type === 'file'" class="dir-item-size">{{ formatFileSize(item.size) }}</span>
                 <button v-if="item.type === 'file'" class="dir-item-download" :disabled="downloading" @click.stop="handleDownload(item)" :title="t('cloud.download')">
@@ -136,15 +136,15 @@ watch(() => props.visible, (open) => {
 </template>
 
 <style scoped>
-.dir-dialog-overlay { position: fixed; inset: 0; z-index: 9998; background: var(--overlay-bg); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; }
-.dir-dialog { width: 480px; max-height: 70vh; display: flex; flex-direction: column; background: var(--glass-bg-heavy); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); border-radius: var(--radius-md); box-shadow: var(--glass-shadow-heavy); overflow: hidden; }
-.dir-dialog-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.95em; color: var(--text-primary); border-bottom: 1px solid var(--glass-border); }
+.dir-dialog-overlay { position: fixed; inset: 0; z-index: 9998; background: var(--overlay-bg); display: flex; align-items: center; justify-content: center; }
+.dir-dialog { width: 480px; max-height: 70vh; display: flex; flex-direction: column; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); overflow: hidden; }
+.dir-dialog-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.95em; color: var(--text-primary); border-bottom: 1px solid var(--border); }
 .dir-dialog-close { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
-.dir-dialog-close:hover { background: var(--glass-bg-light); color: var(--text-primary); }
+.dir-dialog-close:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 
-.dir-breadcrumb { display: flex; align-items: center; gap: 2px; padding: var(--space-xs) var(--space-lg); border-bottom: 1px solid var(--glass-border); font-size: 0.82em; overflow-x: auto; flex-shrink: 0; }
+.dir-breadcrumb { display: flex; align-items: center; gap: 2px; padding: var(--space-xs) var(--space-lg); border-bottom: 1px solid var(--border); font-size: 0.82em; overflow-x: auto; flex-shrink: 0; }
 .breadcrumb-btn { display: inline-flex; align-items: center; gap: 2px; padding: 2px 6px; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; font-size: inherit; white-space: nowrap; transition: all 0.15s; }
-.breadcrumb-btn:hover { background: var(--glass-bg-light); color: var(--text-primary); }
+.breadcrumb-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 .breadcrumb-btn.current { color: var(--text-primary); font-weight: 500; }
 .breadcrumb-sep { color: var(--text-muted); margin: 0 1px; }
 
@@ -153,12 +153,12 @@ watch(() => props.visible, (open) => {
 .dir-list { display: flex; flex-direction: column; }
 .dir-item { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-lg); transition: background 0.1s; }
 .dir-item.clickable { cursor: pointer; }
-.dir-item:hover { background: var(--glass-bg-light); }
-.dir-item-icon { font-size: 1em; flex-shrink: 0; }
+.dir-item:hover { background: var(--bg-tertiary); }
+.dir-item-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--accent-light); border-radius: var(--radius-sm); color: var(--accent); flex-shrink: 0; }
 .dir-item-name { flex: 1; font-size: 0.88em; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dir-item-size { font-size: 0.78em; color: var(--text-muted); flex-shrink: 0; }
 .dir-item-download { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; flex-shrink: 0; transition: all 0.15s; }
-.dir-item-download:hover { background: var(--glass-bg); color: var(--accent); }
+.dir-item-download:hover { background: var(--bg-tertiary); color: var(--accent); }
 .dir-item-download:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .spinner-small { width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
