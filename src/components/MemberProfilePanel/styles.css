@@ -1,0 +1,213 @@
+.profile-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+}
+
+.profile-header-bar {
+  position: relative;
+  z-index: 10;
+  height: 52px;
+  box-sizing: border-box;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.profile-header-title {
+  font-weight: 600;
+  font-size: 0.95em;
+  color: var(--text-primary);
+}
+
+.profile-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-xl) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xl);
+}
+
+.profile-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.6em;
+  border: 3px solid var(--glass-border);
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-name {
+  font-weight: 700;
+  font-size: 1.15em;
+  color: var(--text-primary);
+  margin-top: var(--space-xs);
+}
+
+.profile-badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.profile-role {
+  font-size: 0.7em;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.profile-role.leader {
+  background: var(--role-leader-bg);
+  color: var(--role-leader-text);
+}
+
+.profile-role.member {
+  background: var(--role-member-bg);
+  color: var(--role-member-text);
+}
+
+.profile-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78em;
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.online { background: var(--online-dot); }
+.status-dot.offline { background: var(--text-muted); }
+
+.profile-section {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.section-title {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.section-text {
+  font-size: 0.88em;
+  color: var(--text-secondary);
+  margin: 0;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.stats-loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-sm);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-sm);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-sm);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+
+.stat-value {
+  font-weight: 700;
+  font-size: 1.3em;
+}
+
+.stat-value.running { color: var(--accent); }
+.stat-value.pending { color: var(--status-warning, #f59e0b); }
+.stat-value.completed { color: var(--status-success, #10b981); }
+.stat-value.failed { color: var(--status-error, #ef4444); }
+
+.stat-label {
+  font-size: 0.65em;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.btn-chat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: 360px;
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.btn-chat:hover { background: var(--accent-light); }
+.btn-chat:active { transform: scale(0.96); }
+
+.spinner-small {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--glass-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

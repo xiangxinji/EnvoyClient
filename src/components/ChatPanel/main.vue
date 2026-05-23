@@ -31,7 +31,10 @@ const { t } = useI18n();
 const { getDisplayName } = useUserProfile();
 
 const props = defineProps<{ peerId: string }>();
-const emit = defineEmits<{ selectTask: [task: TaskMessage] }>();
+const emit = defineEmits<{
+  selectTask: [task: TaskMessage];
+  "view-profile": [memberId: string];
+}>();
 
 const ctx = getTeamClientInstance()!;
 const { getConversation, sendChat, dispatchTask, role, myId, markRead, members, teamName, clearConversation, revokeMessage } = ctx;
@@ -248,7 +251,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
         <div v-else-if="hasMoreHistory" class="load-hint">{{ $t('chat.loadMore') }}</div>
         <template v-for="item in visibleMessages" :key="item.id">
           <div v-if="item.type === 'revoked'" class="revoked-notice">{{ $t('chat.revokedNotice', { from: item.from }) }}</div>
-          <MessageBubble v-else-if="item.type === 'chat'" :message="item" :my-id="myId" :show-sender="isChannel" :member-ids="isChannel ? memberIds : undefined" :is-channel="isChannel" :members="isChannel ? members : undefined" :select-mode="selectMode" :selected="selectedIds.has(item.id)" :timeline="conversation" :team-name="teamName" :is-new="newMessageIds.has(item.id)" @contextmenu="handleMessageContextmenu" @toggle-select="toggleMessageSelect" @scroll-to-quote="handleScrollToQuote" />
+          <MessageBubble v-else-if="item.type === 'chat'" :message="item" :my-id="myId" :show-sender="isChannel" :member-ids="isChannel ? memberIds : undefined" :is-channel="isChannel" :members="isChannel ? members : undefined" :select-mode="selectMode" :selected="selectedIds.has(item.id)" :timeline="conversation" :team-name="teamName" :is-new="newMessageIds.has(item.id)" @contextmenu="handleMessageContextmenu" @toggle-select="toggleMessageSelect" @scroll-to-quote="handleScrollToQuote" @view-profile="(id: string) => emit('view-profile', id)" />
           <TaskCard v-else :task="item" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
         </template>
 

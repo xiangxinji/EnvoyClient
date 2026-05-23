@@ -45,6 +45,14 @@
   font-weight: 600;
   font-size: 0.85em;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  border: 2px solid transparent;
+}
+
+.hover-card-avatar:hover {
+  transform: scale(1.08);
+  border-color: var(--accent);
 }
 
 .hover-card-avatar-img {

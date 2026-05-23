@@ -49,6 +49,12 @@ function handleMemberLeave() { memberHover.scheduleHide(); }
 function handleCardEnter() { memberHover.cancelHide(); }
 function handleCardLeave() { memberHover.scheduleHide(); }
 
+function handleViewProfile(memberId: string) {
+  memberHover.visible.value = false;
+  memberHover.hoveredItem.value = null;
+  emit("select", `__profile__${memberId}__`);
+}
+
 const toolDescMap: Record<string, string> = { __cloud__: "sidebar.cloudResourcesDesc", __tasks__: "sidebar.taskCenterDesc", __dispatch__: "sidebar.taskDispatchDesc" };
 const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch"> = { __cloud__: "cloud", __tasks__: "tasks", __dispatch__: "dispatch" };
 
@@ -342,6 +348,7 @@ onMounted(updateIndicator);
       :visible="memberHover.visible.value"
       @mouseenter="handleCardEnter"
       @mouseleave="handleCardLeave"
+      @view-profile="handleViewProfile"
     />
     <ToolHoverCard
       v-if="toolHover.hoveredItem.value"

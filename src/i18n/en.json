@@ -343,5 +343,16 @@
     "invalidPassword": "Invalid password, please try again",
     "lockScreen": "Lock Screen",
     "quitBlocked": "App is locked. Please unlock before quitting"
+  },
+  "profile": {
+    "title": "Member Profile",
+    "online": "Online",
+    "offline": "Offline",
+    "taskStats": "Task Statistics",
+    "statsRunning": "Running",
+    "statsPending": "Pending",
+    "statsCompleted": "Completed",
+    "statsFailed": "Failed",
+    "sendMessage": "Send Message"
   }
 }

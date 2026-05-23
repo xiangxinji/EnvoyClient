@@ -343,5 +343,16 @@
     "invalidPassword": "密码错误，请重试",
     "lockScreen": "锁定屏幕",
     "quitBlocked": "应用已锁定，请先解锁再退出"
+  },
+  "profile": {
+    "title": "成员详情",
+    "online": "在线",
+    "offline": "离线",
+    "taskStats": "任务统计",
+    "statsRunning": "执行中",
+    "statsPending": "待处理",
+    "statsCompleted": "已完成",
+    "statsFailed": "失败",
+    "sendMessage": "发消息"
   }
 }

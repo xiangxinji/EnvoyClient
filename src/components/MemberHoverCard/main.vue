@@ -12,6 +12,12 @@ const props = defineProps<{
   visible: boolean;
 }>();
 
+const emit = defineEmits<{
+  (e: "view-profile", memberId: string): void;
+  (e: "mouseenter"): void;
+  (e: "mouseleave"): void;
+}>();
+
 const position = computed(() => {
   if (!props.rect) return { left: "0px", top: "0px" };
   const gap = 4;
@@ -27,6 +33,10 @@ const position = computed(() => {
 const displayName = computed(() => props.member.nickname || props.member.id);
 const avatarSrc = computed(() => props.member.avatar_url ? apiUrl(props.member.avatar_url) : null);
 const initial = computed(() => displayName.value.charAt(0).toUpperCase());
+
+function handleAvatarClick() {
+  emit("view-profile", props.member.id);
+}
 </script>
 
 <template>
@@ -36,11 +46,11 @@ const initial = computed(() => displayName.value.charAt(0).toUpperCase());
         v-if="visible && rect"
         class="hover-card"
         :style="position"
-        @mouseenter="$emit('mouseenter')"
-        @mouseleave="$emit('mouseleave')"
+        @mouseenter="emit('mouseenter')"
+        @mouseleave="emit('mouseleave')"
       >
         <div class="hover-card-header">
-          <div class="hover-card-avatar">
+          <div class="hover-card-avatar" @click="handleAvatarClick">
             <img v-if="avatarSrc" :src="avatarSrc" class="hover-card-avatar-img" />
             <template v-else>{{ initial }}</template>
           </div>

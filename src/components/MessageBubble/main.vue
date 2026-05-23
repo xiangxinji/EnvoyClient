@@ -34,6 +34,7 @@ const emit = defineEmits<{
   contextmenu: [rect: DOMRect, message: ChatMessage];
   toggleSelect: [id: string];
   "scroll-to-quote": [quoteId: string];
+  "view-profile": [memberId: string];
 }>();
 
 const { t } = useI18n();
@@ -106,6 +107,11 @@ function onAvatarEnter(e: MouseEvent) {
 function onAvatarLeave() { hideHoverCard(); }
 function onCardEnter() { cancelHoverHide(); }
 function onCardLeave() { hideHoverCard(); }
+
+function onViewProfile(memberId: string) {
+  hideHoverCard();
+  emit("view-profile", memberId);
+}
 
 function bubbleContextmenu() {
   if (!props.selectMode && bubbleRef.value) emit('contextmenu', bubbleRef.value.getBoundingClientRect(), props.message);
@@ -217,7 +223,7 @@ function bubbleClick(e: MouseEvent) {
 
   <CloudDirDialog :visible="cloudDirDialogVisible" :dir-path="cloudDirPath" :dir-name="cloudDirName" :team-name="teamName" @update:visible="cloudDirDialogVisible = $event" />
 
-  <MemberHoverCard v-if="hoverMember" :member="hoverMember" :rect="hoverRect" :visible="hoverVisible" @mouseenter="onCardEnter" @mouseleave="onCardLeave" />
+  <MemberHoverCard v-if="hoverMember" :member="hoverMember" :rect="hoverRect" :visible="hoverVisible" @mouseenter="onCardEnter" @mouseleave="onCardLeave" @view-profile="onViewProfile" />
 </template>
 
 <style scoped>
