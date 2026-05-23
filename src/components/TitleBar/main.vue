@@ -23,7 +23,7 @@ if (isTauri) {
   });
 }
 
-const { theme, toggle } = useTheme();
+const { theme, toggle, isThemeLocked } = useTheme();
 
 const isPinned = ref(false);
 
@@ -76,7 +76,7 @@ function close() {
       <button class="tool-btn" :class="{ active: isPinned }" @click="togglePin" :title="isPinned ? t('titlebar.unpin') : t('titlebar.pin')">
         <SvgIcon name="pin" :size="14" />
       </button>
-      <button class="tool-btn" @click="toggle" :title="theme === 'dark' ? t('titlebar.lightMode') : t('titlebar.darkMode')">
+      <button v-if="!isThemeLocked" class="tool-btn" @click="toggle" :title="theme === 'dark' ? t('titlebar.lightMode') : t('titlebar.darkMode')">
         <SvgIcon v-if="theme === 'dark'" name="sun" :size="14" />
         <SvgIcon v-else name="moon" :size="14" />
       </button>

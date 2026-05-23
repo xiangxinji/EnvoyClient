@@ -250,7 +250,11 @@
     "responsibilities": "Responsibilities",
     "responsibilitiesPlaceholder": "Describe your job responsibilities, e.g. Frontend Architecture, Code Review",
     "autoStart": "Launch at Login",
-    "autoStartDesc": "Automatically start the app when the system boots"
+    "autoStartDesc": "Automatically start the app when the system boots",
+    "colorTheme": "Theme Color",
+    "themeDefault": "Default",
+    "themeBlue": "Tech Blue",
+    "themePurple": "Dark Purple"
   },
   "notification": {
     "newTask": "New Task",

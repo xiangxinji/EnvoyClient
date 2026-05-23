@@ -90,6 +90,120 @@
   --orb-4: rgba(45, 170, 130, 0.4);
 }
 
+/* ── Tech Blue Theme (Light) ── */
+:root[data-theme="blue"] {
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-light: #eff6ff;
+  --bubble-mine: #3b82f6;
+  --sidebar-active: #eff6ff;
+  --task-running-border: #3b82f6;
+  --task-running-bg: #eff6ff;
+  --task-running-text: #3b82f6;
+  --md-link-color: #3b82f6;
+  --orb-1: rgba(59, 130, 246, 0.6);
+  --orb-2: rgba(59, 130, 246, 0.45);
+  --orb-3: rgba(59, 130, 246, 0.5);
+  --orb-4: rgba(59, 130, 246, 0.4);
+}
+
+/* ── Tech Blue Theme (Dark) ── */
+:root[data-theme="blue"].dark {
+  --accent: #60a5fa;
+  --accent-hover: #93c5fd;
+  --accent-light: #172554;
+  --bubble-mine: #60a5fa;
+  --sidebar-active: #172554;
+  --task-running-border: #60a5fa;
+  --task-running-bg: #0c1a3a;
+  --task-running-text: #60a5fa;
+  --md-link-color: #60a5fa;
+  --orb-1: rgba(96, 165, 250, 0.3);
+  --orb-2: rgba(96, 165, 250, 0.22);
+  --orb-3: rgba(96, 165, 250, 0.25);
+  --orb-4: rgba(96, 165, 250, 0.18);
+}
+
+/* ── Dark Purple Theme (unified dark, no light variant) ── */
+:root[data-theme="purple"] {
+  --bg-primary: #0d0d0f;
+  --bg-secondary: #161618;
+  --bg-tertiary: #1c1c1e;
+  --bg-elevated: #1c1c1e;
+  --bg-input: #1c1c1e;
+  --border: #2c2c2e;
+  --border-light: #232325;
+  --text-primary: #c7c7cc;
+  --text-secondary: #98989d;
+  --text-muted: #636366;
+  --accent: #7f68d1;
+  --accent-hover: #7059be;
+  --accent-light: #1c1732;
+  --text-on-accent: #ffffff;
+  --task-pending-bg: #1c1c1e;
+  --task-pending-text: #98989d;
+  --task-running-border: #7f68d1;
+  --task-running-bg: #18142a;
+  --task-running-text: #9c8cda;
+  --task-completed-border: #30d158;
+  --task-completed-bg: #0d1f12;
+  --task-completed-text: #30d158;
+  --task-failed-border: #ff453a;
+  --task-failed-bg: #1f0d0d;
+  --task-failed-text: #ff453a;
+  --task-reviewing-border: #64d2ff;
+  --task-reviewing-bg: rgba(100, 210, 255, 0.1);
+  --task-reviewing-text: #64d2ff;
+  --bubble-mine: #7f68d1;
+  --bubble-mine-text: #e5e5e7;
+  --bubble-other: #1c1c1e;
+  --bubble-other-text: #c7c7cc;
+  --badge-bg: #ff453a;
+  --role-leader-bg: #ff9f0a;
+  --role-leader-text: #1d1d1f;
+  --role-member-bg: #2c2c2e;
+  --role-member-text: #98989d;
+  --error: #ff453a;
+  --input-border: #3a3a3c;
+  --sidebar-active: #1c1732;
+  --sidebar-hover: #1c1c1e;
+  --titlebar-text: #98989d;
+  --online-dot: #30d158;
+  --empty-icon: #3a3a3c;
+  --md-code-bg: #2c2c2e;
+  --md-code-text: #ff6b9d;
+  --md-pre-bg: #1c1c1e;
+  --md-pre-text: #c7c7cc;
+  --md-link-color: #7f68d1;
+  --md-blockquote-border: #3a3a3c;
+  --md-blockquote-text: #98989d;
+  --glass-bg: rgba(28, 28, 30, 0.55);
+  --glass-bg-heavy: rgba(28, 28, 30, 0.7);
+  --glass-bg-light: rgba(28, 28, 30, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-blur: 40px;
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --glass-shadow-heavy: 0 8px 40px rgba(0, 0, 0, 0.5);
+  --overlay-bg: rgba(0, 0, 0, 0.55);
+  --image-overlay-bg: rgba(0, 0, 0, 0.85);
+  --image-toolbar-bg: rgba(28, 28, 30, 0.85);
+  --image-toolbar-border: rgba(255, 255, 255, 0.08);
+  --image-toolbar-btn: rgba(255, 255, 255, 0.75);
+  --image-toolbar-btn-hover: rgba(255, 255, 255, 0.1);
+  --image-toolbar-btn-active: #f0f0f2;
+  --image-toolbar-text: rgba(255, 255, 255, 0.5);
+  --image-toolbar-divider: rgba(255, 255, 255, 0.1);
+  --image-toolbar-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --app-gradient: #141416;
+  --warning: #ffb340;
+  --warning-bg: rgba(255, 179, 64, 0.1);
+  --warning-border: rgba(255, 179, 64, 0.25);
+  --orb-1: rgba(127, 104, 209, 0.3);
+  --orb-2: rgba(127, 104, 209, 0.22);
+  --orb-3: rgba(127, 104, 209, 0.25);
+  --orb-4: rgba(127, 104, 209, 0.18);
+}
+
 html.dark {
   --bg-primary: #0d0d0f;
   --bg-secondary: #161618;

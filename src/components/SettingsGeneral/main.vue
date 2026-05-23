@@ -3,6 +3,7 @@ import { ref, watch, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { getSystemSettingService } from "../../composables/teamClientContext";
 import { useToast } from "../../composables/useToast";
+import { useTheme } from "../../composables/useTheme";
 import { isTauri } from "../../utils/platform";
 import { getErrorMessage } from "../../utils/error";
 import BackButton from "../BackButton";
@@ -18,6 +19,7 @@ const currentLocale = ref(sysSettings.locale);
 watch(currentLocale, (val) => sysSettings.switchLocale(val as "zh-CN" | "en"));
 
 const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
+const { colorTheme, setColorTheme } = useTheme();
 
 const autoStart = ref(false);
 let autoStartInitialized = false;
@@ -66,6 +68,15 @@ watch(autoStart, async (val) => {
     <div class="settings-body">
       <section class="settings-section">
         <div class="section-body">
+          <div class="setting-group">
+            <label class="setting-label">{{ t('settings.colorTheme') }}</label>
+            <GlassSelect :model-value="colorTheme" @update:model-value="(v: string) => setColorTheme(v as any)">
+              <option value="default">{{ t('settings.themeDefault') }}</option>
+              <option value="blue">{{ t('settings.themeBlue') }}</option>
+              <option value="purple">{{ t('settings.themePurple') }}</option>
+            </GlassSelect>
+          </div>
+
           <div class="setting-group">
             <label class="setting-label">{{ t('settings.autoStart') }}</label>
             <GlassCheckbox v-model="autoStart">{{ t('settings.autoStartDesc') }}</GlassCheckbox>

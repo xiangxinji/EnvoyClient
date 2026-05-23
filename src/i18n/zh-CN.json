@@ -250,7 +250,11 @@
     "responsibilities": "职责",
     "responsibilitiesPlaceholder": "描述你的工作职责，如：负责前端架构、代码审查",
     "autoStart": "开机自动启动",
-    "autoStartDesc": "登录后自动在系统启动时运行"
+    "autoStartDesc": "登录后自动在系统启动时运行",
+    "colorTheme": "主题色",
+    "themeDefault": "默认",
+    "themeBlue": "科技蓝",
+    "themePurple": "暗夜紫"
   },
   "notification": {
     "newTask": "新任务",
