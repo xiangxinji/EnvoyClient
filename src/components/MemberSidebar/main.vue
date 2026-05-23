@@ -56,8 +56,8 @@ const menuItems = [
   { id: "__quick__", icon: "keyboard" as const, labelKey: "sidebar.shortcuts" },
   { id: "__settings_task__", icon: "tasks" as const, labelKey: "sidebar.taskSettings" },
   { id: "__settings_ai__", icon: "lightning" as const, labelKey: "sidebar.aiSettings" },
-  { id: "__settings_profile__", icon: "user" as const, labelKey: "sidebar.profile" },
   { id: "__settings_general__", icon: "settings" as const, labelKey: "sidebar.general" },
+  { id: "__settings_profile__", icon: "user" as const, labelKey: "sidebar.profile" },
 ];
 
 function handleToolEnter(toolId: string, e: MouseEvent) { toolHover.show(toolId, e.currentTarget as HTMLElement); }

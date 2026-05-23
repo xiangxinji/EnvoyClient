@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, watch, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
+import { useEventListener } from "@vueuse/core";
 import { getTeamClientInstance, getCloudResourceService } from "../../composables/teamClientContext";
 import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
@@ -30,14 +31,18 @@ const loading = ref(false);
 const uploadProgress = ref<number | null>(null);
 const showNewDirDialog = ref(false);
 const newDirName = ref("");
+const newDirInputRef = ref<InstanceType<typeof GlassInput> | null>(null);
+
+watch(showNewDirDialog, (val) => {
+  if (val) nextTick(() => { newDirInputRef.value?.focus(); });
+});
+
+useEventListener("keydown", (e) => {
+  if (e.key === "Escape" && showNewDirDialog.value) closeDirDialog();
+});
+
 const selectMode = ref(false);
 const selectedIds = ref<Set<string>>(new Set());
-
-const dirDialogShow = ref(false);
-watch(showNewDirDialog, (val) => {
-  if (val) requestAnimationFrame(() => { dirDialogShow.value = true; });
-  else dirDialogShow.value = false;
-});
 
 const isLeader = computed(() => ctx.role === "leader");
 const selectedItems = computed(() => items.value.filter(i => selectedIds.value.has(i.id)));
@@ -103,19 +108,15 @@ async function handleUpload() {
 async function confirmNewDir() {
   const name = newDirName.value.trim();
   if (!name) return;
-  dirDialogShow.value = false;
-  setTimeout(async () => {
-    showNewDirDialog.value = false;
-    try {
-      await cloudService.createDirectory(name, currentPath.value);
-      await loadFiles();
-    } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.operationFailed"), "error"); }
-  }, 200);
+  showNewDirDialog.value = false;
+  try {
+    await cloudService.createDirectory(name, currentPath.value);
+    await loadFiles();
+  } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.operationFailed"), "error"); }
 }
 
 function closeDirDialog() {
-  dirDialogShow.value = false;
-  setTimeout(() => { showNewDirDialog.value = false; }, 200);
+  showNewDirDialog.value = false;
 }
 
 function requestDeleteSingle(item: CloudFileItem) {
@@ -237,16 +238,23 @@ onMounted(loadFiles);
 
     <!-- New directory dialog -->
     <Teleport to="body">
-      <div v-if="showNewDirDialog" class="dir-overlay" :class="{ active: dirDialogShow }" @click.self="closeDirDialog">
-        <div class="dir-dialog" @click.stop>
-          <h3>{{ t('cloud.createDir') }}</h3>
-          <GlassInput v-model="newDirName" :placeholder="t('cloud.createDirPrompt')" bordered @keydown.enter="confirmNewDir" @keydown.escape="closeDirDialog" />
-          <div class="dir-actions">
-            <GlassButton variant="default" @click="closeDirDialog">{{ t('common.cancel') }}</GlassButton>
-            <GlassButton variant="primary" :disabled="!newDirName.trim()" @click="confirmNewDir">{{ t('common.confirm') }}</GlassButton>
+      <Transition name="fade">
+        <div v-if="showNewDirDialog" class="dir-overlay">
+          <div
+            class="dir-dialog"
+            @click.stop
+            v-motion:initial="{ opacity: 0, scale: 0.92 }"
+            v-motion:enter="{ opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } }"
+          >
+            <h3>{{ t('cloud.createDir') }}</h3>
+            <GlassInput ref="newDirInputRef" v-model="newDirName" :placeholder="t('cloud.createDirPrompt')" bordered @keydown.enter="confirmNewDir" />
+            <div class="dir-actions">
+              <GlassButton variant="default" @click="closeDirDialog">{{ t('common.cancel') }}</GlassButton>
+              <GlassButton variant="primary" :disabled="!newDirName.trim()" @click="confirmNewDir">{{ t('common.confirm') }}</GlassButton>
+            </div>
           </div>
         </div>
-      </div>
+      </Transition>
     </Teleport>
 
     <ConfirmDialog

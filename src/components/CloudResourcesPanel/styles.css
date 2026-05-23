@@ -66,9 +66,12 @@
 .icon-btn.danger:hover { color: var(--error); }
 
 /* New directory dialog */
-.dir-overlay { position: fixed; inset: 0; background: var(--overlay-bg); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
-.dir-overlay.active { opacity: 1; }
-.dir-dialog { background: var(--glass-bg-heavy); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); box-shadow: var(--glass-shadow-heavy); padding: var(--space-xl); width: 360px; max-width: 90vw; transform: scale(0.94); filter: blur(8px); opacity: 0; transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), filter 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
-.dir-overlay.active .dir-dialog { transform: scale(1); filter: blur(0); opacity: 1; }
+.dir-overlay { position: fixed; inset: 0; background: var(--overlay-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.dir-dialog { background: var(--glass-bg-heavy); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); box-shadow: var(--glass-shadow-heavy); padding: var(--space-xl); width: 360px; max-width: 90vw; }
 .dir-dialog h3 { margin: 0 0 var(--space-md); font-size: 1em; font-weight: 600; color: var(--text-primary); }
 .dir-actions { display: flex; justify-content: flex-end; gap: var(--space-sm); margin-top: var(--space-lg); }
+
+/* Overlay fade transition */
+.fade-enter-active { transition: opacity 0.2s ease-out; }
+.fade-leave-active { transition: opacity 0.15s ease-in; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }

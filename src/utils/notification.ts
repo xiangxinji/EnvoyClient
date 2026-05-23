@@ -34,24 +34,30 @@ export async function sendDesktopNotification(title: string, body: string): Prom
 
 let attentionRequested = false;
 
-/** Flash the taskbar button (Windows) / bounce the dock icon (macOS) to alert the user. */
+/** Flash the taskbar button + red progress indicator to alert the user. */
 export async function requestTaskbarAttention(): Promise<void> {
   if (!isTauri || attentionRequested) return;
   try {
-    const { getCurrentWindow, UserAttentionType } = await import("@tauri-apps/api/window");
-    await getCurrentWindow().requestUserAttention(UserAttentionType.Critical);
+    const { getCurrentWindow, UserAttentionType, ProgressBarStatus } = await import("@tauri-apps/api/window");
+    const win = getCurrentWindow();
+
+    try { await win.requestUserAttention(UserAttentionType.Critical); } catch { /* not supported */ }
+    try { await win.setProgressBar({ status: ProgressBarStatus.Error }); } catch { /* not supported */ }
+
     attentionRequested = true;
-  } catch {
-    // Silently skip if not supported
+  } catch (e) {
+    console.error("requestTaskbarAttention failed:", e);
   }
 }
 
-/** Stop taskbar flashing — call when the window gains focus. */
+/** Stop taskbar flashing and clear progress bar — call when the window gains focus. */
 export async function cancelTaskbarAttention(): Promise<void> {
   if (!isTauri || !attentionRequested) return;
   try {
-    const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    await getCurrentWindow().requestUserAttention(null);
+    const { getCurrentWindow, ProgressBarStatus } = await import("@tauri-apps/api/window");
+    const win = getCurrentWindow();
+    await win.requestUserAttention(null);
+    try { await win.setProgressBar({ status: ProgressBarStatus.None }); } catch { /* not supported */ }
     attentionRequested = false;
   } catch {
     // Silently skip
