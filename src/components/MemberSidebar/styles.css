@@ -258,7 +258,8 @@ li.active {
 
 .task-center-avatar .svg-icon,
 .dispatch-avatar .svg-icon,
-.cloud-avatar .svg-icon {
+.cloud-avatar .svg-icon,
+.org-avatar .svg-icon {
   width: 14px;
   height: 14px;
 }
@@ -273,6 +274,11 @@ li.active {
 }
 
 .cloud-avatar {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.org-avatar {
   background: var(--accent-light);
   color: var(--accent);
 }

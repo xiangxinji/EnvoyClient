@@ -72,6 +72,10 @@
     "cloudResourcesDesc": "上传、下载和管理团队共享的云端文件资源。",
     "taskCenterDesc": "按状态查看所有任务，追踪进度并查看任务详情。",
     "taskDispatchDesc": "创建新任务，AI 辅助匹配合适成员并智能分派。",
+    "orgStructure": "组织架构",
+    "orgStructureDesc": "可视化查看团队成员在线状态和任务负载分布。",
+    "orgIdle": "空闲",
+    "orgOffline": "离线",
     "taskQueue": "任务队列",
     "taskQueueDesc": "查看当前客户端的任务队列，包含排队中、执行中和已完成的任务。"
   },
