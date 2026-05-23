@@ -3,8 +3,8 @@
   inset: 0;
   z-index: 10000;
   background: var(--overlay-bg);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -19,9 +19,29 @@
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   box-shadow: var(--glass-shadow-heavy);
   overflow: hidden;
+}
+
+/* ScaleIn transition */
+.dialog-overlay-enter-active { transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+.dialog-overlay-leave-active { transition: opacity 0.18s ease-in; }
+.dialog-overlay-enter-from,
+.dialog-overlay-leave-to { opacity: 0; }
+.dialog-overlay-enter-active .forward-dialog {
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), filter 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dialog-overlay-leave-active .forward-dialog {
+  transition: transform 0.18s ease-in, filter 0.18s ease-in;
+}
+.dialog-overlay-enter-from .forward-dialog {
+  transform: scale(0.94);
+  filter: blur(8px);
+}
+.dialog-overlay-leave-to .forward-dialog {
+  transform: scale(0.97);
+  filter: blur(4px);
 }
 
 .forward-title {

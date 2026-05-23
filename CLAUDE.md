@@ -458,39 +458,271 @@ src/components/ComponentName/
 **安装**: `npm install @vueuse/motion`
 **注册**: 在 `main.ts` 中 `createApp(App).use(MotionPlugin)`
 
-**预设动画** (在 `src/styles/motion-presets.ts` 中定义):
+#### 动效预设 — `src/styles/motion-presets.ts`
+
+所有动效必须引用预设，禁止在组件中内联 magic number：
+
 ```ts
-// 示例预设（待创建）
 export const motionPresets = {
+  // ── 入场 ──
   fadeUp: {
     initial: { opacity: 0, y: 20 },
-    enter: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } },
+    enter: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 200, damping: 20 } },
   },
   scaleIn: {
-    initial: { opacity: 0, scale: 0.9 },
-    enter: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } },
+    initial: { opacity: 0, scale: 0.92 },
+    enter: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 300, damping: 25 } },
   },
   slideLeft: {
-    initial: { opacity: 0, x: -20 },
-    enter: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } },
+    initial: { opacity: 0, x: -30 },
+    enter: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 200, damping: 22 } },
+  },
+  slideRight: {
+    initial: { opacity: 0, x: 30 },
+    enter: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 200, damping: 22 } },
+  },
+  slideUp: {
+    initial: { opacity: 0, y: 10 },
+    enter: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } },
+  },
+  popIn: {
+    initial: { opacity: 0, scale: 0.6 },
+    enter: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 400, damping: 15 } },
+  },
+  // ── 交互反馈 ──
+  pressScale: {
+    initial: { scale: 1 },
+    enter: { scale: 1 },
+    tapped: { scale: 0.96, transition: { type: "spring", stiffness: 400, damping: 17 } },
   },
 };
 ```
 
-**组件用法**:
+#### 一、侧边栏动效
+
+##### 选中指示器滑动
+
+侧边栏选中项的左侧高亮条必须实现平滑滑动动画，禁止瞬间跳转。使用 CSS `transition: top 0.3s cubic-bezier(0.16, 1, 0.3, 1)` 或绝对定位 + transform 驱动。
+
+```css
+.sidebar-indicator {
+  position: absolute;
+  left: 0;
+  width: 3px;
+  height: 36px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+```
+
+通过计算选中项的 `offsetTop` 设置 `transform: translateY(Npx)`，避免为每个列表项维护独立的高亮 DOM。
+
+##### 未读徽章弹入
+
+未读数字/圆点出现时使用 `popIn` 预设（scale 0.6 → 1 的弹性动画），消失时使用 `scale: 0` + `opacity: 0` 的快速淡出（150ms）。
+
+##### 在线状态变化
+
+成员在线/离线状态切换时，头像状态指示点使用 200ms 的 `background-color` 渐变 + 微妙的 `scale(1.2) → scale(1)` 脉冲。
+
+##### 搜索框展开/收起
+
+搜索框宽度使用 `transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1)`，展开时伴随 `opacity` 淡入。
+
+#### 二、面板切换动效
+
+右侧内容区（聊天、任务中心、任务详情、云盘、设置）之间的切换必须带方向感过渡。
+
+**方向规则**:
+
+| 从 → 到 | 方向 | 预设 |
+|---|---|---|
+| 聊天/列表 → 详情/设置 | 向左滑出，新面板从右侧滑入 | `slideLeft` / `slideRight` |
+| 详情/设置 → 聊天/列表 | 向右滑出，面板从左侧滑入 | `slideRight` / `slideLeft` |
+| 同级切换（频道 ↔ 私聊） | 淡入淡出 | `fadeUp` |
+| 设置子面板切换 | 淡入淡出 | `fadeUp` |
+
+**实现方式**: 在 `ChatView` 中为右侧内容区包裹 `<Transition>` 组件，根据切换前后的面板类型动态选择过渡方向。使用 `mode="out-in"` 确保旧面板先离开。
+
 ```vue
-<div v-motion:initial="{ opacity: 0, y: 20 }"
-     v-motion:enter="{ opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } }">
-  内容
+<Transition :name="panelTransition" mode="out-in">
+  <ChatPanel v-if="isChat" key="chat" />
+  <TaskDetailPanel v-else-if="isTaskDetail" key="task-detail" />
+  <CloudResourcesPanel v-else-if="isCloud" key="cloud" />
+  <!-- ... -->
+</Transition>
+```
+
+过渡 CSS 使用 `slide-left`、`slide-right`、`fade-up` 三套 class。
+
+#### 三、消息动效
+
+##### 消息入场
+
+新到达的消息（底部追加）使用现有的 `message-pop` keyframe，保持不变。
+
+首次进入对话或加载历史消息时，消息列表使用 **staggered 入场**：前 20 条消息从上到下依次淡入，每条间隔 30ms。使用 `@vueuse/motion` 的 `:delay` 参数：
+
+```vue
+<div v-for="(msg, i) in messages" :key="msg.id"
+     v-motion:initial="{ opacity: 0, y: 10 }"
+     v-motion:enter="{ opacity: 1, y: 0, transition: { delay: i * 30, duration: 200 } }">
+```
+
+超过 20 条的早期消息不执行入场动画，直接显示。
+
+##### 打字指示器
+
+对方正在输入时显示三点跳动指示器，使用 CSS `@keyframes` 实现交错弹跳：
+
+```css
+.typing-dot:nth-child(1) { animation: typing-bounce 1.4s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation: typing-bounce 1.4s ease-in-out 0.2s infinite; }
+.typing-dot:nth-child(3) { animation: typing-bounce 1.4s ease-in-out 0.4s infinite; }
+```
+
+指示器容器使用 `slideUp` 预设入场。
+
+##### 消息发送反馈
+
+点击发送后，输入框内容清空时使用 `scale(0.98) → scale(1)` 的微弹效果，给出"消息已发出"的触感。
+
+#### 四、任务卡片动效
+
+##### 状态变化视觉反馈
+
+任务状态流转时，卡片必须给出即时视觉反馈：
+
+| 状态变化 | 动效 |
+|---|---|
+| 任意 → `running` | 边框闪烁 accent 色（`box-shadow` 脉冲一次），然后左侧出现持续流动的渐变光带 |
+| 任意 → `completed` | 卡片 `scale(1.02) → scale(1)` 弹跳 + 勾选图标 `popIn` 入场 |
+| 任意 → `failed` | 卡片水平 `shake`（左右抖动 2 次） |
+| 任意 → `reviewing` | 边框变为 accent 色的脉冲呼吸（`box-shadow` 重复明暗） |
+
+**Running 状态光带**:
+
+```css
+.task-card--running::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, transparent, var(--accent), transparent);
+  background-size: 100% 200%;
+  animation: task-running-flow 2s ease-in-out infinite;
+}
+@keyframes task-running-flow {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 0% 100%; }
+}
+```
+
+##### 卡片入场
+
+任务卡片首次渲染时使用 `fadeUp` 预设，列表中多张卡片使用 stagger（间隔 50ms）。
+
+#### 五、弹出面板动效
+
+所有弹出式面板（MentionPopup、CloudMentionPopup、StickerPanel）必须使用 `slideUp` 预设入场（从触发源方向向上弹出），离开时使用反向动画。
+
+```vue
+<div v-if="showPopup"
+     v-motion:initial="{ opacity: 0, y: 8, scale: 0.96 }"
+     v-motion:enter="{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } }"
+     class="popup">
 </div>
 ```
 
-**常用动效场景**:
-- 消息气泡入场：`fadeUp`（淡入 + 上移）
-- 对话框/浮层：`scaleIn`（缩放淡入）
-- 侧边栏滑入：`slideLeft` / `slideRight`
-- 按钮点击反馈：`scale: 0.95` 弹簧回弹
-- 列表项依次入场：使用 `:visible` + `delay` 参数
+#### 六、微交互规范
+
+##### 按钮点击反馈
+
+所有可点击元素（`GlassButton`、侧边栏项、卡片等）在 `:active` 状态下必须应用 `scale(0.96)` 缩放 + 轻微阴影收缩，使用 `transition: transform 0.1s, box-shadow 0.1s`。
+
+```css
+.glass-button:active {
+  transform: scale(0.96);
+  box-shadow: var(--glass-shadow); /* 收缩阴影 */
+}
+```
+
+##### 列表项删除动画
+
+所有列表（消息列表、任务列表、文件列表、成员列表）中的删除/移除操作必须使用 `<TransitionGroup>` 包裹，删除项使用 `opacity: 0 + scale(0.95)` 淡出（200ms），剩余项使用 `transition: transform 0.3s` 平滑上移填补空位。
+
+```vue
+<TransitionGroup name="list" tag="div">
+  <div v-for="item in items" :key="item.id">...</div>
+</TransitionGroup>
+```
+
+```css
+.list-leave-active { transition: opacity 0.2s, transform 0.2s; position: absolute; }
+.list-leave-to { opacity: 0; transform: scale(0.95); }
+.list-move { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+```
+
+##### 列表项新增动画
+
+`<TransitionGroup>` 中新增项使用 `fadeUp` 效果入场（opacity 0 → 1, translateY 10px → 0, 250ms）。
+
+```css
+.list-enter-active { transition: opacity 0.25s, transform 0.25s; }
+.list-enter-from { opacity: 0; transform: translateY(10px); }
+```
+
+##### 开关切换动画
+
+设置面板中的 toggle/checkbox 状态切换必须使用滑动 + 颜色渐变过渡，禁止瞬间切换。圆形滑块使用 `transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)`，背景色使用 `transition: background-color 0.2s`。
+
+##### 图标状态切换
+
+复制按钮、收藏按钮等双态图标切换时使用 `scale(0.8) → scale(1.1) → scale(1)` 的弹跳效果，图标本身通过 `transition: opacity 0.15s` 淡入淡出切换。
+
+#### 七、Toast 通知增强
+
+Toast 出现时保持现有 `translateY + scale + blur` 动画。多条 Toast 堆叠时，新 Toast 将旧 Toast 向上推移，使用 `transition: transform 0.3s` 平滑上移。
+
+#### 八、无障碍 — 减弱动效
+
+所有动效必须在 `prefers-reduced-motion: reduce` 媒体查询下降级为纯 opacity 淡入淡出（最大 200ms），取消所有位移、缩放、弹簧效果：
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+此规则放在 `src/styles/variables.css` 底部作为全局降级。
+
+#### 九、实施优先级
+
+按投入产出比排序，实施顺序：
+
+| 优先级 | 动效 | 涉及组件 | 依赖 |
+|---|---|---|---|
+| P0 | 安装 @vueuse/motion，创建 motion-presets.ts | 全局 | npm install |
+| P0 | 按钮点击反馈 (active scale) | GlassButton 及所有可点击元素 | 无 |
+| P0 | prefers-reduced-motion 全局降级 | variables.css | 无 |
+| P1 | 侧边栏选中指示器滑动 | MemberSidebar | 无 |
+| P1 | 面板切换方向感过渡 | ChatView | 无 |
+| P1 | 弹出面板 scaleIn/slideUp | MentionPopup, StickerPanel, CloudMentionPopup | P0 |
+| P1 | 未读徽章 popIn | MemberSidebar | P0 |
+| P2 | 消息 staggered 入场 | ChatPanel | P0 |
+| P2 | 列表项 TransitionGroup（新增/删除） | ChatPanel, TaskCenterView, CloudResourcesPanel | P0 |
+| P2 | 任务状态变化动画 | TaskCard, TaskDetailPanel | P0 |
+| P2 | 在线状态变化脉冲 | MemberSidebar | 无 |
+| P3 | 打字指示器三点跳动 | ChatPanel | 后端支持 |
+| P3 | 开关切换滑动动画 | 各设置面板 | P0 |
+| P3 | 图标双态弹跳切换 | CopyButton 等 | P0 |
+| P3 | 搜索框展开/收起动画 | MemberSidebar | 无 |
+| P3 | Toast 堆叠推移 | Toast | P0 |
+| P3 | 消息发送输入框反馈 | ChatPanel | P0 |
 
 ## 高内聚低耦合重构指南
 

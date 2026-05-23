@@ -75,3 +75,23 @@
   flex-direction: column;
   gap: var(--space-sm);
 }
+
+/* Task list TransitionGroup animations */
+.task-list-enter-active {
+  transition: opacity 0.25s, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.task-list-leave-active {
+  transition: opacity 0.2s, transform 0.2s ease-in;
+  position: absolute;
+}
+.task-list-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.task-list-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.task-list-move {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}

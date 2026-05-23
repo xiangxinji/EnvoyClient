@@ -11,17 +11,57 @@
   align-self: flex-start;
   box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
 }
 
 .task-card:hover {
   box-shadow: var(--glass-shadow);
+  border-color: var(--accent);
 }
+
+.task-card.running:hover { border-left-color: var(--task-running-border); }
+.task-card.reviewing:hover { border-left-color: var(--task-reviewing-border); }
+.task-card.completed:hover { border-left-color: var(--task-completed-border); }
+.task-card.failed:hover { border-left-color: var(--task-failed-border); }
 
 .task-card.running { border-left-color: var(--task-running-border); }
 .task-card.reviewing { border-left-color: var(--task-reviewing-border); }
 .task-card.completed { border-left-color: var(--task-completed-border); }
 .task-card.failed { border-left-color: var(--task-failed-border); }
+
+/* Task status change animations */
+.task-card.status-flash-running {
+  animation: task-flash-accent 0.4s ease-out;
+}
+.task-card.status-flash-completed {
+  animation: task-bounce-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.task-card.status-flash-failed {
+  animation: task-shake 0.4s ease-out;
+}
+.task-card.status-flash-reviewing {
+  animation: task-flash-accent 0.4s ease-out;
+}
+
+@keyframes task-flash-accent {
+  0% { box-shadow: 0 0 0 0 var(--accent); }
+  50% { box-shadow: 0 0 12px 2px var(--accent); }
+  100% { box-shadow: var(--shadow-sm); }
+}
+
+@keyframes task-bounce-in {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes task-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
 
 .task-header {
   display: flex;

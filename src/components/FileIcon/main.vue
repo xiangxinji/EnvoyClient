@@ -21,9 +21,9 @@ const iconName = computed(() => {
 </script>
 
 <template>
-  <SvgIcon :name="iconName" :size="16" />
+  <span class="file-icon" :data-color="category"><SvgIcon :name="iconName" :size="16" /></span>
 </template>
 
-<style>
+<style scoped>
 @import './styles.css';
 </style>

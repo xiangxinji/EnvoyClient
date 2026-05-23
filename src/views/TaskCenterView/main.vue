@@ -135,9 +135,9 @@ onUnmounted(() => {
         <div v-if="group.tasks.length > 0" class="group-header">
           {{ group.label }} ({{ group.tasks.length }})
         </div>
-        <div class="group-tasks">
+        <TransitionGroup name="task-list" tag="div" class="group-tasks">
           <TaskCard v-for="task in group.tasks" :key="task.taskId" :task="task" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
-        </div>
+        </TransitionGroup>
       </div>
     </div>
   </div>

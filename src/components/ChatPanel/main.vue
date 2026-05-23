@@ -190,7 +190,7 @@ function handleStickerSend(stickerId: string, stickerUrl: string, stickerName: s
 }
 
 function closeMenuOnClickOutside(e: MouseEvent) { if (!(e.target as HTMLElement).closest(".header-actions")) menuOpen.value = false; if (stickerPanelVisible.value && !(e.target as HTMLElement).closest(".input-area")) stickerPanelVisible.value = false; }
-function handleSelectModeKeydown(e: KeyboardEvent) { if (e.key === "Escape") { if (selectMode.value) exitSelectMode(); else if (quotingMsg.value) quotingMsg.value = null; } }
+function handleSelectModeKeydown(e: KeyboardEvent) { if (e.key === "Escape") { if (menuOpen.value) menuOpen.value = false; else if (selectMode.value) exitSelectMode(); else if (quotingMsg.value) quotingMsg.value = null; } }
 
 onMounted(() => { document.addEventListener("click", closeMenuOnClickOutside); document.addEventListener("click", closeContextMenu); document.addEventListener("keydown", handleSelectModeKeydown); });
 onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOutside); document.removeEventListener("click", closeContextMenu); document.removeEventListener("keydown", handleSelectModeKeydown); });
@@ -212,6 +212,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
           <button class="btn-menu" @click="menuOpen = !menuOpen" :title="$t('chat.actions')">
             <SvgIcon name="more-vertical" :size="16" />
           </button>
+          <Transition name="dropdown">
           <div v-if="menuOpen" class="dropdown" @click.stop>
             <button class="dropdown-item" @click="menuOpen = false; enterSelectMode()">
               <SvgIcon name="check-square" :size="14" />
@@ -222,6 +223,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
               {{ $t('chat.clearHistory') }}
             </button>
           </div>
+          </Transition>
         </div>
       </div>
 
@@ -288,7 +290,9 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
           <button class="quote-preview-close" @click="clearQuotingMsg"><SvgIcon name="close" :size="14" /></button>
         </div>
 
+        <Transition name="popup-slide-up">
         <StickerPanel v-if="stickerPanelVisible" :my-id="myId" :team-name="teamName" @send="handleStickerSend" />
+        </Transition>
         <div class="toolbar">
           <div class="toolbar-left">
             <button v-if="role === 'leader'" class="btn-tool" @click="taskInputVisible = !taskInputVisible" :title="$t('chat.dispatchTask')"><SvgIcon name="check-circle" :size="18" /></button>

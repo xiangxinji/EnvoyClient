@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { useEventListener } from "@vueuse/core";
 import GlassButton from "../GlassButton";
 import type { MemberInfo } from "../../types";
 import SvgIcon from "../SvgIcon";
@@ -38,11 +39,18 @@ function handleCancel() {
   selectedId.value = null;
   emit("cancel");
 }
+
+useEventListener("keydown", (e: KeyboardEvent) => {
+  if (e.key === "Escape" && props.visible) {
+    handleCancel();
+  }
+});
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="forward-overlay" @click.self="handleCancel">
+    <Transition name="dialog-overlay">
+    <div v-if="visible" class="forward-overlay">
       <div class="forward-dialog">
         <div class="forward-title">{{ t('chat.forwardTo') }}</div>
         <div v-if="targets.length === 0" class="forward-empty">{{ t('chat.noForwardTarget') }}</div>
@@ -70,6 +78,7 @@ function handleCancel() {
         </div>
       </div>
     </div>
+    </Transition>
   </Teleport>
 </template>
 

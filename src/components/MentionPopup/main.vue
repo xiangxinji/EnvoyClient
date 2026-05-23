@@ -72,7 +72,9 @@ defineExpose({ handleKeydown });
 </script>
 
 <template>
-  <div v-if="visible && filteredOptions.length > 0" ref="listRef" class="mention-popup">
+  <div v-if="visible && filteredOptions.length > 0" ref="listRef" class="mention-popup"
+       v-motion:initial="{ opacity: 0, y: 8, scale: 0.96 }"
+       v-motion:enter="{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } }">
     <div
       v-for="(opt, idx) in filteredOptions"
       :key="opt.id"

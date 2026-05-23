@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { getTeamClientInstance, getMemberSettings } from "../../composables/teamClientContext";
 import { apiUrl } from "../../api";
@@ -67,10 +67,10 @@ function handleToolCardLeave() { toolHover.scheduleHide(); }
 
 /** Ordered list of all selectable peer IDs in the sidebar (unfiltered, for reference) */
 const navItems = computed(() => {
-  const items: string[] = ["__cloud__"];
+  const items: string[] = ["__team__"];
+  items.push("__cloud__");
   items.push("__tasks__");
   if (ctx.role === "leader") items.push("__dispatch__");
-  items.push("__team__");
   for (const m of members.value) {
     items.push(m.id);
   }
@@ -169,6 +169,31 @@ function formatBadge(count: number): string {
   if (count > 99) return "99+";
   return String(count);
 }
+
+const sidebarNavRef = ref<HTMLElement | null>(null);
+const indicatorRef = ref<HTMLElement | null>(null);
+
+function updateIndicator() {
+  nextTick(() => {
+    const nav = sidebarNavRef.value;
+    const indicator = indicatorRef.value;
+    if (!nav || !indicator) return;
+    const activeEl = nav.querySelector("li.active") as HTMLElement | null;
+    if (!activeEl) {
+      indicator.style.opacity = "0";
+      return;
+    }
+    const navRect = nav.getBoundingClientRect();
+    const activeRect = activeEl.getBoundingClientRect();
+    const top = activeRect.top - navRect.top + nav.scrollTop;
+    indicator.style.transform = `translateY(${top}px)`;
+    indicator.style.height = `${activeRect.height}px`;
+    indicator.style.opacity = "1";
+  });
+}
+
+watch(() => props.selectedPeer, updateIndicator);
+onMounted(updateIndicator);
 </script>
 
 <template>
@@ -192,6 +217,8 @@ function formatBadge(count: number): string {
     </div>
 
     <template v-else>
+      <div class="sidebar-nav" ref="sidebarNavRef">
+        <div class="sidebar-indicator" ref="indicatorRef"></div>
       <div v-if="!searchQuery.trim()" class="sidebar-header">
         <h3>{{ t('sidebar.channel') }}</h3>
       </div>
@@ -267,6 +294,7 @@ function formatBadge(count: number): string {
           </span>
         </li>
       </ul>
+      </div>
     </template>
 
     <div class="sidebar-footer">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { useEventListener } from "@vueuse/core";
 import GlassCheckbox from "../GlassCheckbox";
 import GlassButton from "../GlassButton";
 
@@ -13,12 +14,18 @@ const emit = defineEmits<{
 
 const visible = defineModel<boolean>({ required: true });
 const remember = ref(false);
+
+useEventListener("keydown", (e: KeyboardEvent) => {
+  if (e.key === "Escape" && visible.value) {
+    visible.value = false;
+  }
+});
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="overlay">
-      <div v-if="visible" class="overlay" @click.self="visible = false">
+      <div v-if="visible" class="overlay">
         <div class="dialog">
 	          <h3 class="dialog-title">{{ $t('dialog.closeConfirm') }}</h3>
 	          <p class="dialog-desc">{{ $t('dialog.closeConfirmDesc') }}</p>

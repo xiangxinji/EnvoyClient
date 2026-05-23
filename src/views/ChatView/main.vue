@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import MemberSidebar from "../../components/MemberSidebar";
 import ChatPanel from "../../components/ChatPanel";
@@ -80,6 +80,35 @@ function handleLogout() {
   ctx.logout();
   router.replace("/");
 }
+
+function getPanelCategory(peer: string, task: TaskMessage | null): string {
+  if (task) return "detail";
+  if (peer.startsWith("__settings_") || peer === "__quick__") return "settings";
+  return "list";
+}
+
+const panelTransition = ref("panel-fade");
+
+watch(
+  [() => selectedPeer.value, selectedTask],
+  ([newPeer, newTask], [oldPeer, oldTask]) => {
+    if (!oldPeer) {
+      panelTransition.value = "panel-fade";
+      return;
+    }
+    const oldCat = getPanelCategory(oldPeer, oldTask ?? null);
+    const newCat = getPanelCategory(newPeer, newTask ?? null);
+    if (oldCat === newCat) {
+      panelTransition.value = "panel-fade";
+    } else if (newCat === "detail" || newCat === "settings") {
+      panelTransition.value = "panel-slide-left";
+    } else if (oldCat === "detail" || oldCat === "settings") {
+      panelTransition.value = "panel-slide-right";
+    } else {
+      panelTransition.value = "panel-fade";
+    }
+  },
+);
 </script>
 
 <template>
@@ -88,33 +117,25 @@ function handleLogout() {
       :selected-peer="selectedPeer"
       @select="handleSelectPeer"
     />
-    <SettingsProfile v-if="selectedPeer === '__settings_profile__'" @back="handleSettingsBack" />
-    <SettingsTask v-else-if="selectedPeer === '__settings_task__'" @back="handleSettingsBack" />
-    <SettingsAI v-else-if="selectedPeer === '__settings_ai__'" @back="handleSettingsBack" />
-    <SettingsGeneral v-else-if="selectedPeer === '__settings_general__'" @back="handleSettingsBack" />
-    <QuickSettingsPanel v-else-if="selectedPeer === '__quick__'" @back="handleSettingsBack" />
-    <CloudResourcesPanel v-else-if="selectedPeer === '__cloud__'" />
-    <TaskDispatchPanel v-else-if="selectedPeer === '__dispatch__'" />
-    <template v-else-if="selectedPeer === '__tasks__'">
-      <TaskCenterView v-show="!selectedTask" @select-task="handleSelectTask" />
+    <Transition :name="panelTransition" mode="out-in">
       <TaskDetailPanel
         v-if="selectedTask"
+        key="task-detail"
         :task="selectedTask"
         :team-name="ctx.teamName"
         :my-id="ctx.myId"
         @close="handleCloseDetail"
       />
-    </template>
-    <template v-else>
-      <ChatPanel v-if="!selectedTask" :peer-id="selectedPeer" @select-task="handleSelectTask" />
-      <TaskDetailPanel
-        v-if="selectedTask"
-        :task="selectedTask"
-        :team-name="ctx.teamName"
-        :my-id="ctx.myId"
-        @close="handleCloseDetail"
-      />
-    </template>
+      <SettingsProfile v-else-if="selectedPeer === '__settings_profile__'" key="settings-profile" @back="handleSettingsBack" />
+      <SettingsTask v-else-if="selectedPeer === '__settings_task__'" key="settings-task" @back="handleSettingsBack" />
+      <SettingsAI v-else-if="selectedPeer === '__settings_ai__'" key="settings-ai" @back="handleSettingsBack" />
+      <SettingsGeneral v-else-if="selectedPeer === '__settings_general__'" key="settings-general" @back="handleSettingsBack" />
+      <QuickSettingsPanel v-else-if="selectedPeer === '__quick__'" key="quick-settings" @back="handleSettingsBack" />
+      <CloudResourcesPanel v-else-if="selectedPeer === '__cloud__'" key="cloud" />
+      <TaskDispatchPanel v-else-if="selectedPeer === '__dispatch__'" key="dispatch" />
+      <TaskCenterView v-else-if="selectedPeer === '__tasks__'" key="tasks" @select-task="handleSelectTask" />
+      <ChatPanel v-else :key="'chat-' + selectedPeer" :peer-id="selectedPeer" @select-task="handleSelectTask" />
+    </Transition>
     <ReconnectOverlay
       v-if="showReconnectOverlay"
       :status="ctx.status.value as 'disconnected' | 'connecting' | 'reconnecting' | 'reconnect_failed'"

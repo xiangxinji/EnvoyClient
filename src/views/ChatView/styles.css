@@ -3,3 +3,41 @@
   flex: 1;
   overflow: hidden;
 }
+
+/* Panel fade transition (same-level switches: chat ↔ chat, settings ↔ settings) */
+.panel-fade-enter-active,
+.panel-fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+.panel-fade-enter-from,
+.panel-fade-leave-to {
+  opacity: 0;
+}
+
+/* Panel slide left (going deeper: list → detail / list → settings) */
+.panel-slide-left-enter-active,
+.panel-slide-left-leave-active {
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.panel-slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(40px);
+}
+.panel-slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+/* Panel slide right (going back: detail → list / settings → list) */
+.panel-slide-right-enter-active,
+.panel-slide-right-leave-active {
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.panel-slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+.panel-slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(40px);
+}

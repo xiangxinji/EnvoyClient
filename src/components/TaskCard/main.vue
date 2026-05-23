@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { TaskMessage } from "../../types";
 import { renderMarkdown } from "../../utils/markdown";
@@ -62,10 +62,18 @@ function getMemberStatusLabel(entry: { hasResult: boolean }): string {
 }
 
 const traceExpanded = ref(false);
+
+const statusFlash = ref("");
+watch(status, (newStatus, oldStatus) => {
+  if (oldStatus && newStatus !== oldStatus) {
+    statusFlash.value = `status-flash-${newStatus}`;
+    setTimeout(() => { statusFlash.value = ""; }, 500);
+  }
+});
 </script>
 
 <template>
-  <div class="task-card" :class="task.status" @click="emit('selectTask', task)">
+  <div class="task-card" :class="[task.status, statusFlash]" @click="emit('selectTask', task)">
     <div class="task-header">
       <div class="task-title">
         <SvgIcon name="check-circle" :size="14" />

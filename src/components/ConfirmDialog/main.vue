@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { useEventListener } from "@vueuse/core";
 import GlassButton from "../GlassButton";
 
 const { t } = useI18n();
@@ -19,43 +19,35 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
-const show = ref(false);
-
-watch(() => props.visible, (val) => {
-  if (val) {
-    requestAnimationFrame(() => { show.value = true; });
-  } else {
-    show.value = false;
-  }
-});
-
 function handleConfirm() {
-  show.value = false;
-  setTimeout(() => emit("confirm"), 200);
+  emit("confirm");
 }
 
 function handleCancel() {
-  show.value = false;
-  setTimeout(() => emit("cancel"), 200);
+  emit("cancel");
 }
 
-function handleBackdropClick() {
-  handleCancel();
-}
+useEventListener("keydown", (e: KeyboardEvent) => {
+  if (e.key === "Escape" && props.visible) {
+    handleCancel();
+  }
+});
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="confirm-overlay" :class="{ active: show }" @click="handleBackdropClick">
-      <div class="confirm-dialog" @click.stop>
-        <div class="confirm-title">{{ title ?? t('common.confirm') }}</div>
-        <div class="confirm-message">{{ message }}</div>
-        <div class="confirm-actions">
-          <GlassButton variant="default" @click="handleCancel">{{ cancelText ?? t('common.cancel') }}</GlassButton>
-          <GlassButton :variant="danger ? 'danger' : 'primary'" @click="handleConfirm">{{ confirmText ?? t('common.confirm') }}</GlassButton>
+    <Transition name="dialog-overlay">
+      <div v-if="visible" class="confirm-overlay">
+        <div class="confirm-dialog" @click.stop>
+          <div class="confirm-title">{{ title ?? t('common.confirm') }}</div>
+          <div class="confirm-message">{{ message }}</div>
+          <div class="confirm-actions">
+            <GlassButton variant="default" @click="handleCancel">{{ cancelText ?? t('common.cancel') }}</GlassButton>
+            <GlassButton :variant="danger ? 'danger' : 'primary'" @click="handleConfirm">{{ confirmText ?? t('common.confirm') }}</GlassButton>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
 

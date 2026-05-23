@@ -1,1 +1,16 @@
+.file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 
+.file-icon[data-color="directory"] { color: #f0a830; }
+.file-icon[data-color="document"] { color: #4a9eff; }
+.file-icon[data-color="spreadsheet"] { color: #2daa82; }
+.file-icon[data-color="image"] { color: #e06090; }
+.file-icon[data-color="audio"] { color: #a855f7; }
+.file-icon[data-color="video"] { color: #f43f5e; }
+.file-icon[data-color="archive"] { color: #f59e0b; }
+.file-icon[data-color="code"] { color: #06b6d4; }
+.file-icon[data-color="file"] { color: var(--text-muted); }
