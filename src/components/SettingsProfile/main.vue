@@ -217,7 +217,7 @@ async function handleLogout() {
   box-sizing: border-box;
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   background: var(--glass-bg-light);
   color: var(--text-primary);
   font-size: 0.9em;

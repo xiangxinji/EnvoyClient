@@ -2,6 +2,50 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
+}
+
+/* Sidebar toggle */
+.sidebar-toggle {
+  position: absolute;
+  left: 220px;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 40px;
+  border: none;
+  border-radius: 0 6px 6px 0;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.15s,
+              color 0.15s;
+  opacity: 0;
+}
+
+.chat-view:hover .sidebar-toggle {
+  opacity: 1;
+}
+
+.sidebar-toggle:hover {
+  background: var(--glass-bg-heavy);
+  color: var(--text-secondary);
+}
+
+.sidebar-toggle:active {
+  transform: translate(-50%, -50%) scale(0.92);
+}
+
+.sidebar-toggle.collapsed {
+  left: 0;
+  border-radius: 0 6px 6px 0;
 }
 
 /* Panel fade transition (same-level switches: chat ↔ chat, settings ↔ settings) */

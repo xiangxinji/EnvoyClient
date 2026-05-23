@@ -2,6 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import MemberSidebar from "../../components/MemberSidebar";
+import SvgIcon from "../../components/SvgIcon";
 import ChatPanel from "../../components/ChatPanel";
 import TaskCenterView from "../TaskCenterView";
 import TaskDispatchPanel from "../TaskDispatchPanel";
@@ -33,6 +34,7 @@ const previousPeer = ref("__tasks__");
 const selectedTask = ref<TaskMessage | null>(null);
 // When opening detail from chat, remember which peer to return to
 const detailReturnPeer = ref<string | null>(null);
+const sidebarCollapsed = ref(false);
 
 const PROFILE_PREFIX = "__profile__";
 const PROFILE_SUFFIX = "__";
@@ -139,8 +141,17 @@ watch(
   <div v-if="ctx" class="chat-view">
     <MemberSidebar
       :selected-peer="selectedPeer"
+      :collapsed="sidebarCollapsed"
       @select="handleSelectPeer"
+      @update:collapsed="sidebarCollapsed = $event"
     />
+    <button
+      class="sidebar-toggle"
+      :class="{ collapsed: sidebarCollapsed }"
+      @click="sidebarCollapsed = !sidebarCollapsed"
+    >
+      <SvgIcon :name="sidebarCollapsed ? 'chevron-right' : 'chevron-left'" :size="12" />
+    </button>
     <Transition :name="panelTransition" mode="out-in">
       <TaskDetailPanel
         v-if="selectedTask"

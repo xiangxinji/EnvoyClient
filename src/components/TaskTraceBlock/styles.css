@@ -1,0 +1,130 @@
+.task-section {
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--border-light);
+  padding-top: var(--space-sm);
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.section-label.clickable { cursor: pointer; user-select: none; }
+.section-label.clickable:hover { color: var(--accent); }
+
+.trace-toggle {
+  margin-left: auto;
+  font-weight: 400;
+  color: var(--accent);
+}
+
+.trace-count {
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: var(--space-xs);
+}
+
+.trace-member-label {
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.trace-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.trace-step {
+  background: var(--glass-bg-light);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--glass-border);
+}
+
+.trace-step-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.step-index {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.step-tools {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.tool-tag {
+  font-size: 0.68em;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--task-running-bg);
+  color: var(--task-running-text);
+  font-weight: 500;
+}
+
+.step-reasoning {
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: var(--space-xs) 0;
+  white-space: pre-wrap;
+}
+
+.step-details {
+  margin-top: var(--space-xs);
+}
+
+.tool-call-block {
+  margin-bottom: var(--space-xs);
+}
+
+.tool-call-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin-bottom: 2px;
+}
+
+.tool-name {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.tool-args {
+  font-size: 0.72em;
+  color: var(--text-secondary);
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+  background: var(--glass-bg-light);
+  padding: 1px 4px;
+  border-radius: 3px;
+  word-break: break-all;
+}
+
+.tool-result {
+  margin-top: 2px;
+}
+
+.tool-result-content {
+  font-size: 0.72em;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+  max-height: 200px;
+  overflow-y: auto;
+}

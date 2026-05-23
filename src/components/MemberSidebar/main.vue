@@ -16,10 +16,12 @@ const { t } = useI18n();
 
 const props = defineProps<{
   selectedPeer: string;
+  collapsed?: boolean;
 }>();
 
 const emit = defineEmits<{
   select: [peerId: string];
+  "update:collapsed": [value: boolean];
 }>();
 
 const ctx = getTeamClientInstance()!;
@@ -203,7 +205,7 @@ onMounted(updateIndicator);
 </script>
 
 <template>
-  <aside class="sidebar" ref="sidebarRef" @mousemove="onMouseMove" @mouseleave="onMouseLeave">
+  <aside class="sidebar" :class="{ collapsed }" ref="sidebarRef" @mousemove="onMouseMove" @mouseleave="onMouseLeave">
     <div class="sidebar-search">
       <GlassInput
         ref="searchInputRef"

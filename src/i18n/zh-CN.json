@@ -77,7 +77,9 @@
     "orgIdle": "空闲",
     "orgOffline": "离线",
     "taskQueue": "任务队列",
-    "taskQueueDesc": "查看当前客户端的任务队列，包含排队中、执行中和已完成的任务。"
+    "taskQueueDesc": "查看当前客户端的任务队列，包含排队中、执行中和已完成的任务。",
+    "collapse": "收起侧边栏",
+    "expand": "展开侧边栏"
   },
   "chat": {
     "selectPeer": "选择一位成员开始聊天",

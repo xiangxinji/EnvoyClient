@@ -77,7 +77,9 @@
     "orgIdle": "Idle",
     "orgOffline": "Offline",
     "taskQueue": "Task Queue",
-    "taskQueueDesc": "View the current client's task queue, including queued, running, and recently completed tasks."
+    "taskQueueDesc": "View the current client's task queue, including queued, running, and recently completed tasks.",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
   },
   "chat": {
     "selectPeer": "Select a member to start chatting",

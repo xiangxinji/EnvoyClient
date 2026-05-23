@@ -49,3 +49,7 @@ const emit = defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+@import './styles.css';
+</style>
