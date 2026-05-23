@@ -123,7 +123,10 @@
       "mcp__plugin_ecc_context7__resolve-library-id",
       "mcp__plugin_ecc_context7__query-docs",
       "mcp__ide__getDiagnostics",
-      "mcp__plugin_ecc_playwright__browser_navigate"
+      "mcp__plugin_ecc_playwright__browser_navigate",
+      "Bash(npx playwright@latest install chromium)",
+      "Bash(npx playwright@latest install --with-deps chromium)",
+      "Bash(npm uninstall *)"
     ]
   },
   "enabledPlugins": {

@@ -49,8 +49,8 @@ function handleMemberLeave() { memberHover.scheduleHide(); }
 function handleCardEnter() { memberHover.cancelHide(); }
 function handleCardLeave() { memberHover.scheduleHide(); }
 
-const toolDescMap: Record<string, string> = { __cloud__: "sidebar.cloudResourcesDesc", __tasks__: "sidebar.taskCenterDesc", __dispatch__: "sidebar.taskDispatchDesc", __org__: "sidebar.orgStructureDesc" };
-const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch" | "org"> = { __cloud__: "cloud", __tasks__: "tasks", __dispatch__: "dispatch", __org__: "org" };
+const toolDescMap: Record<string, string> = { __cloud__: "sidebar.cloudResourcesDesc", __tasks__: "sidebar.taskCenterDesc", __dispatch__: "sidebar.taskDispatchDesc" };
+const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch"> = { __cloud__: "cloud", __tasks__: "tasks", __dispatch__: "dispatch" };
 
 const menuItems = [
   { id: "__quick__", icon: "keyboard" as const, labelKey: "sidebar.shortcuts" },
@@ -69,7 +69,6 @@ function handleToolCardLeave() { toolHover.scheduleHide(); }
 const navItems = computed(() => {
   const items: string[] = ["__cloud__"];
   items.push("__tasks__");
-  items.push("__org__");
   if (ctx.role === "leader") items.push("__dispatch__");
   items.push("__team__");
   for (const m of members.value) {
@@ -227,10 +226,9 @@ function formatBadge(count: number): string {
           @mouseenter="handleToolEnter(tool.id, $event)"
           @mouseleave="handleToolLeave"
         >
-          <div class="avatar" :class="tool.id === '__cloud__' ? 'cloud-avatar' : tool.id === '__dispatch__' ? 'dispatch-avatar' : tool.id === '__org__' ? 'org-avatar' : 'task-center-avatar'">
+          <div class="avatar" :class="tool.id === '__cloud__' ? 'cloud-avatar' : tool.id === '__dispatch__' ? 'dispatch-avatar' : 'task-center-avatar'">
             <SvgIcon v-if="tool.id === '__cloud__'" name="cloud" :size="14" />
             <SvgIcon v-else-if="tool.id === '__tasks__'" name="tasks" :size="14" />
-            <SvgIcon v-else-if="tool.id === '__org__'" name="users" :size="14" />
             <SvgIcon v-else name="lightning" :size="14" />
           </div>
           <div class="member-info">
@@ -320,7 +318,7 @@ function formatBadge(count: number): string {
     <ToolHoverCard
       v-if="toolHover.hoveredItem.value"
       :icon="toolIconMap[toolHover.hoveredItem.value]!"
-      :name="t(`sidebar.${toolHover.hoveredItem.value === '__cloud__' ? 'cloudResources' : toolHover.hoveredItem.value === '__tasks__' ? 'taskCenter' : toolHover.hoveredItem.value === '__org__' ? 'orgStructure' : 'taskDispatch'}`)"
+      :name="t(`sidebar.${toolHover.hoveredItem.value === '__cloud__' ? 'cloudResources' : toolHover.hoveredItem.value === '__tasks__' ? 'taskCenter' : 'taskDispatch'}`)"
       :description="t(toolDescMap[toolHover.hoveredItem.value]!)"
       :rect="toolHover.hoverRect.value"
       :visible="toolHover.visible.value"

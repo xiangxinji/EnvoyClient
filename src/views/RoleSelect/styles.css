@@ -233,7 +233,7 @@ input::placeholder {
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
-  padding: var(--space-md);
+  padding: var(--space-xs);
   box-sizing: border-box;
   background: var(--glass-bg-light);
   border-radius: var(--radius-md);

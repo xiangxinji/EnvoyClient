@@ -18,9 +18,6 @@ import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { useGlobalShortcuts } from "../../composables/useGlobalShortcuts";
 import { useLockScreen } from "../../composables/useLockScreen";
 import type { TaskMessage } from "../../types";
-import { defineAsyncComponent } from "vue";
-
-const OrgView = defineAsyncComponent(() => import("../../components/OrgView"));
 
 const router = useRouter();
 const ctx = getTeamClientInstance();
@@ -97,7 +94,6 @@ function handleLogout() {
     <SettingsGeneral v-else-if="selectedPeer === '__settings_general__'" @back="handleSettingsBack" />
     <QuickSettingsPanel v-else-if="selectedPeer === '__quick__'" @back="handleSettingsBack" />
     <CloudResourcesPanel v-else-if="selectedPeer === '__cloud__'" />
-    <OrgView v-else-if="selectedPeer === '__org__'" />
     <TaskDispatchPanel v-else-if="selectedPeer === '__dispatch__'" />
     <template v-else-if="selectedPeer === '__tasks__'">
       <TaskCenterView v-show="!selectedTask" @select-task="handleSelectTask" />
