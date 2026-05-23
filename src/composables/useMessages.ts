@@ -127,6 +127,7 @@ export function useMessages(
     id: string;
     createBy: string;
     content: string;
+    mode?: string;
     status: string;
     resources: TaskResource[];
     subscribe?: string[];
@@ -139,6 +140,7 @@ export function useMessages(
       from: task.createBy,
       content: task.content,
       status: task.status as TaskMessage["status"],
+      mode: task.mode === "parallel" ? "parallel" : "serial",
       resources: task.resources,
       subscribe: task.subscribe,
       timestamp: Date.now(),

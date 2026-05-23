@@ -206,6 +206,19 @@ textarea::placeholder {
   border-bottom: 1px solid var(--border);
 }
 
+.preview-mode {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.preview-mode .preview-label {
+  margin-bottom: 0;
+}
+
 .preview-members {
   margin-bottom: var(--space-md);
 }

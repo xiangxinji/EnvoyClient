@@ -209,6 +209,7 @@
       "aiSmartDispatch": "AI 智能分派",
       "matchResult": "匹配结果",
       "assignTo": "分派给：",
+      "mode": "执行模式：",
       "noMatch": "无匹配成员，请调整任务描述或添加更多成员",
       "confirmDispatch": "确认分派",
       "allOffline": "匹配到的成员已全部离线，请稍后重试",

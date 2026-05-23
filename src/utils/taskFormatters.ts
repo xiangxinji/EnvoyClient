@@ -22,6 +22,7 @@ export function apiTaskToTaskMessage(t: ApiTask): TaskMessage {
     from: t.createBy,
     content: t.content,
     status: t.status as TaskMessage["status"],
+    mode: t.mode === "parallel" ? "parallel" : "serial",
     resources: t.resources,
     subscribe: t.subscribe,
     timestamp: t.createdAt,

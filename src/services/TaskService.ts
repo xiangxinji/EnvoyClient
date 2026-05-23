@@ -7,13 +7,13 @@ export class TaskService {
     private readonly getConfig: () => Readonly<ServiceConfig>,
   ) {}
 
-  async dispatch(targetIds: readonly string[], content: string): Promise<void> {
+  async dispatch(targetIds: readonly string[], content: string, mode: "serial" | "parallel" = "serial"): Promise<void> {
     const { myId, teamName } = this.getConfig();
     await managerPost("/api/tasks", {
       from: myId,
       content,
       subscribe: targetIds,
-      mode: "serial",
+      mode,
     }, { team: teamName });
   }
 

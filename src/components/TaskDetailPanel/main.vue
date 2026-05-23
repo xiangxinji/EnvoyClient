@@ -130,7 +130,7 @@ function toggleTrace(_by: string) {
     <div class="detail-body">
       <div class="detail-meta-row">
         <span class="status-badge" :class="liveTask.status">{{ statusLabels[liveTask.status] }}</span>
-        <span class="mode-badge">{{ modeLabels['serial'] ?? $t('task.mode.serial') }}</span>
+        <span class="mode-badge">{{ modeLabels[liveTask.mode ?? 'serial'] ?? $t('task.mode.serial') }}</span>
       </div>
 
       <div class="detail-content">{{ liveTask.content }}</div>

@@ -121,6 +121,7 @@ export interface TaskMessage {
   from: string;
   content: string;
   status: "pending" | "running" | "reviewing" | "completed" | "failed";
+  mode?: "serial" | "parallel";
   resources: TaskResource[];
   subscribe?: string[];
   timestamp: number;

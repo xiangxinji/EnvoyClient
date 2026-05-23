@@ -209,6 +209,7 @@
       "aiSmartDispatch": "AI Smart Dispatch",
       "matchResult": "Match Result",
       "assignTo": "Assign to:",
+      "mode": "Mode:",
       "noMatch": "No matching members. Please adjust the task description or add more members",
       "confirmDispatch": "Confirm Dispatch",
       "allOffline": "All matched members are offline. Please try again later",

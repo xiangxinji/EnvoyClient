@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { useAITask } from "../../composables/useAITask";
 import GlassButton from "../../components/GlassButton";
+import GlassSelect from "../../components/GlassSelect";
 import { useMouseGradient } from "../../composables/useMouseGradient";
 
 const ctx = getTeamClientInstance()!;
@@ -13,8 +14,13 @@ const { t } = useI18n();
 const { dispatchTask: aiDispatchTask, aiAvailable, aiError: dispatchAiError } = useAITask();
 
 const taskContent = ref("");
-const dispatchPreview = ref<{ subscribe: string[]; content: string } | null>(null);
+const dispatchPreview = ref<{ subscribe: string[]; content: string; mode?: "serial" | "parallel" } | null>(null);
+const selectedMode = ref<"serial" | "parallel">("serial");
 const dispatchLoading = ref(false);
+
+watch(dispatchPreview, (val) => {
+  if (val) selectedMode.value = val.mode ?? "serial";
+});
 const sectionRef = ref<HTMLElement | null>(null);
 const { onMouseMove, onMouseLeave } = useMouseGradient(sectionRef, {
   radius: 200,
@@ -58,7 +64,7 @@ function handleConfirm() {
     dispatchAiError.value = t('task.dispatch.allOffline');
     return;
   }
-  dispatchTask(subscribe, dispatchPreview.value.content);
+  dispatchTask(subscribe, dispatchPreview.value.content, selectedMode.value);
   dispatchPreview.value = null;
   taskContent.value = "";
 }
@@ -136,6 +142,13 @@ function getMatchedMembers() {
       <h3 class="section-title">{{ $t('task.dispatch.matchResult') }}</h3>
       <div ref="sectionRef" class="preview-card" @mousemove="onMouseMove" @mouseleave="onMouseLeave">
         <div class="preview-content">{{ dispatchPreview.content }}</div>
+        <div class="preview-mode">
+          <span class="preview-label">{{ t('task.dispatch.mode') }}</span>
+          <GlassSelect v-model="selectedMode" style="width: 120px;">
+            <option value="serial">{{ t('task.mode.serial') }}</option>
+            <option value="parallel">{{ t('task.mode.parallel') }}</option>
+          </GlassSelect>
+        </div>
         <div class="preview-members">
           <span class="preview-label">{{ $t('task.dispatch.assignTo') }}</span>
           <div class="matched-list">

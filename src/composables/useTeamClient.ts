@@ -173,8 +173,8 @@ export function useTeamClient(
 
   // ─── Public interface ───
 
-  function dispatchTask(targetIds: string[], content: string) {
-    void getTaskService().dispatch(targetIds, content);
+  function dispatchTask(targetIds: string[], content: string, mode?: "serial" | "parallel") {
+    void getTaskService().dispatch(targetIds, content, mode);
   }
 
   function logout() {
