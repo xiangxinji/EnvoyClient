@@ -1,0 +1,59 @@
+.task-actions {
+  margin-top: var(--space-md);
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.78em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--glass-bg-light);
+  color: var(--text-secondary);
+}
+
+.action-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-start:hover:not(:disabled) {
+  background: var(--task-running-bg);
+  border-color: var(--task-running-border);
+  color: var(--task-running-text);
+}
+
+.action-complete:hover:not(:disabled) {
+  background: var(--task-completed-bg);
+  border-color: var(--task-completed-border);
+  color: var(--task-completed-text);
+}
+
+.action-upload:hover:not(:disabled) {
+  background: var(--glass-bg);
+}
+
+.action-approve:hover:not(:disabled) {
+  background: var(--task-completed-bg);
+  border-color: var(--task-completed-border);
+  color: var(--task-completed-text);
+}
+
+.action-reject:hover:not(:disabled) {
+  background: var(--task-failed-bg);
+  border-color: var(--task-failed-border);
+  color: var(--task-failed-text);
+}

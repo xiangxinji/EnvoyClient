@@ -26,7 +26,6 @@ export function useSidebarSearch(
     const tools: ToolEntry[] = [
       { id: "__cloud__", label: t("sidebar.cloudResources") },
       { id: "__tasks__", label: t("sidebar.taskCenter") },
-      { id: "__queue__", label: t("sidebar.taskQueue") },
     ];
     if (role === "leader") {
       tools.push({ id: "__dispatch__", label: t("sidebar.taskDispatch") });

@@ -131,48 +131,6 @@
   margin-bottom: var(--space-xs);
 }
 
-/* Leader review */
-.review-item {
-  background: var(--glass-bg-light);
-  border-radius: var(--radius-sm);
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--glass-border);
-  margin-bottom: var(--space-xs);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-xs);
-}
-
-.review-status {
-  font-size: 0.72em;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
-}
-
-.review-status.approved {
-  background: var(--task-completed-bg);
-  color: var(--task-completed-text);
-}
-
-.review-status.rejected {
-  background: var(--task-failed-bg);
-  color: var(--task-failed-text);
-}
-
-.review-data {
-  width: 100%;
-  margin-top: var(--space-xs);
-}
-
-.review-error {
-  width: 100%;
-  margin-top: var(--space-xs);
-  font-size: 0.8em;
-  color: var(--error);
-}
-
 /* Source badges */
 .source-badge {
   font-size: 0.65em;
@@ -361,67 +319,6 @@
   font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
   max-height: 200px;
   overflow-y: auto;
-}
-
-/* Task actions */
-.task-actions {
-  margin-top: var(--space-md);
-  display: flex;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-}
-
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: 4px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.78em;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  background: var(--glass-bg-light);
-  color: var(--text-secondary);
-}
-
-.action-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.action-start:hover:not(:disabled) {
-  background: var(--task-running-bg);
-  border-color: var(--task-running-border);
-  color: var(--task-running-text);
-}
-
-.action-complete:hover:not(:disabled) {
-  background: var(--task-completed-bg);
-  border-color: var(--task-completed-border);
-  color: var(--task-completed-text);
-}
-
-.action-upload:hover:not(:disabled) {
-  background: var(--glass-bg);
-}
-
-.action-approve:hover:not(:disabled) {
-  background: var(--task-completed-bg);
-  border-color: var(--task-completed-border);
-  color: var(--task-completed-text);
-}
-
-.action-reject:hover:not(:disabled) {
-  background: var(--task-failed-bg);
-  border-color: var(--task-failed-border);
-  color: var(--task-failed-text);
 }
 
 /* Shared */

@@ -10,6 +10,8 @@ defineProps<{
 }>();
 </script>
 
+<style scoped>@import './styles.css';</style>
+
 <template>
   <div v-if="reviews.length > 0" class="task-section">
     <div class="section-label">

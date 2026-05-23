@@ -22,6 +22,8 @@ const emit = defineEmits<{
 }>();
 </script>
 
+<style scoped>@import './styles.css';</style>
+
 <template>
   <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="task-actions" @click.stop>
     <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="emit('start')">

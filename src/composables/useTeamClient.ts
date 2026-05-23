@@ -8,8 +8,7 @@ import type { ConnectionStatus, ConnectionClientOptions } from "./useConnection"
 import { useMessages } from "./useMessages";
 import { useTaskExecution } from "./useTaskExecution";
 import { useAutoReply } from "./useAutoReply";
-import { useClientTaskQueue } from "./useClientTaskQueue";
-import { getMemberSettings, setTeamClientInstance, setClientTaskQueue, getTaskService } from "./teamClientContext";
+import { getMemberSettings, setTeamClientInstance, getTaskService } from "./teamClientContext";
 import { useUserProfile } from "./useUserProfile";
 import { sendDesktopNotification, requestTaskbarAttention, updateDockBadge, cancelTaskbarAttention, resetNotificationState } from "../utils/notification";
 
@@ -34,10 +33,6 @@ export function useTeamClient(
     myId: conn.myId,
     teamName: conn.teamName,
   });
-
-  // 3.5 Client task queue visibility
-  const clientTaskQueue = useClientTaskQueue(conn.client, taskExec.agent);
-  setClientTaskQueue(clientTaskQueue);
 
   // 4. Auto-reply layer
   const autoReply = useAutoReply({
@@ -185,11 +180,9 @@ export function useTeamClient(
   function logout() {
     conn.disconnect();
     autoReply.dispose();
-    clientTaskQueue.dispose();
     updateDockBadge(0);
     cancelTaskbarAttention();
     resetNotificationState();
-    setClientTaskQueue(null);
     setTeamClientInstance(null);
   }
 
