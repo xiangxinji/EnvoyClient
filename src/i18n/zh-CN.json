@@ -19,6 +19,12 @@
     "fileSaved": "文件已保存",
     "select": "请选择"
   },
+  "error": {
+    "notConnected": "未连接到服务器",
+    "connectionFailed": "连接失败",
+    "websocketError": "网络连接异常",
+    "duplicateLogin": "该账号已在其他设备登录"
+  },
   "role": {
     "subtitle": "团队协作客户端",
     "username": "用户名",

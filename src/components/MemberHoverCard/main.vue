@@ -60,7 +60,7 @@ function handleAvatarClick() {
               <span class="hover-card-role" :class="member.role">{{ member.role }}</span>
               <span class="hover-card-status">
                 <span class="status-indicator" :class="member.status"></span>
-                {{ member.status === 'online' ? t('sidebar.members') + ' Online' : 'Offline' }}
+                {{ member.status === 'online' ? t('profile.online') : t('profile.offline') }}
               </span>
             </div>
           </div>

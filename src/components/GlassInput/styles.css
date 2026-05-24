@@ -23,6 +23,14 @@
   border-color: var(--accent);
 }
 
+.glass-input.no-background {
+  background: transparent;
+}
+
+.glass-input.no-background.focused {
+  background: var(--glass-bg-light);
+}
+
 .glass-input-prefix {
   display: flex;
   align-items: center;

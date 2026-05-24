@@ -19,6 +19,12 @@
     "fileSaved": "File saved",
     "select": "Please select"
   },
+  "error": {
+    "notConnected": "Not connected to server",
+    "connectionFailed": "Connection failed",
+    "websocketError": "Network connection error",
+    "duplicateLogin": "This account is already logged in on another device"
+  },
   "role": {
     "subtitle": "Team Collaboration Client",
     "username": "Username",

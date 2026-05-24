@@ -82,6 +82,7 @@ onMounted(loadSettings);
             id="managerUrl"
             v-model="managerUrl"
             placeholder="http://localhost:8080"
+            no-background
             @keydown.enter="handleSave"
           />
           <span class="hint">{{ $t('loginSettings.managerUrlHint') }}</span>

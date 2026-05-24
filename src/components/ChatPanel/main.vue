@@ -198,7 +198,7 @@ function extractMentionsForText(text: string): string[] | undefined {
   return matched.length > 0 ? matched : undefined;
 }
 
-function handleClearChat() { menuOpen.value = false; showConfirm(t('chat.confirmClearTitle'), t('chat.confirmClearMsg', { peer: props.peerId }), () => { if (!props.peerId) return; clearConversation(props.peerId); showToast(t('chat.cleared', { peer: props.peerId }), "success"); }, true); }
+function handleClearChat() { const peerDisplay = isChannel.value ? t('sidebar.channelGeneral') : getDisplayName(props.peerId); menuOpen.value = false; showConfirm(t('chat.confirmClearTitle'), t('chat.confirmClearMsg', { peer: peerDisplay }), () => { if (!props.peerId) return; clearConversation(props.peerId); showToast(t('chat.cleared', { peer: peerDisplay }), "success"); }, true); }
 function handleDispatchTask() { const c = taskContent.value.trim(); if (!c) return; dispatchTask([props.peerId], c); taskContent.value = ""; taskInputVisible.value = false; }
 function handleAISuggest() { const chatMsgs = conversation.value.filter((m): m is ChatMessage => m.type === "chat"); suggestReply(chatMsgs.slice(-memberSettings.value.ai_suggestion_history_count), `当前团队：${teamName}；你的角色：${role}`); }
 async function handleAcceptSuggestion() { const text = acceptSuggestion(); if (text) { await sendChat(props.peerId, text); await nextTick(); if (messageList.value) messageList.value.scrollTop = messageList.value.scrollHeight; } }

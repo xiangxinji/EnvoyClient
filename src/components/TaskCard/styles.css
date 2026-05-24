@@ -16,18 +16,12 @@
 
 .task-card:hover {
   box-shadow: var(--glass-shadow);
-  border-color: var(--accent);
 }
 
-.task-card.running:hover { border-left-color: var(--task-running-border); }
-.task-card.reviewing:hover { border-left-color: var(--task-reviewing-border); }
-.task-card.completed:hover { border-left-color: var(--task-completed-border); }
-.task-card.failed:hover { border-left-color: var(--task-failed-border); }
-
-.task-card.running { border-left-color: var(--task-running-border); }
-.task-card.reviewing { border-left-color: var(--task-reviewing-border); }
-.task-card.completed { border-left-color: var(--task-completed-border); }
-.task-card.failed { border-left-color: var(--task-failed-border); }
+.task-card.running { border-color: var(--task-running-border); border-left-color: var(--task-running-border); }
+.task-card.reviewing { border-color: var(--task-reviewing-border); border-left-color: var(--task-reviewing-border); }
+.task-card.completed { border-color: var(--task-completed-border); border-left-color: var(--task-completed-border); }
+.task-card.failed { border-color: var(--task-failed-border); border-left-color: var(--task-failed-border); }
 
 /* Task status change animations */
 .task-card.status-flash-running {
