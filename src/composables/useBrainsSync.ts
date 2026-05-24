@@ -187,9 +187,13 @@ function setupTriggers(username: string): void {
   const triggers = settings.value.brains_sync_triggers;
 
   if (triggers.includes("interval")) {
-    const hours = Math.max(0.5, Math.min(24, settings.value.brains_sync_interval_hours));
-    _intervalTimer = setInterval(() => { void doSync(); }, hours * 3600 * 1000);
-    void doSync();
+    const hours = Math.max(0, Math.min(23, settings.value.brains_sync_interval_hours));
+    const minutes = Math.max(0, Math.min(59, settings.value.brains_sync_interval_minutes));
+    const intervalMs = (hours * 3600 + minutes * 60) * 1000;
+    if (intervalMs > 0) {
+      _intervalTimer = setInterval(() => { void doSync(); }, intervalMs);
+      void doSync();
+    }
   }
 }
 

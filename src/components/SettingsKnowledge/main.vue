@@ -25,42 +25,63 @@ const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm
 
 const brainsSync = getBrainsSync();
 
+// UI state (local, not synced until Apply is clicked)
 const syncInterval = ref(false);
 const syncAfterTask = ref(false);
 const syncIntervalHours = ref(1);
+const syncIntervalMinutes = ref(30);
+
+// Track if there are unsaved changes
+const hasChanges = computed(() => {
+  const savedTriggers = settings.value.brains_sync_triggers;
+  return (
+    syncInterval.value !== savedTriggers.includes("interval") ||
+    syncAfterTask.value !== savedTriggers.includes("after_task") ||
+    syncIntervalHours.value !== settings.value.brains_sync_interval_hours ||
+    syncIntervalMinutes.value !== settings.value.brains_sync_interval_minutes
+  );
+});
 
 onMounted(async () => {
   await loadSettings(username);
   syncInterval.value = settings.value.brains_sync_triggers.includes("interval");
   syncAfterTask.value = settings.value.brains_sync_triggers.includes("after_task");
   syncIntervalHours.value = settings.value.brains_sync_interval_hours;
+  syncIntervalMinutes.value = settings.value.brains_sync_interval_minutes;
 });
 
-async function saveSyncTriggers() {
+async function applySettings() {
   const triggers: ("interval" | "after_task")[] = [];
   if (syncInterval.value) triggers.push("interval");
   if (syncAfterTask.value) triggers.push("after_task");
 
-  const hours = Math.max(0.5, Math.min(24, syncIntervalHours.value));
+  const hours = Math.max(0, Math.min(23, syncIntervalHours.value));
+  const minutes = Math.max(0, Math.min(59, syncIntervalMinutes.value));
+
+  // Validate: if interval trigger is enabled, at least some time must be set
+  if (syncInterval.value && hours === 0 && minutes === 0) {
+    showToast(t("settings.intervalMustBePositive"), "error");
+    return;
+  }
 
   saving.value = true;
   try {
-    await saveSettings(username, { brains_sync_triggers: triggers, brains_sync_interval_hours: hours });
+    await saveSettings(username, {
+      brains_sync_triggers: triggers,
+      brains_sync_interval_hours: hours,
+      brains_sync_interval_minutes: minutes,
+    });
+    // Only start the timer after Apply is clicked
     brainsSync.setupTriggers(username);
     brainsSync.registerTaskListener();
+    showToast(t("settings.settingsApplied"), "success");
   } catch {
     syncInterval.value = settings.value.brains_sync_triggers.includes("interval");
     syncAfterTask.value = settings.value.brains_sync_triggers.includes("after_task");
     syncIntervalHours.value = settings.value.brains_sync_interval_hours;
+    syncIntervalMinutes.value = settings.value.brains_sync_interval_minutes;
   }
   saving.value = false;
-}
-
-async function saveSyncIntervalHours() {
-  const val = Math.max(0.5, Math.min(24, syncIntervalHours.value));
-  syncIntervalHours.value = val;
-  if (val === settings.value.brains_sync_interval_hours) return;
-  await saveSyncTriggers();
 }
 
 function triggerRestore() {
@@ -123,25 +144,39 @@ const formattedLastSync = computed(() => {
         <h3 class="section-title">{{ t('settings.brainsSyncTitle') }}</h3>
         <div class="section-body">
           <div class="setting-group">
-            <GlassCheckbox v-model="syncInterval" @change="saveSyncTriggers">{{ t('settings.brainsSyncInterval') }}</GlassCheckbox>
+            <GlassCheckbox v-model="syncInterval">{{ t('settings.brainsSyncInterval') }}</GlassCheckbox>
             <div v-if="syncInterval" class="sync-interval-row">
               <GlassInput
                 v-model.number="syncIntervalHours"
                 type="number"
-                min="0.5"
-                max="24"
-                step="0.5"
+                min="0"
+                max="23"
+                step="1"
                 class="sync-interval-input"
-                @blur="saveSyncIntervalHours"
-                @keydown.enter="saveSyncIntervalHours"
               />
               <span class="setting-hint">{{ t('settings.brainsSyncHoursUnit') }}</span>
+              <GlassInput
+                v-model.number="syncIntervalMinutes"
+                type="number"
+                min="0"
+                max="59"
+                step="5"
+                class="sync-interval-input"
+              />
+              <span class="setting-hint">{{ t('settings.brainsSyncMinutesUnit') }}</span>
             </div>
           </div>
 
           <div class="setting-group">
-            <GlassCheckbox v-model="syncAfterTask" @change="saveSyncTriggers">{{ t('settings.brainsSyncAfterTask') }}</GlassCheckbox>
+            <GlassCheckbox v-model="syncAfterTask">{{ t('settings.brainsSyncAfterTask') }}</GlassCheckbox>
             <p class="setting-hint">{{ t('settings.brainsSyncAfterTaskHint') }}</p>
+          </div>
+
+          <!-- Apply button -->
+          <div class="setting-group apply-row">
+            <GlassButton :disabled="!hasChanges || saving" @click="applySettings">
+              {{ saving ? t('settings.saving') : t('settings.apply') }}
+            </GlassButton>
           </div>
 
           <!-- Sync status -->
@@ -186,8 +221,6 @@ const formattedLastSync = computed(() => {
       </section>
     </div>
 
-    <div v-if="saving" class="saving-indicator">{{ t('settings.saving') }}</div>
-
     <Toast :visible="toastVisible" :message="toastMessage" :type="toastType" @done="hideToast" />
     <ConfirmDialog
       :visible="confirmVisible"
@@ -208,10 +241,15 @@ const formattedLastSync = computed(() => {
   align-items: center;
   gap: var(--space-sm);
   margin-top: var(--space-xs);
+  flex-wrap: wrap;
 }
 
 .sync-interval-input {
-  width: 80px;
+  width: 70px;
+}
+
+.apply-row {
+  margin-top: var(--space-md);
 }
 
 .sync-status {

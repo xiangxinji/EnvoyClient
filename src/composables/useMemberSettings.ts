@@ -13,6 +13,7 @@ export interface MemberSettings {
   shortcut_lock_screen: string;
   brains_sync_triggers: ("interval" | "after_task")[];
   brains_sync_interval_hours: number;
+  brains_sync_interval_minutes: number;
 }
 
 const DEFAULT_SETTINGS: MemberSettings = {
@@ -25,6 +26,7 @@ const DEFAULT_SETTINGS: MemberSettings = {
   shortcut_lock_screen: "",
   brains_sync_triggers: [],
   brains_sync_interval_hours: 1,
+  brains_sync_interval_minutes: 30,
 };
 
 const _settings = ref<MemberSettings>({ ...DEFAULT_SETTINGS });
@@ -68,6 +70,9 @@ export function useMemberSettings() {
         brains_sync_interval_hours: typeof userSettings.brains_sync_interval_hours === "number"
           ? userSettings.brains_sync_interval_hours
           : DEFAULT_SETTINGS.brains_sync_interval_hours,
+        brains_sync_interval_minutes: typeof userSettings.brains_sync_interval_minutes === "number"
+          ? userSettings.brains_sync_interval_minutes
+          : DEFAULT_SETTINGS.brains_sync_interval_minutes,
       };
     } catch (e) {
       console.error(`[settings] loadSettings failed for ${username}:`, e);
@@ -107,6 +112,9 @@ export function useMemberSettings() {
     if (updates.brains_sync_interval_hours !== undefined) {
       _settings.value.brains_sync_interval_hours = updates.brains_sync_interval_hours;
     }
+    if (updates.brains_sync_interval_minutes !== undefined) {
+      _settings.value.brains_sync_interval_minutes = updates.brains_sync_interval_minutes;
+    }
 
     if (!isTauri) return;
 
@@ -124,6 +132,7 @@ export function useMemberSettings() {
     if (updates.shortcut_lock_screen !== undefined) existing.shortcut_lock_screen = updates.shortcut_lock_screen;
     if (updates.brains_sync_triggers !== undefined) existing.brains_sync_triggers = updates.brains_sync_triggers;
     if (updates.brains_sync_interval_hours !== undefined) existing.brains_sync_interval_hours = updates.brains_sync_interval_hours;
+    if (updates.brains_sync_interval_minutes !== undefined) existing.brains_sync_interval_minutes = updates.brains_sync_interval_minutes;
 
     users[username] = existing;
     settings.users = users;

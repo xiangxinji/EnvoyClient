@@ -270,7 +270,8 @@
     "brainsSyncTitle": "Knowledge Base Cloud Sync",
     "brainsSyncInterval": "Sync at fixed interval",
     "brainsSyncHoursUnit": "hours",
-    "brainsSyncAfterTask": "Sync after task completion",
+    "brainsSyncMinutesUnit": "minutes",
+    "brainsSyncAfterTask": "Sync after task completes",
     "brainsSyncAfterTaskHint": "Automatically sync knowledge base to cloud after your own tasks complete",
     "brainsSyncProgress": "Syncing {current}/{total}...",
     "brainsSyncLastSync": "Last synced: {time}",
@@ -281,7 +282,10 @@
     "brainsRestoreConfirmTitle": "Restore Knowledge Base",
     "brainsRestoreConfirmMsg": "Are you sure you want to restore from cloud? This will overwrite all local files with the cloud backup. This action cannot be undone.",
     "brainsRestoreSuccess": "Knowledge base restored from cloud",
-    "brainsRestoreHint": "Download all files from cloud backup and overwrite local knowledge base"
+    "brainsRestoreHint": "Download all backup files from cloud and overwrite local knowledge base",
+    "apply": "Apply",
+    "settingsApplied": "Settings applied",
+    "intervalMustBePositive": "Interval must be greater than 0"
   },
   "notification": {
     "newTask": "New Task",
