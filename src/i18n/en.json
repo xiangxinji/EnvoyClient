@@ -299,7 +299,9 @@
     "taskModeChanged": "Task execution mode switched to \"{mode}\"",
     "channelMention": "mentioned you in #General",
     "modeAuto": "Auto",
-    "modeManual": "Manual"
+    "modeManual": "Manual",
+    "syncNowTriggered": "Knowledge base sync triggered",
+    "restoreBrainsTriggered": "Knowledge base restore triggered"
   },
   "dialog": {
     "closeConfirm": "Close Confirmation",
@@ -317,6 +319,9 @@
   },
   "shortcut": {
     "title": "Shortcuts",
+    "sectionAI": "AI",
+    "sectionKnowledge": "Knowledge Base",
+    "sectionSystem": "System",
     "aiTaskMode": "AI Task Mode",
     "aiTaskModeDesc": "Toggle auto / manual execution mode",
     "pressing": "Press shortcut...",
@@ -324,6 +329,10 @@
     "clearShortcut": "Clear Shortcut",
     "aiAutoReply": "AI Auto Reply",
     "aiAutoReplyDesc": "Toggle AI auto reply for chat messages",
+    "syncNow": "Sync Knowledge Base Now",
+    "syncNowDesc": "Immediately sync local knowledge base to cloud",
+    "restoreBrains": "Restore Knowledge Base Now",
+    "restoreBrainsDesc": "Immediately restore knowledge base from cloud to local",
     "lockScreen": "Lock Screen",
     "lockScreenDesc": "Lock the screen with one click, requires password to unlock",
     "recordHint": "At least one modifier key (Ctrl / Alt / Meta) is required. Press Esc to cancel recording"

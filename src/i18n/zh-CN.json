@@ -299,7 +299,9 @@
     "taskModeChanged": "任务执行模式切换为「{mode}」",
     "channelMention": "在群聊中提到了你",
     "modeAuto": "自动",
-    "modeManual": "手动"
+    "modeManual": "手动",
+    "syncNowTriggered": "已触发知识库同步",
+    "restoreBrainsTriggered": "已触发知识库恢复"
   },
   "dialog": {
     "closeConfirm": "关闭确认",
@@ -317,6 +319,9 @@
   },
   "shortcut": {
     "title": "快捷键",
+    "sectionAI": "AI",
+    "sectionKnowledge": "知识库",
+    "sectionSystem": "系统",
     "aiTaskMode": "AI 托管任务",
     "aiTaskModeDesc": "切换自动 / 手动执行模式",
     "pressing": "按下快捷键...",
@@ -324,6 +329,10 @@
     "clearShortcut": "清除快捷键",
     "aiAutoReply": "AI 自动回复",
     "aiAutoReplyDesc": "开关 AI 自动回复聊天消息",
+    "syncNow": "立即同步知识库",
+    "syncNowDesc": "立即将本地知识库同步到云端",
+    "restoreBrains": "立即恢复知识库",
+    "restoreBrainsDesc": "立即从云端恢复知识库到本地",
     "lockScreen": "锁定屏幕",
     "lockScreenDesc": "一键锁定屏幕，需输入密码解锁",
     "recordHint": "需要至少一个修饰键（Ctrl / Alt / Meta），按 Esc 取消录制"

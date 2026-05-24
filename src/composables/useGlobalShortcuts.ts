@@ -81,6 +81,8 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
     if (s.shortcut_auto_reply) desired.add(s.shortcut_auto_reply);
     if (s.shortcut_execution_mode) desired.add(s.shortcut_execution_mode);
     if (s.shortcut_lock_screen) desired.add(s.shortcut_lock_screen);
+    if (s.shortcut_sync_now) desired.add(s.shortcut_sync_now);
+    if (s.shortcut_restore_brains) desired.add(s.shortcut_restore_brains);
 
     // Unregister removed shortcuts
     for (const combo of registeredShortcuts) {
@@ -98,7 +100,7 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
         try {
           await mod.register(comboToTauriShortcut(combo), (event) => {
             if (event.state !== "Pressed") return;
-            handleShortcutFired(combo);
+            void handleShortcutFired(combo);
           });
           registeredShortcuts.add(combo);
         } catch (e: unknown) {
@@ -126,6 +128,24 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
     if (s.shortcut_lock_screen && combo === s.shortcut_lock_screen) {
       lock();
     }
+
+    if (s.shortcut_sync_now && combo === s.shortcut_sync_now) {
+      const { getBrainsSync } = await import("./useBrainsSync");
+      const brainsSync = getBrainsSync();
+      const result = await brainsSync.doSync();
+      if (result && result.uploaded === 0 && result.deleted === 0) {
+        sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('settings.brainsSyncNoChange'));
+      } else {
+        sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('notification.syncNowTriggered'));
+      }
+    }
+
+    if (s.shortcut_restore_brains && combo === s.shortcut_restore_brains) {
+      const { getBrainsSync } = await import("./useBrainsSync");
+      const brainsSync = getBrainsSync();
+      await brainsSync.doRestore();
+      sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('notification.restoreBrainsTriggered'));
+    }
   }
 
   // Watch settings changes and re-register
@@ -136,7 +156,7 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
     await updateRegistrations();
 
     stopWatch = watch(
-      () => [settings.value.shortcut_auto_reply, settings.value.shortcut_execution_mode, settings.value.shortcut_lock_screen],
+      () => [settings.value.shortcut_auto_reply, settings.value.shortcut_execution_mode, settings.value.shortcut_lock_screen, settings.value.shortcut_sync_now, settings.value.shortcut_restore_brains],
       () => updateRegistrations(),
     );
   });

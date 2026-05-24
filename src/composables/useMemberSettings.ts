@@ -11,6 +11,8 @@ export interface MemberSettings {
   shortcut_auto_reply: string;
   shortcut_execution_mode: string;
   shortcut_lock_screen: string;
+  shortcut_sync_now: string;
+  shortcut_restore_brains: string;
   brains_sync_triggers: ("interval" | "after_task")[];
   brains_sync_interval_hours: number;
   brains_sync_interval_minutes: number;
@@ -24,6 +26,8 @@ const DEFAULT_SETTINGS: MemberSettings = {
   shortcut_auto_reply: "",
   shortcut_execution_mode: "",
   shortcut_lock_screen: "",
+  shortcut_sync_now: "",
+  shortcut_restore_brains: "",
   brains_sync_triggers: [],
   brains_sync_interval_hours: 1,
   brains_sync_interval_minutes: 30,
@@ -64,6 +68,12 @@ export function useMemberSettings() {
         shortcut_lock_screen: typeof userSettings.shortcut_lock_screen === "string"
           ? userSettings.shortcut_lock_screen
           : DEFAULT_SETTINGS.shortcut_lock_screen,
+        shortcut_sync_now: typeof userSettings.shortcut_sync_now === "string"
+          ? userSettings.shortcut_sync_now
+          : DEFAULT_SETTINGS.shortcut_sync_now,
+        shortcut_restore_brains: typeof userSettings.shortcut_restore_brains === "string"
+          ? userSettings.shortcut_restore_brains
+          : DEFAULT_SETTINGS.shortcut_restore_brains,
         brains_sync_triggers: Array.isArray(userSettings.brains_sync_triggers)
           ? userSettings.brains_sync_triggers
           : DEFAULT_SETTINGS.brains_sync_triggers,
@@ -106,6 +116,12 @@ export function useMemberSettings() {
     if (updates.shortcut_lock_screen !== undefined) {
       _settings.value.shortcut_lock_screen = updates.shortcut_lock_screen;
     }
+    if (updates.shortcut_sync_now !== undefined) {
+      _settings.value.shortcut_sync_now = updates.shortcut_sync_now;
+    }
+    if (updates.shortcut_restore_brains !== undefined) {
+      _settings.value.shortcut_restore_brains = updates.shortcut_restore_brains;
+    }
     if (updates.brains_sync_triggers !== undefined) {
       _settings.value.brains_sync_triggers = updates.brains_sync_triggers;
     }
@@ -130,6 +146,8 @@ export function useMemberSettings() {
     if (updates.shortcut_auto_reply !== undefined) existing.shortcut_auto_reply = updates.shortcut_auto_reply;
     if (updates.shortcut_execution_mode !== undefined) existing.shortcut_execution_mode = updates.shortcut_execution_mode;
     if (updates.shortcut_lock_screen !== undefined) existing.shortcut_lock_screen = updates.shortcut_lock_screen;
+    if (updates.shortcut_sync_now !== undefined) existing.shortcut_sync_now = updates.shortcut_sync_now;
+    if (updates.shortcut_restore_brains !== undefined) existing.shortcut_restore_brains = updates.shortcut_restore_brains;
     if (updates.brains_sync_triggers !== undefined) existing.brains_sync_triggers = updates.brains_sync_triggers;
     if (updates.brains_sync_interval_hours !== undefined) existing.brains_sync_interval_hours = updates.brains_sync_interval_hours;
     if (updates.brains_sync_interval_minutes !== undefined) existing.brains_sync_interval_minutes = updates.brains_sync_interval_minutes;

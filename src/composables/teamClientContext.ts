@@ -1,7 +1,7 @@
 import { shallowRef } from "vue";
 import type { useTeamClient } from "./useTeamClient";
 import { useMemberSettings } from "./useMemberSettings";
-import { useBrainsSync } from "./useBrainsSync";
+import { getBrainsSync as _createBrainsSync } from "./useBrainsSync";
 import { MessageService } from "../services/MessageService";
 import { CloudResourceService } from "../services/CloudResourceService";
 import { TaskService } from "../services/TaskService";
@@ -14,7 +14,7 @@ export type TeamClientContext = ReturnType<typeof useTeamClient>;
 
 const _instance = shallowRef<TeamClientContext | null>(null);
 const _memberSettings = useMemberSettings();
-const _brainsSync = useBrainsSync();
+const _brainsSync = _createBrainsSync();
 
 const _serviceConfig = (): Readonly<ServiceConfig> => ({
   myId: _instance.value?.myId ?? "",

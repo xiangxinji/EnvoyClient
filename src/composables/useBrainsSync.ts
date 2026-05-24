@@ -234,3 +234,12 @@ export function useBrainsSync() {
     cleanupTriggers,
   };
 }
+
+let _singleton: ReturnType<typeof useBrainsSync> | null = null;
+
+export function getBrainsSync() {
+  if (!_singleton) {
+    _singleton = useBrainsSync();
+  }
+  return _singleton;
+}

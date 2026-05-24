@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { getMemberSettings, getTeamClientInstance, getBrainsSync } from "../../composables/teamClientContext";
 import { useToast } from "../../composables/useToast";
@@ -102,7 +102,7 @@ function triggerRestore() {
 }
 
 function triggerSync() {
-  brainsSync.doSync().then((result) => {
+  brainsSync.doSync().then((result: { uploaded: number; deleted: number } | null) => {
     if (result && result.uploaded === 0 && result.deleted === 0) {
       showToast(t('settings.brainsSyncNoChange'), "info");
     }
