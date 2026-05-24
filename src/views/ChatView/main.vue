@@ -8,6 +8,7 @@ import TaskCenterView from "../TaskCenterView";
 import TaskDispatchPanel from "../TaskDispatchPanel";
 import SettingsProfile from "../../components/SettingsProfile";
 import SettingsTask from "../../components/SettingsTask";
+import SettingsKnowledge from "../../components/SettingsKnowledge";
 import SettingsAI from "../../components/SettingsAI";
 import SettingsGeneral from "../../components/SettingsGeneral";
 import QuickSettingsPanel from "../../components/QuickSettingsPanel";
@@ -163,6 +164,7 @@ watch(
       />
       <SettingsProfile v-else-if="selectedPeer === '__settings_profile__'" key="settings-profile" @back="handleSettingsBack" />
       <SettingsTask v-else-if="selectedPeer === '__settings_task__'" key="settings-task" @back="handleSettingsBack" />
+      <SettingsKnowledge v-else-if="selectedPeer === '__settings_knowledge__'" key="settings-knowledge" @back="handleSettingsBack" />
       <SettingsAI v-else-if="selectedPeer === '__settings_ai__'" key="settings-ai" @back="handleSettingsBack" />
       <SettingsGeneral v-else-if="selectedPeer === '__settings_general__'" key="settings-general" @back="handleSettingsBack" />
       <QuickSettingsPanel v-else-if="selectedPeer === '__quick__'" key="quick-settings" @back="handleSettingsBack" />

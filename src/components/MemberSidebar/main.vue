@@ -63,6 +63,7 @@ const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch"> = { __cloud__:
 const menuItems = [
   { id: "__quick__", icon: "keyboard" as const, labelKey: "sidebar.shortcuts" },
   { id: "__settings_task__", icon: "tasks" as const, labelKey: "sidebar.taskSettings" },
+  { id: "__settings_knowledge__", icon: "book" as const, labelKey: "sidebar.knowledgeSettings" },
   { id: "__settings_ai__", icon: "lightning" as const, labelKey: "sidebar.aiSettings" },
   { id: "__settings_general__", icon: "settings" as const, labelKey: "sidebar.general" },
   { id: "__settings_profile__", icon: "user" as const, labelKey: "sidebar.profile" },
