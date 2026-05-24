@@ -264,7 +264,19 @@
     "colorTheme": "Theme Color",
     "themeDefault": "Default",
     "themeBlue": "Tech Blue",
-    "themePurple": "Dark Purple"
+    "themePurple": "Dark Purple",
+    "brainsSyncTitle": "Knowledge Base Cloud Sync",
+    "brainsSyncInterval": "Sync at fixed interval",
+    "brainsSyncHoursUnit": "hours",
+    "brainsSyncAfterTask": "Sync after task completion",
+    "brainsSyncAfterTaskHint": "Automatically sync knowledge base to cloud after your own tasks complete",
+    "brainsSyncProgress": "Syncing {current}/{total}...",
+    "brainsSyncLastSync": "Last synced: {time}",
+    "brainsSyncRetry": "Retry",
+    "brainsRestore": "Restore from Cloud",
+    "brainsRestoreConfirmTitle": "Restore Knowledge Base",
+    "brainsRestoreConfirmMsg": "Are you sure you want to restore from cloud? This will overwrite all local files with the cloud backup. This action cannot be undone.",
+    "brainsRestoreSuccess": "Knowledge base restored from cloud"
   },
   "notification": {
     "newTask": "New Task",

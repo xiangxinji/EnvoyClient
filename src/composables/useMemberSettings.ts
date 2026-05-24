@@ -11,6 +11,8 @@ export interface MemberSettings {
   shortcut_auto_reply: string;
   shortcut_execution_mode: string;
   shortcut_lock_screen: string;
+  brains_sync_triggers: ("interval" | "after_task")[];
+  brains_sync_interval_hours: number;
 }
 
 const DEFAULT_SETTINGS: MemberSettings = {
@@ -21,6 +23,8 @@ const DEFAULT_SETTINGS: MemberSettings = {
   shortcut_auto_reply: "",
   shortcut_execution_mode: "",
   shortcut_lock_screen: "",
+  brains_sync_triggers: [],
+  brains_sync_interval_hours: 1,
 };
 
 const _settings = ref<MemberSettings>({ ...DEFAULT_SETTINGS });
@@ -58,6 +62,12 @@ export function useMemberSettings() {
         shortcut_lock_screen: typeof userSettings.shortcut_lock_screen === "string"
           ? userSettings.shortcut_lock_screen
           : DEFAULT_SETTINGS.shortcut_lock_screen,
+        brains_sync_triggers: Array.isArray(userSettings.brains_sync_triggers)
+          ? userSettings.brains_sync_triggers
+          : DEFAULT_SETTINGS.brains_sync_triggers,
+        brains_sync_interval_hours: typeof userSettings.brains_sync_interval_hours === "number"
+          ? userSettings.brains_sync_interval_hours
+          : DEFAULT_SETTINGS.brains_sync_interval_hours,
       };
     } catch (e) {
       console.error(`[settings] loadSettings failed for ${username}:`, e);
@@ -91,6 +101,12 @@ export function useMemberSettings() {
     if (updates.shortcut_lock_screen !== undefined) {
       _settings.value.shortcut_lock_screen = updates.shortcut_lock_screen;
     }
+    if (updates.brains_sync_triggers !== undefined) {
+      _settings.value.brains_sync_triggers = updates.brains_sync_triggers;
+    }
+    if (updates.brains_sync_interval_hours !== undefined) {
+      _settings.value.brains_sync_interval_hours = updates.brains_sync_interval_hours;
+    }
 
     if (!isTauri) return;
 
@@ -106,6 +122,8 @@ export function useMemberSettings() {
     if (updates.shortcut_auto_reply !== undefined) existing.shortcut_auto_reply = updates.shortcut_auto_reply;
     if (updates.shortcut_execution_mode !== undefined) existing.shortcut_execution_mode = updates.shortcut_execution_mode;
     if (updates.shortcut_lock_screen !== undefined) existing.shortcut_lock_screen = updates.shortcut_lock_screen;
+    if (updates.brains_sync_triggers !== undefined) existing.brains_sync_triggers = updates.brains_sync_triggers;
+    if (updates.brains_sync_interval_hours !== undefined) existing.brains_sync_interval_hours = updates.brains_sync_interval_hours;
 
     users[username] = existing;
     settings.users = users;

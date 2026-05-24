@@ -543,6 +543,8 @@ pub fn run() {
             file_write,
             save_binary_file,
             brains::init_brains,
+            brains::scan_brains_files,
+            brains::restore_brains,
             init_workspace,
             load_skill_catalog,
             credentials::get_credential,

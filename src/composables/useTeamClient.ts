@@ -8,7 +8,7 @@ import type { ConnectionStatus, ConnectionClientOptions } from "./useConnection"
 import { useMessages } from "./useMessages";
 import { useTaskExecution } from "./useTaskExecution";
 import { useAutoReply } from "./useAutoReply";
-import { getMemberSettings, setTeamClientInstance, getTaskService } from "./teamClientContext";
+import { getMemberSettings, setTeamClientInstance, getTaskService, getBrainsSync } from "./teamClientContext";
 import { useUserProfile } from "./useUserProfile";
 import { sendDesktopNotification, requestTaskbarAttention, updateDockBadge, cancelTaskbarAttention, resetNotificationState } from "../utils/notification";
 
@@ -61,6 +61,12 @@ export function useTeamClient(
 
     msg.loadHistory();
     loadMemberSettings(conn.myId);
+
+    // Setup brains sync triggers after settings are loaded
+    const brainsSync = getBrainsSync();
+    brainsSync.setTeamName(conn.teamName);
+    brainsSync.setupTriggers(conn.myId);
+    brainsSync.registerTaskListener();
 
     // Load configured members (now includes profile data: nickname, avatar_url)
     conn.loadConfiguredMembers().then(() => {
@@ -141,6 +147,11 @@ export function useTeamClient(
         if (isRelevant) {
           sendDesktopNotification(i18n.global.t('notification.taskCompleted'), content);
         }
+        // Trigger brains sync if after_task is enabled and user is a subscriber
+        if (task.subscribe.includes(myId) && memberSettings.value.brains_sync_triggers.includes("after_task")) {
+          const listener = getBrainsSync().getTaskListener();
+          listener?.(task);
+        }
         break;
       }
       case "failed": {
@@ -181,6 +192,7 @@ export function useTeamClient(
   function logout() {
     conn.disconnect();
     autoReply.dispose();
+    getBrainsSync().cleanupTriggers();
     updateDockBadge(0);
     cancelTaskbarAttention();
     resetNotificationState();

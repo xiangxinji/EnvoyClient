@@ -1,6 +1,7 @@
 import { shallowRef } from "vue";
 import type { useTeamClient } from "./useTeamClient";
 import { useMemberSettings } from "./useMemberSettings";
+import { useBrainsSync } from "./useBrainsSync";
 import { MessageService } from "../services/MessageService";
 import { CloudResourceService } from "../services/CloudResourceService";
 import { TaskService } from "../services/TaskService";
@@ -13,6 +14,7 @@ export type TeamClientContext = ReturnType<typeof useTeamClient>;
 
 const _instance = shallowRef<TeamClientContext | null>(null);
 const _memberSettings = useMemberSettings();
+const _brainsSync = useBrainsSync();
 
 const _serviceConfig = (): Readonly<ServiceConfig> => ({
   myId: _instance.value?.myId ?? "",
@@ -64,4 +66,8 @@ export function getStickerService() {
 
 export function getSystemSettingService() {
   return _systemSettingService;
+}
+
+export function getBrainsSync() {
+  return _brainsSync;
 }
