@@ -39,7 +39,8 @@
     "logout": "Logout",
     "leader": "leader",
     "clearPassword": "Clear password",
-    "member": "member"
+    "member": "member",
+    "alreadyOnline": "This user is already online. Duplicate login is not allowed"
   },
   "titlebar": {
     "close": "Close",

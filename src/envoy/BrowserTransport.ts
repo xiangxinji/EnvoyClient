@@ -42,7 +42,9 @@ export class ClientTransport extends EventEmitter {
           this.slowReconnectTimer = null;
         }
         this.emit("open");
-        resolve();
+        // Delay resolve so that an immediate server rejection (code 4001)
+        // in onclose can reject the promise before it settles
+        setTimeout(resolve, 0);
       };
 
       ws.onmessage = (event) => {
@@ -54,9 +56,16 @@ export class ClientTransport extends EventEmitter {
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         this.connected = false;
         this.ws = null;
+
+        if (event.code === 4001) {
+          this.emit("rejected", event.reason || "DUPLICATE_LOGIN");
+          reject(new Error(event.reason || "DUPLICATE_LOGIN"));
+          return;
+        }
+
         this.emit("close");
         this.tryReconnect();
       };

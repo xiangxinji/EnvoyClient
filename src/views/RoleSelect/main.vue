@@ -173,7 +173,12 @@ async function handleConnect() {
 
     router.push("/chat");
   } catch (e) {
-    error.value = getErrorMessage(e) || t("role.connectFailed");
+    const msg = getErrorMessage(e);
+    if (msg === "DUPLICATE_LOGIN") {
+      error.value = t("role.alreadyOnline");
+    } else {
+      error.value = msg || t("role.connectFailed");
+    }
     loading.value = false;
   }
 }

@@ -39,7 +39,8 @@
     "logout": "退出",
     "clearPassword": "清除密码",
     "leader": "leader",
-    "member": "member"
+    "member": "member",
+    "alreadyOnline": "该用户已在线，无法重复登录"
   },
   "titlebar": {
     "close": "关闭",
