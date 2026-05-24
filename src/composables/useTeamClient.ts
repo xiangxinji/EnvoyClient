@@ -43,7 +43,7 @@ export function useTeamClient(
     sendChat: msg.sendChat,
   });
 
-  const { settings: memberSettings } = getMemberSettings();
+  const { settings: memberSettings, loadSettings: loadMemberSettings } = getMemberSettings();
   const userProfile = useUserProfile();
 
   // ─── Glue: bridge connection events to message layer ───
@@ -60,6 +60,7 @@ export function useTeamClient(
     }
 
     msg.loadHistory();
+    loadMemberSettings(conn.myId);
 
     // Load configured members (now includes profile data: nickname, avatar_url)
     conn.loadConfiguredMembers().then(() => {

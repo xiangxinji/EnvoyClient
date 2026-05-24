@@ -69,6 +69,29 @@ export function useMemberSettings() {
   }
 
   async function saveSettings(username: string, updates: Partial<MemberSettings>): Promise<void> {
+    // Always update in-memory settings immediately (even in browser mode)
+    if (updates.ai_auto_reply !== undefined) {
+      _settings.value.ai_auto_reply = updates.ai_auto_reply;
+    }
+    if (updates.ai_suggestion_history_count !== undefined) {
+      _settings.value.ai_suggestion_history_count = updates.ai_suggestion_history_count;
+    }
+    if (updates.task_execution_mode !== undefined) {
+      _settings.value.task_execution_mode = updates.task_execution_mode;
+    }
+    if (updates.working_directory !== undefined) {
+      _settings.value.working_directory = updates.working_directory;
+    }
+    if (updates.shortcut_auto_reply !== undefined) {
+      _settings.value.shortcut_auto_reply = updates.shortcut_auto_reply;
+    }
+    if (updates.shortcut_execution_mode !== undefined) {
+      _settings.value.shortcut_execution_mode = updates.shortcut_execution_mode;
+    }
+    if (updates.shortcut_lock_screen !== undefined) {
+      _settings.value.shortcut_lock_screen = updates.shortcut_lock_screen;
+    }
+
     if (!isTauri) return;
 
     const raw = await safeInvoke("get_settings", {}) as Record<string, unknown> | null;
@@ -76,34 +99,13 @@ export function useMemberSettings() {
     const users = { ...((settings.users ?? {}) as Record<string, unknown>) };
     const existing = { ...((users[username] ?? {}) as Record<string, unknown>) };
 
-    if (updates.working_directory !== undefined) {
-      existing.working_directory = updates.working_directory;
-      _settings.value.working_directory = updates.working_directory;
-    }
-    if (updates.task_execution_mode !== undefined) {
-      existing.task_execution_mode = updates.task_execution_mode;
-      _settings.value.task_execution_mode = updates.task_execution_mode;
-    }
-    if (updates.ai_suggestion_history_count !== undefined) {
-      existing.ai_suggestion_history_count = updates.ai_suggestion_history_count;
-      _settings.value.ai_suggestion_history_count = updates.ai_suggestion_history_count;
-    }
-    if (updates.ai_auto_reply !== undefined) {
-      existing.ai_auto_reply = updates.ai_auto_reply;
-      _settings.value.ai_auto_reply = updates.ai_auto_reply;
-    }
-    if (updates.shortcut_auto_reply !== undefined) {
-      existing.shortcut_auto_reply = updates.shortcut_auto_reply;
-      _settings.value.shortcut_auto_reply = updates.shortcut_auto_reply;
-    }
-    if (updates.shortcut_execution_mode !== undefined) {
-      existing.shortcut_execution_mode = updates.shortcut_execution_mode;
-      _settings.value.shortcut_execution_mode = updates.shortcut_execution_mode;
-    }
-    if (updates.shortcut_lock_screen !== undefined) {
-      existing.shortcut_lock_screen = updates.shortcut_lock_screen;
-      _settings.value.shortcut_lock_screen = updates.shortcut_lock_screen;
-    }
+    if (updates.working_directory !== undefined) existing.working_directory = updates.working_directory;
+    if (updates.task_execution_mode !== undefined) existing.task_execution_mode = updates.task_execution_mode;
+    if (updates.ai_suggestion_history_count !== undefined) existing.ai_suggestion_history_count = updates.ai_suggestion_history_count;
+    if (updates.ai_auto_reply !== undefined) existing.ai_auto_reply = updates.ai_auto_reply;
+    if (updates.shortcut_auto_reply !== undefined) existing.shortcut_auto_reply = updates.shortcut_auto_reply;
+    if (updates.shortcut_execution_mode !== undefined) existing.shortcut_execution_mode = updates.shortcut_execution_mode;
+    if (updates.shortcut_lock_screen !== undefined) existing.shortcut_lock_screen = updates.shortcut_lock_screen;
 
     users[username] = existing;
     settings.users = users;
