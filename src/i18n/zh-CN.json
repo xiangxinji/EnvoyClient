@@ -273,10 +273,13 @@
     "brainsSyncProgress": "正在同步 {current}/{total}...",
     "brainsSyncLastSync": "上次同步: {time}",
     "brainsSyncRetry": "重试",
+    "brainsSyncNow": "立即同步",
+    "brainsSyncNoChange": "已是最新，无需同步",
     "brainsRestore": "从云端恢复知识库",
     "brainsRestoreConfirmTitle": "恢复知识库",
     "brainsRestoreConfirmMsg": "确定要从云端恢复知识库吗？这将用云端备份覆盖本地所有文件，此操作不可撤销。",
-    "brainsRestoreSuccess": "知识库已从云端恢复"
+    "brainsRestoreSuccess": "知识库已从云端恢复",
+    "brainsRestoreHint": "从云端下载所有备份文件并覆盖本地知识库"
   },
   "notification": {
     "newTask": "新任务",

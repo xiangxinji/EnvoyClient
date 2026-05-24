@@ -273,10 +273,13 @@
     "brainsSyncProgress": "Syncing {current}/{total}...",
     "brainsSyncLastSync": "Last synced: {time}",
     "brainsSyncRetry": "Retry",
+    "brainsSyncNow": "Sync Now",
+    "brainsSyncNoChange": "Already up to date, no sync needed",
     "brainsRestore": "Restore from Cloud",
     "brainsRestoreConfirmTitle": "Restore Knowledge Base",
     "brainsRestoreConfirmMsg": "Are you sure you want to restore from cloud? This will overwrite all local files with the cloud backup. This action cannot be undone.",
-    "brainsRestoreSuccess": "Knowledge base restored from cloud"
+    "brainsRestoreSuccess": "Knowledge base restored from cloud",
+    "brainsRestoreHint": "Download all files from cloud backup and overwrite local knowledge base"
   },
   "notification": {
     "newTask": "New Task",

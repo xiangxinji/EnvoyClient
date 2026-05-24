@@ -2,16 +2,11 @@ import { ref, type Ref } from "vue";
 import { safeInvoke, isTauri } from "../utils/platform";
 import { getErrorMessage } from "../utils/error";
 import { getMemberSettings } from "./teamClientContext";
-import { managerPost, managerFetch, apiUrl, getClientToken } from "../api";
+import { managerPost, managerFetch, getManagerUrl, getClientToken } from "../api";
 
-interface SyncManifest {
-  lastSyncAt: string | null;
-  files: Record<string, { hash: string; syncedAt: string }>;
-}
-
-interface ScannedFile {
+interface FileInfo {
   path: string;
-  hash: string;
+  mtime_ms: number;
   size: number;
 }
 
@@ -29,19 +24,6 @@ let _teamName = "";
 let _intervalTimer: ReturnType<typeof setInterval> | undefined;
 let _onTaskComplete: ((task: { subscribe: string[]; status: string }) => void) | undefined;
 
-function loadManifest(): SyncManifest {
-  if (!isTauri) return { lastSyncAt: null, files: {} };
-  try {
-    const raw = localStorage.getItem(`brains_sync_manifest_${_username}`);
-    if (raw) return JSON.parse(raw) as SyncManifest;
-  } catch { /* corrupted, treat as empty */ }
-  return { lastSyncAt: null, files: {} };
-}
-
-function saveManifest(manifest: SyncManifest): void {
-  localStorage.setItem(`brains_sync_manifest_${_username}`, JSON.stringify(manifest));
-}
-
 function brainsHeaders(): Record<string, string> {
   const h: Record<string, string> = { team: _teamName };
   const token = getClientToken();
@@ -49,8 +31,23 @@ function brainsHeaders(): Record<string, string> {
   return h;
 }
 
-async function doSync(): Promise<void> {
-  if (syncing.value || !isTauri || !_username || !_teamName) return;
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 8192;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize) as unknown as number[]);
+  }
+  return btoa(binary);
+}
+
+function needsUpload(local: FileInfo, server: FileInfo | undefined): boolean {
+  if (!server) return true;
+  return local.mtime_ms !== server.mtime_ms || local.size !== server.size;
+}
+
+async function doSync(): Promise<{ uploaded: number; deleted: number } | null> {
+  if (syncing.value || !isTauri || !_username || !_teamName) return null;
   syncing.value = true;
   syncError.value = null;
   syncPhase.value = "scanning";
@@ -58,67 +55,70 @@ async function doSync(): Promise<void> {
   currentFile.value = "";
 
   try {
-    // 1. Scan local files
-    const result = await safeInvoke("scan_brains_files", { username: _username }) as { files: ScannedFile[] } | null;
-    const localFiles = result?.files ?? [];
+    // 1. Scan local files (stat only, no content read)
+    const scanResult = await safeInvoke("scan_brains_files", { username: _username }) as { files: FileInfo[] } | null;
+    const localFiles = scanResult?.files ?? [];
 
-    // 2. Diff against manifest
-    const manifest = loadManifest();
-    const toUpload: { path: string; content: string }[] = [];
+    // 2. Get server file list
+    const serverRes = await managerFetch(`/api/brains/files?username=${encodeURIComponent(_username)}`, { headers: brainsHeaders() });
+    const serverData = await serverRes.json() as { files: FileInfo[] };
+    const serverMap = new Map(serverData.files.map((f) => [f.path, f]));
+
+    // 3. Diff + upload one by one
+    const localPaths = new Set(localFiles.map((f) => f.path));
     const toDelete: string[] = [];
+    for (const serverFile of serverData.files) {
+      if (!localPaths.has(serverFile.path)) {
+        toDelete.push(serverFile.path);
+      }
+    }
+
+    let uploaded = 0;
+    let failedUploads = 0;
+    syncPhase.value = "uploading";
+    syncProgress.value = { current: 0, total: localFiles.length + toDelete.length };
 
     for (const file of localFiles) {
-      const entry = manifest.files[file.path];
-      if (!entry || entry.hash !== file.hash) {
+      if (needsUpload(file, serverMap.get(file.path))) {
         currentFile.value = file.path;
-        const fullPath = `~/.envoy/brains/${_username}/${file.path}`;
-        const readResult = await safeInvoke("file_read", { path: fullPath }) as { content: string } | null;
-        toUpload.push({ path: file.path, content: readResult?.content ?? "" });
-      }
-    }
-
-    for (const path of Object.keys(manifest.files)) {
-      if (!localFiles.some((f) => f.path === path)) {
-        toDelete.push(path);
-      }
-    }
-
-    // 3. Batch upload via POST /api/brains/sync
-    syncPhase.value = "uploading";
-    syncProgress.value = { current: 0, total: toUpload.length + toDelete.length };
-
-    if (toUpload.length > 0) {
-      currentFile.value = `(${toUpload.length} files)`;
-      await managerPost("/api/brains/sync", { username: _username, files: toUpload }, brainsHeaders());
-      for (const file of toUpload) {
-        manifest.files[file.path] = { hash: "", syncedAt: new Date().toISOString() };
-      }
-      // Update hashes from scan result
-      for (const file of localFiles) {
-        if (toUpload.some((u) => u.path === file.path)) {
-          manifest.files[file.path].hash = file.hash;
+        try {
+          await safeInvoke("upload_brains_file", {
+            username: _username,
+            path: file.path,
+            mtimeMs: file.mtime_ms,
+            size: file.size,
+            serverUrl: getManagerUrl(),
+            token: getClientToken(),
+            team: _teamName,
+          });
+          uploaded++;
+        } catch (e) {
+          console.error(`upload_brains_file failed (${file.path}):`, getErrorMessage(e));
+          failedUploads++;
         }
       }
-      syncProgress.value = { ...syncProgress.value, current: toUpload.length };
+      syncProgress.value = { ...syncProgress.value, current: syncProgress.value.current + 1 };
     }
 
-    // 4. Rename deleted files via POST /api/brains/rename
+    // 4. Rename deleted files on server
     for (const path of toDelete) {
       currentFile.value = path;
       try {
         const backupPath = addBackupExtension(path);
         await managerPost("/api/brains/rename", { username: _username, path, newPath: backupPath }, brainsHeaders());
       } catch { /* best effort */ }
-      delete manifest.files[path];
       syncProgress.value = { ...syncProgress.value, current: syncProgress.value.current + 1 };
     }
 
-    manifest.lastSyncAt = new Date().toISOString();
-    saveManifest(manifest);
-    lastSyncAt.value = manifest.lastSyncAt;
+    lastSyncAt.value = new Date().toISOString();
     syncPhase.value = "done";
+    if (failedUploads > 0) {
+      syncError.value = `${failedUploads} file(s) failed to upload`;
+    }
+    return { uploaded, deleted: toDelete.length };
   } catch (e) {
     syncError.value = getErrorMessage(e);
+    return null;
   } finally {
     syncing.value = false;
     currentFile.value = "";
@@ -134,39 +134,38 @@ async function doRestore(): Promise<void> {
   currentFile.value = "";
 
   try {
-    // 1. List backup files via GET /api/brains/files
-    const res = await managerFetch(`/api/brains/files?username=${encodeURIComponent(_username)}`, { headers: brainsHeaders() });
-    const listing = await res.json() as { files: Array<{ path: string; size: number }> };
+    // 1. List server files (include backups for full restore)
+    const res = await managerFetch(`/api/brains/files?username=${encodeURIComponent(_username)}&includeBackups=true`, { headers: brainsHeaders() });
+    const listing = await res.json() as { files: FileInfo[] };
 
     syncPhase.value = "uploading";
     syncProgress.value = { current: 0, total: listing.files.length };
 
-    // 2. Download each file
-    const restoreEntries: { path: string; content: string }[] = [];
+    // 2. Download and write each file
+    const failedFiles: string[] = [];
     for (const item of listing.files) {
       currentFile.value = item.path;
-      const downloadUrl = apiUrl(`/api/brains/download/${encodeURIComponent(item.path)}?username=${encodeURIComponent(_username)}`);
-      const token = getClientToken();
-      const dlRes = await fetch(downloadUrl, { headers: { ...brainsHeaders(), ...(token ? { "X-Envoy-Token": token } : {}) } });
-      if (!dlRes.ok) throw new Error(`Failed to download ${item.path}`);
-      const content = await dlRes.text();
-      restoreEntries.push({ path: item.path, content });
+      try {
+        const encodedPath = item.path.split("/").map(encodeURIComponent).join("/");
+        const dlPath = `/api/brains/download/${encodedPath}?username=${encodeURIComponent(_username)}`;
+        const dlRes = await managerFetch(dlPath, { headers: brainsHeaders() });
+        const buffer = await dlRes.arrayBuffer();
+        const content = arrayBufferToBase64(buffer);
+        await safeInvoke("restore_brains", {
+          username: _username,
+          files: [{ path: item.path, content, mtime_ms: item.mtime_ms }],
+        });
+      } catch {
+        failedFiles.push(item.path);
+      }
       syncProgress.value = { ...syncProgress.value, current: syncProgress.value.current + 1 };
     }
 
-    // 3. Write to local brains
-    if (restoreEntries.length > 0) {
-      await safeInvoke("restore_brains", { username: _username, files: restoreEntries });
+    if (failedFiles.length > 0) {
+      syncError.value = `Failed to download ${failedFiles.length} file(s): ${failedFiles.join(", ")}`;
     }
 
-    // 4. Rebuild manifest
-    const scanResult = await safeInvoke("scan_brains_files", { username: _username }) as { files: ScannedFile[] } | null;
-    const manifest: SyncManifest = { lastSyncAt: new Date().toISOString(), files: {} };
-    for (const f of (scanResult?.files ?? [])) {
-      manifest.files[f.path] = { hash: f.hash, syncedAt: new Date().toISOString() };
-    }
-    saveManifest(manifest);
-    lastSyncAt.value = manifest.lastSyncAt;
+    lastSyncAt.value = new Date().toISOString();
     syncPhase.value = "done";
   } catch (e) {
     syncError.value = getErrorMessage(e);
@@ -177,10 +176,6 @@ async function doRestore(): Promise<void> {
 }
 
 function addBackupExtension(path: string): string {
-  const dotIndex = path.lastIndexOf(".");
-  if (dotIndex > path.lastIndexOf("/")) {
-    return path.substring(0, dotIndex) + ".backup" + path.substring(dotIndex);
-  }
   return path + ".backup";
 }
 

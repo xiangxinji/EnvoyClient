@@ -28,6 +28,9 @@ serde_json = "1"
 serde_yaml = "0.9"
 dirs = "6"
 keyring = "3"
+tokio = { version = "1", features = ["rt"] }
 base64 = "0.22"
+filetime = "0.2"
+reqwest = { version = "0.12", features = ["json", "blocking"] }
 tauri-plugin-autostart = "2.5.1"
 

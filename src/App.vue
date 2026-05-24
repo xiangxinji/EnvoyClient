@@ -2,6 +2,7 @@
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import TitleBar from "./components/TitleBar";
 import CloseConfirmDialog from "./components/CloseConfirmDialog";
+import SyncIndicator from "./components/SyncIndicator";
 import { useTheme } from "./composables/useTheme";
 import { useTeamClientInstance } from "./composables/teamClientContext";
 import { useLockScreen } from "./composables/useLockScreen";
@@ -155,6 +156,7 @@ onUnmounted(() => {
       @hide="onDialogHide"
       @exit="onDialogExit"
     />
+    <SyncIndicator />
   </div>
 </template>
 

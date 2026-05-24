@@ -100,7 +100,8 @@ function triggerRestore() {
       if (!brainsSync.syncError.value) {
         showToast(t('settings.brainsRestoreSuccess'), "success");
       } else {
-        showToast(t('common.operationFailed'), "error");
+        showToast(t('common.operationFailed') + ': ' + brainsSync.syncError.value, "error");
+        brainsSync.syncError.value = null;
       }
     },
     true,
@@ -108,7 +109,11 @@ function triggerRestore() {
 }
 
 function triggerRetry() {
-  void brainsSync.doSync();
+  brainsSync.doSync().then((result) => {
+    if (result && result.uploaded === 0 && result.deleted === 0) {
+      showToast(t('settings.brainsSyncNoChange'), "info");
+    }
+  });
 }
 
 const syncProgressText = computed(() => {
@@ -211,21 +216,27 @@ const formattedLastSync = computed(() => {
             <!-- Error state -->
             <template v-else-if="brainsSync.syncError.value">
               <p class="sync-status-text error-text">{{ brainsSync.syncError.value }}</p>
-              <GlassButton size="small" @click="triggerRetry">{{ t('settings.brainsSyncRetry') }}</GlassButton>
+              <GlassButton @click="triggerRetry">{{ t('settings.brainsSyncRetry') }}</GlassButton>
             </template>
 
             <!-- Idle / success state -->
-            <template v-else-if="formattedLastSync">
-              <p class="sync-status-text success-text">
+            <template v-else>
+              <GlassButton :disabled="brainsSync.syncing.value" @click="triggerRetry">
+                {{ t('settings.brainsSyncNow') }}
+              </GlassButton>
+              <p v-if="formattedLastSync" class="sync-status-text success-text">
                 {{ t('settings.brainsSyncLastSync', { time: formattedLastSync }) }}
               </p>
             </template>
+          </div>
 
-            <div class="sync-actions">
-              <GlassButton variant="danger" size="small" :disabled="brainsSync.syncing.value" @click="triggerRestore">
-                {{ t('settings.brainsRestore') }}
-              </GlassButton>
-            </div>
+          <!-- Restore (danger, separate) -->
+          <div class="setting-group">
+            <label class="setting-label">{{ t('settings.brainsRestore') }}</label>
+            <p class="setting-hint">{{ t('settings.brainsRestoreHint') }}</p>
+            <GlassButton variant="danger" :disabled="brainsSync.syncing.value" @click="triggerRestore">
+              {{ t('settings.brainsRestore') }}
+            </GlassButton>
           </div>
         </div>
       </section>

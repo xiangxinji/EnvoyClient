@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { getTeamClientInstance, getMemberSettings, getBrainsSync } from "../../composables/teamClientContext";
+import { getTeamClientInstance, getMemberSettings } from "../../composables/teamClientContext";
 import { apiUrl } from "../../api";
 import GlassInput from "../GlassInput";
 import MemberHoverCard from "../MemberHoverCard";
@@ -27,7 +27,6 @@ const emit = defineEmits<{
 const ctx = getTeamClientInstance()!;
 const { members, unreadCounts, markRead, messages, myId, userProfile } = ctx;
 const { settings: memberSettings, toggleAutoReply, toggleExecutionMode } = getMemberSettings();
-const brainsSync = getBrainsSync();
 
 const myAvatarUrl = computed(() => userProfile.getAvatarUrl(myId));
 const isAutoMode = computed(() => memberSettings.value.task_execution_mode === "auto");
@@ -306,13 +305,7 @@ onMounted(updateIndicator);
       </div>
     </template>
 
-    <div class="sidebar-footer" :class="{ 'has-sync': brainsSync.syncing.value }">
-      <div v-if="brainsSync.syncing.value" class="sync-indicator">
-        <span class="sync-spinner"></span>
-        <span class="sync-indicator-text">
-          {{ t('settings.brainsSyncProgress', { current: brainsSync.syncProgress.value.current, total: brainsSync.syncProgress.value.total }) }}
-        </span>
-      </div>
+    <div class="sidebar-footer">
       <div class="user-menu-wrapper">
         <div class="user-avatar-btn" :title="myId">
           <img v-if="myAvatarUrl" :src="myAvatarUrl" class="avatar-img" />
@@ -375,43 +368,4 @@ onMounted(updateIndicator);
 <style scoped>
 @import './styles.css';
 
-.sidebar-footer.has-sync {
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.sync-indicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  margin-bottom: 4px;
-  background: var(--glass-bg-light);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.sync-spinner {
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--glass-border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: sync-spin 0.8s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes sync-spin {
-  to { transform: rotate(360deg); }
-}
-
-.sync-indicator-text {
-  font-size: 0.72em;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 </style>
