@@ -130,21 +130,33 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
     }
 
     if (s.shortcut_sync_now && combo === s.shortcut_sync_now) {
-      const { getBrainsSync } = await import("./useBrainsSync");
-      const brainsSync = getBrainsSync();
-      const result = await brainsSync.doSync();
-      if (result && result.uploaded === 0 && result.deleted === 0) {
-        sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('settings.brainsSyncNoChange'));
-      } else {
-        sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('notification.syncNowTriggered'));
+      try {
+        const { getBrainsSync } = await import("./useBrainsSync");
+        const brainsSync = getBrainsSync();
+        const result = await brainsSync.doSync();
+        if (result && result.uploaded === 0 && result.deleted === 0) {
+          sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('settings.brainsSyncNoChange'));
+        } else {
+          sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('notification.syncNowTriggered'));
+        }
+      } catch {
+        sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('common.operationFailed'));
       }
     }
 
     if (s.shortcut_restore_brains && combo === s.shortcut_restore_brains) {
-      const { getBrainsSync } = await import("./useBrainsSync");
-      const brainsSync = getBrainsSync();
-      await brainsSync.doRestore();
-      sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('notification.restoreBrainsTriggered'));
+      try {
+        const { getBrainsSync } = await import("./useBrainsSync");
+        const brainsSync = getBrainsSync();
+        await brainsSync.doRestore();
+        if (brainsSync.syncError.value) {
+          sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('common.operationFailed') + ': ' + brainsSync.syncError.value);
+        } else {
+          sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('notification.restoreBrainsTriggered'));
+        }
+      } catch {
+        sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('common.operationFailed'));
+      }
     }
   }
 

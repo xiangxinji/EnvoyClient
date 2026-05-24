@@ -4,6 +4,7 @@ import type { TimelineItem, TaskMessage, TaskResource, MessageAttachment, Revoke
 import { managerFetch, apiUrl } from "../api";
 import { syncMessageToTimeline, type SyncResponse, type SyncMessage } from "../utils/messageMapper";
 import { buildChatMessage, resolvePeerId } from "../utils/chatMessageFactory";
+import { apiTaskToTaskMessage, type ApiTask } from "../utils/taskFormatters";
 import { getMessageService } from "./teamClientContext";
 
 export function useMessages(
@@ -57,8 +58,30 @@ export function useMessages(
         hasMore = data.has_more;
         afterSeq = data.last_seq;
       }
+    // Refresh task statuses — sync API may return stale status for tasks
+    // that changed state before this session
+    await refreshTaskStatuses();
     } catch {
       // no history or server unreachable
+    }
+  }
+
+  async function refreshTaskStatuses() {
+    try {
+      const res = await managerFetch(`/api/teams/${encodeURIComponent(teamName)}/tasks`);
+      const tasks = await res.json() as ApiTask[];
+      for (const task of tasks) {
+        const updated = apiTaskToTaskMessage(task);
+        for (const [peerId, items] of messages.value) {
+          const idx = items.findIndex((t) => t.type === "task" && t.taskId === task.id);
+          if (idx >= 0) {
+            items[idx] = updated;
+            messages.value.set(peerId, [...items]);
+          }
+        }
+      }
+    } catch {
+      // ignore
     }
   }
 
