@@ -2,7 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import MemberSidebar from "../../components/MemberSidebar";
-import SvgIcon from "../../components/SvgIcon";
+import ActivityBar from "../../components/ActivityBar";
 import ChatPanel from "../../components/ChatPanel";
 import TaskCenterView from "../TaskCenterView";
 import TaskDispatchPanel from "../TaskDispatchPanel";
@@ -142,19 +142,18 @@ watch(
 
 <template>
   <div v-if="ctx" class="chat-view">
+    <ActivityBar
+      :selected-peer="selectedPeer"
+      :sidebar-collapsed="sidebarCollapsed"
+      @select="handleSelectPeer"
+      @update:sidebar-collapsed="sidebarCollapsed = $event"
+    />
     <MemberSidebar
       :selected-peer="selectedPeer"
       :collapsed="sidebarCollapsed"
       @select="handleSelectPeer"
       @update:collapsed="sidebarCollapsed = $event"
     />
-    <button
-      class="sidebar-toggle"
-      :class="{ collapsed: sidebarCollapsed }"
-      @click="sidebarCollapsed = !sidebarCollapsed"
-    >
-      <SvgIcon :name="sidebarCollapsed ? 'chevron-right' : 'chevron-left'" :size="12" />
-    </button>
     <Transition :name="panelTransition" mode="out-in">
       <TaskDetailPanel
         v-if="selectedTask"

@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { getTeamClientInstance, getMemberSettings } from "../../composables/teamClientContext";
+import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { apiUrl } from "../../api";
 import GlassInput from "../GlassInput";
 import MemberHoverCard from "../MemberHoverCard";
-import ToolHoverCard from "../ToolHoverCard";
 import { useSidebarSearch } from "../../composables/useSidebarSearch";
 import { useHoverCard } from "../../composables/useHoverCard";
 import { useMouseGradient } from "../../composables/useMouseGradient";
@@ -25,16 +24,10 @@ const emit = defineEmits<{
 }>();
 
 const ctx = getTeamClientInstance()!;
-const { members, unreadCounts, markRead, messages, myId, userProfile } = ctx;
-const { settings: memberSettings, toggleAutoReply, toggleExecutionMode } = getMemberSettings();
-
-const myAvatarUrl = computed(() => userProfile.getAvatarUrl(myId));
-const isAutoMode = computed(() => memberSettings.value.task_execution_mode === "auto");
-const isAutoReply = computed(() => memberSettings.value.ai_auto_reply);
+const { members, unreadCounts, markRead, userProfile } = ctx;
 
 const {
   searchQuery,
-  filteredTools,
   filteredMembers,
   matchHints,
   filteredNavItems,
@@ -44,7 +37,6 @@ const {
 const searchInputRef = ref<InstanceType<typeof GlassInput> | null>(null);
 
 const memberHover = useHoverCard<MemberInfo>();
-const toolHover = useHoverCard<string>();
 
 function handleMemberEnter(m: MemberInfo, e: MouseEvent) { memberHover.show(m, e.currentTarget as HTMLElement); }
 function handleMemberLeave() { memberHover.scheduleHide(); }
@@ -57,29 +49,8 @@ function handleViewProfile(memberId: string) {
   emit("select", `__profile__${memberId}__`);
 }
 
-const toolDescMap: Record<string, string> = { __cloud__: "sidebar.cloudResourcesDesc", __tasks__: "sidebar.taskCenterDesc", __dispatch__: "sidebar.taskDispatchDesc", __execution__: "sidebar.executionPanelDesc" };
-const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch" | "terminal"> = { __cloud__: "cloud", __tasks__: "tasks", __dispatch__: "dispatch", __execution__: "terminal" };
-
-const menuItems = [
-  { id: "__quick__", icon: "keyboard" as const, labelKey: "sidebar.shortcuts" },
-  { id: "__settings_task__", icon: "tasks" as const, labelKey: "sidebar.taskSettings" },
-  { id: "__settings_knowledge__", icon: "book" as const, labelKey: "sidebar.knowledgeSettings" },
-  { id: "__settings_ai__", icon: "lightning" as const, labelKey: "sidebar.aiSettings" },
-  { id: "__settings_general__", icon: "settings" as const, labelKey: "sidebar.general" },
-  { id: "__settings_profile__", icon: "user" as const, labelKey: "sidebar.profile" },
-];
-
-function handleToolEnter(toolId: string, e: MouseEvent) { toolHover.show(toolId, e.currentTarget as HTMLElement); }
-function handleToolLeave() { toolHover.scheduleHide(); }
-function handleToolCardEnter() { toolHover.cancelHide(); }
-function handleToolCardLeave() { toolHover.scheduleHide(); }
-
-/** Ordered list of all selectable peer IDs in the sidebar (unfiltered, for reference) */
 const navItems = computed(() => {
   const items: string[] = ["__team__"];
-  items.push("__cloud__");
-  items.push("__tasks__");
-  if (ctx.role === "leader") items.push("__dispatch__");
   for (const m of members.value) {
     items.push(m.id);
   }
@@ -110,18 +81,15 @@ function handleKeyDown(e: KeyboardEvent) {
 }
 
 function handleGlobalKeyDown(e: KeyboardEvent) {
-  // Ctrl+K: focus search
   if (e.ctrlKey && e.code === "KeyK" && !e.shiftKey && !e.altKey && !e.metaKey) {
     const target = e.target as HTMLElement;
     if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
-      // Don't intercept if user is already in an input (unless it's the search itself)
       if (!target.closest(".sidebar-search")) return;
     }
     e.preventDefault();
     searchInputRef.value?.focus();
   }
 
-  // Escape: clear and blur search (only when search input is focused)
   if (e.key === "Escape") {
     const inputEl = searchInputRef.value?.inputRef;
     if (inputEl && document.activeElement === inputEl) {
@@ -138,29 +106,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
   window.removeEventListener("keydown", handleGlobalKeyDown);
-});
-
-async function handleToggleExecutionMode() {
-  await toggleExecutionMode(myId);
-}
-
-async function handleToggleAutoReply() {
-  await toggleAutoReply(myId, ctx.autoReplyDispose);
-}
-
-// Count all tasks across all conversations
-const taskCount = computed(() => {
-  let count = 0;
-  const seen = new Set<string>();
-  for (const items of messages.value.values()) {
-    for (const item of items) {
-      if (item.type === "task" && !seen.has(item.taskId)) {
-        seen.add(item.taskId);
-        count++;
-      }
-    }
-  }
-  return count;
 });
 
 const sidebarRef = ref<HTMLElement | null>(null);
@@ -249,34 +194,6 @@ onMounted(updateIndicator);
         </li>
       </ul>
 
-      <div v-if="filteredTools.length > 0" class="sidebar-header">
-        <h3>{{ t('sidebar.tools') }}</h3>
-      </div>
-      <ul v-if="filteredTools.length > 0" class="nav-group">
-        <li
-          v-for="tool in filteredTools"
-          :key="tool.id"
-          class="task-center-entry"
-          :class="{ active: tool.id === selectedPeer }"
-          @click="markRead(tool.id); emit('select', tool.id)"
-          @mouseenter="handleToolEnter(tool.id, $event)"
-          @mouseleave="handleToolLeave"
-        >
-          <div class="avatar" :class="tool.id === '__cloud__' ? 'cloud-avatar' : tool.id === '__dispatch__' ? 'dispatch-avatar' : tool.id === '__execution__' ? 'execution-avatar' : 'task-center-avatar'">
-            <SvgIcon v-if="tool.id === '__cloud__'" name="cloud" :size="14" />
-            <SvgIcon v-else-if="tool.id === '__tasks__'" name="tasks" :size="14" />
-            <SvgIcon v-else-if="tool.id === '__execution__'" name="terminal" :size="14" />
-            <SvgIcon v-else name="lightning" :size="14" />
-          </div>
-          <div class="member-info">
-            <span class="member-name">{{ tool.label }}</span>
-          </div>
-          <span v-if="tool.id === '__tasks__' && taskCount > 0" class="badge badge-task">
-            {{ formatBadge(taskCount) }}
-          </span>
-        </li>
-      </ul>
-
       <div v-if="filteredMembers.length > 0" class="sidebar-header">
         <h3>{{ t('sidebar.members') }}</h3>
       </div>
@@ -307,44 +224,6 @@ onMounted(updateIndicator);
       </div>
     </template>
 
-    <div class="sidebar-footer">
-      <div class="user-menu-wrapper">
-        <div class="user-avatar-btn" :title="myId">
-          <img v-if="myAvatarUrl" :src="myAvatarUrl" class="avatar-img" />
-          <template v-else>{{ userProfile.getInitial(myId) }}</template>
-        </div>
-        <div class="user-menu" @click.stop>
-          <button
-            v-for="item in menuItems"
-            :key="item.id"
-            class="user-menu-item"
-            :class="{ active: selectedPeer === item.id }"
-            @click="emit('select', item.id)"
-          >
-            <SvgIcon :name="item.icon" :size="14" />
-            {{ t(item.labelKey) }}
-          </button>
-        </div>
-      </div>
-      <div class="quick-toggles">
-        <button
-          class="quick-toggle"
-          :class="{ active: isAutoReply }"
-          :title="t('sidebar.aiAutoReply')"
-          @click="handleToggleAutoReply"
-        >
-          <SvgIcon name="chat" :size="14" />
-        </button>
-        <button
-          class="quick-toggle"
-          :class="{ active: isAutoMode }"
-          :title="t('sidebar.aiTaskMode')"
-          @click="handleToggleExecutionMode"
-        >
-          <SvgIcon name="lightning" :size="14" />
-        </button>
-      </div>
-    </div>
     <MemberHoverCard
       v-if="memberHover.hoveredItem.value"
       :member="memberHover.hoveredItem.value"
@@ -354,20 +233,9 @@ onMounted(updateIndicator);
       @mouseleave="handleCardLeave"
       @view-profile="handleViewProfile"
     />
-    <ToolHoverCard
-      v-if="toolHover.hoveredItem.value"
-      :icon="toolIconMap[toolHover.hoveredItem.value]!"
-      :name="t(`sidebar.${toolHover.hoveredItem.value === '__cloud__' ? 'cloudResources' : toolHover.hoveredItem.value === '__tasks__' ? 'taskCenter' : toolHover.hoveredItem.value === '__execution__' ? 'executionPanel' : 'taskDispatch'}`)"
-      :description="t(toolDescMap[toolHover.hoveredItem.value]!)"
-      :rect="toolHover.hoverRect.value"
-      :visible="toolHover.visible.value"
-      @mouseenter="handleToolCardEnter"
-      @mouseleave="handleToolCardLeave"
-    />
   </aside>
 </template>
 
 <style scoped>
 @import './styles.css';
-
 </style>
