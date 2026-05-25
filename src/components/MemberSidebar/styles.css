@@ -288,6 +288,11 @@ li.active {
   color: var(--accent);
 }
 
+.execution-avatar {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
 .cloud-avatar {
   background: var(--accent-light);
   color: var(--accent);

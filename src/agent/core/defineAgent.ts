@@ -2,7 +2,7 @@ import { ref, type Ref } from "vue";
 import type { AgentTool } from "../tools";
 import type { AgentResult } from "../../types";
 import { getErrorMessage } from "../../utils/error";
-import { reactLoop } from "../react";
+import { reactLoop, type ExecutionEventHandler } from "../react";
 
 export interface AgentDefinition {
   name: string;
@@ -22,7 +22,7 @@ export interface AgentInstance {
   readonly isRunning: Ref<boolean>;
   readonly currentStep: Ref<number>;
   readonly error: Ref<string>;
-  run(taskContent: string): Promise<AgentRunResult>;
+  run(taskContent: string, onEvent?: ExecutionEventHandler): Promise<AgentRunResult>;
 }
 
 export function defineAgent(def: AgentDefinition): AgentInstance {
@@ -30,7 +30,7 @@ export function defineAgent(def: AgentDefinition): AgentInstance {
   const currentStep = ref(0);
   const error = ref("");
 
-  async function run(taskContent: string): Promise<AgentRunResult> {
+  async function run(taskContent: string, onEvent?: ExecutionEventHandler): Promise<AgentRunResult> {
     const fullTask = def.instructions
       ? `${def.instructions}\n\n${taskContent}`
       : taskContent;
@@ -48,6 +48,8 @@ export function defineAgent(def: AgentDefinition): AgentInstance {
         def.workspacePath,
         def.skillCatalog,
         def.maxSteps,
+        def.name,
+        onEvent,
       );
       return { ...result, agentName: def.name };
     } catch (e: unknown) {

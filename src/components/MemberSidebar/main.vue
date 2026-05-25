@@ -57,8 +57,8 @@ function handleViewProfile(memberId: string) {
   emit("select", `__profile__${memberId}__`);
 }
 
-const toolDescMap: Record<string, string> = { __cloud__: "sidebar.cloudResourcesDesc", __tasks__: "sidebar.taskCenterDesc", __dispatch__: "sidebar.taskDispatchDesc" };
-const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch"> = { __cloud__: "cloud", __tasks__: "tasks", __dispatch__: "dispatch" };
+const toolDescMap: Record<string, string> = { __cloud__: "sidebar.cloudResourcesDesc", __tasks__: "sidebar.taskCenterDesc", __dispatch__: "sidebar.taskDispatchDesc", __execution__: "sidebar.executionPanelDesc" };
+const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch" | "terminal"> = { __cloud__: "cloud", __tasks__: "tasks", __dispatch__: "dispatch", __execution__: "terminal" };
 
 const menuItems = [
   { id: "__quick__", icon: "keyboard" as const, labelKey: "sidebar.shortcuts" },
@@ -262,9 +262,10 @@ onMounted(updateIndicator);
           @mouseenter="handleToolEnter(tool.id, $event)"
           @mouseleave="handleToolLeave"
         >
-          <div class="avatar" :class="tool.id === '__cloud__' ? 'cloud-avatar' : tool.id === '__dispatch__' ? 'dispatch-avatar' : 'task-center-avatar'">
+          <div class="avatar" :class="tool.id === '__cloud__' ? 'cloud-avatar' : tool.id === '__dispatch__' ? 'dispatch-avatar' : tool.id === '__execution__' ? 'execution-avatar' : 'task-center-avatar'">
             <SvgIcon v-if="tool.id === '__cloud__'" name="cloud" :size="14" />
             <SvgIcon v-else-if="tool.id === '__tasks__'" name="tasks" :size="14" />
+            <SvgIcon v-else-if="tool.id === '__execution__'" name="terminal" :size="14" />
             <SvgIcon v-else name="lightning" :size="14" />
           </div>
           <div class="member-info">
@@ -356,7 +357,7 @@ onMounted(updateIndicator);
     <ToolHoverCard
       v-if="toolHover.hoveredItem.value"
       :icon="toolIconMap[toolHover.hoveredItem.value]!"
-      :name="t(`sidebar.${toolHover.hoveredItem.value === '__cloud__' ? 'cloudResources' : toolHover.hoveredItem.value === '__tasks__' ? 'taskCenter' : 'taskDispatch'}`)"
+      :name="t(`sidebar.${toolHover.hoveredItem.value === '__cloud__' ? 'cloudResources' : toolHover.hoveredItem.value === '__tasks__' ? 'taskCenter' : toolHover.hoveredItem.value === '__execution__' ? 'executionPanel' : 'taskDispatch'}`)"
       :description="t(toolDescMap[toolHover.hoveredItem.value]!)"
       :rect="toolHover.hoverRect.value"
       :visible="toolHover.visible.value"

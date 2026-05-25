@@ -166,6 +166,21 @@ export interface AgentReasonResponse {
   toolCalls: AgentToolCall[];
 }
 
+/** Execution monitor events */
+export type ExecutionEvent =
+  | { type: "pipeline:start"; taskId: string; taskContent: string }
+  | { type: "stage:start"; stage: string; attempt: number }
+  | { type: "step:reasoning"; stage: string; stepIndex: number; reasoning: string }
+  | { type: "step:tool_call"; stage: string; stepIndex: number; toolName: string; args: Record<string, unknown> }
+  | { type: "step:tool_result"; stage: string; stepIndex: number; toolName: string; result: unknown }
+  | { type: "stage:end"; stage: string; result: string }
+  | { type: "pipeline:end"; success: boolean; summary: string };
+
+export interface ExecutionEntry {
+  timestamp: number;
+  event: ExecutionEvent;
+}
+
 /** Skill catalog entry */
 export interface SkillCatalogEntry { name: string; description: string; filename: string }
 export interface SkillCatalogResponse { skills: SkillCatalogEntry[] }

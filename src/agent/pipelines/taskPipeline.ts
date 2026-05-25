@@ -3,11 +3,13 @@ import { createPlanner } from "../agents/planner";
 import { createExecutor } from "../agents/executor";
 import { createReviewer } from "../agents/reviewer";
 import type { ServiceContext } from "../core/defineService";
+import type { ExecutionEventHandler } from "../react";
 
 export interface TaskPipelineOptions {
   ctx: ServiceContext;
   skillCatalog?: string;
   maxRetryAttempts?: number;
+  onEvent?: ExecutionEventHandler;
 }
 
 export function createTaskPipeline(opts: TaskPipelineOptions) {
@@ -15,7 +17,7 @@ export function createTaskPipeline(opts: TaskPipelineOptions) {
   const executor = createExecutor(opts.ctx, opts.skillCatalog);
   const reviewer = createReviewer(opts.ctx);
 
-  return definePipeline({
+  const pipeline = definePipeline({
     stages: [
       { agent: planner, output: "plan" },
       { agent: executor, output: "execSummary" },
@@ -30,4 +32,10 @@ export function createTaskPipeline(opts: TaskPipelineOptions) {
       },
     },
   });
+
+  return {
+    run(taskContent: string) {
+      return pipeline.run(taskContent, opts.onEvent);
+    },
+  };
 }

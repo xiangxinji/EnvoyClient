@@ -1,5 +1,6 @@
 import type { AgentStep } from "../../types";
 import type { AgentInstance, AgentRunResult } from "./defineAgent";
+import type { ExecutionEventHandler } from "../react";
 
 export interface PipelineStage {
   agent: AgentInstance;
@@ -26,11 +27,11 @@ export interface PipelineResult {
 }
 
 export interface PipelineInstance {
-  run(taskContent: string): Promise<PipelineResult>;
+  run(taskContent: string, onEvent?: ExecutionEventHandler): Promise<PipelineResult>;
 }
 
 export function definePipeline(def: PipelineDefinition): PipelineInstance {
-  async function run(taskContent: string): Promise<PipelineResult> {
+  async function run(taskContent: string, onEvent?: ExecutionEventHandler): Promise<PipelineResult> {
     const outputs: Record<string, string> = {};
     const traces: Record<string, AgentStep[]> = {};
     const maxAttempts = def.retry?.maxAttempts ?? 1;
@@ -67,8 +68,10 @@ export function definePipeline(def: PipelineDefinition): PipelineInstance {
           }
         }
 
-        const result: AgentRunResult = await stage.agent.run(stageInput);
+        if (onEvent) onEvent({ type: "stage:start", stage: stage.agent.name, attempt });
+        const result: AgentRunResult = await stage.agent.run(stageInput, onEvent);
         outputs[stage.output] = result.result;
+        if (onEvent) onEvent({ type: "stage:end", stage: stage.agent.name, result: result.result });
         const tagged = result.trace.map((s) => ({ ...s, agent: stage.agent.name, attempt }));
         if (!traces[stage.output]) traces[stage.output] = [];
         traces[stage.output].push(...tagged);

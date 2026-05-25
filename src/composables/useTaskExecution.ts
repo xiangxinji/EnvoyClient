@@ -4,6 +4,7 @@ import { getMemberSettings, getTaskService } from "./teamClientContext";
 import { isTauri, safeInvoke } from "../utils/platform";
 import { getErrorMessage } from "../utils/error";
 import { createTaskPipeline } from "../agent/pipelines/taskPipeline";
+import { useExecutionMonitor } from "./useExecutionMonitor";
 import type { TaskResource, SkillCatalogResponse, AgentStep } from "../types";
 import type { ServiceContext } from "../agent/core/defineService";
 
@@ -16,6 +17,7 @@ interface TaskExecutionContext {
 export function useTaskExecution(ctx: TaskExecutionContext) {
   const { settings, loadSettings } = getMemberSettings();
   const taskService = getTaskService();
+  const monitor = useExecutionMonitor();
 
   function registerHandler(client: { doing: (handler: (task: { serverTask: { id: string; content: string; status: string; attempt: number; resources: TaskResource[] } }) => Promise<unknown>) => void }) {
     client.doing(async (clientTask) => {
@@ -92,9 +94,19 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
         ctx: serviceCtx,
         skillCatalog,
         maxRetryAttempts: 2,
+        onEvent: monitor.emit,
       });
 
+      monitor.startExecution(taskId, taskContent);
+      monitor.emit({ type: "pipeline:start", taskId, taskContent });
+
       const pipelineResult = await pipeline.run(taskContent);
+
+      monitor.emit({
+        type: "pipeline:end",
+        success: pipelineResult.reviewPassed,
+        summary: pipelineResult.outputs.execSummary,
+      });
 
       // 合并所有阶段的 trace
       const allTraces: AgentStep[] = [];
