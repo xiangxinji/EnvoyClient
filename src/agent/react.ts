@@ -16,7 +16,7 @@ export type AgentMessage =
 
 // ─── Helpers ───
 
-const MAX_STEPS = 20;
+const DEFAULT_MAX_STEPS = 20;
 
 function fetchWithTimeout(
   url: string,
@@ -74,6 +74,7 @@ export async function reactLoop(
   error: { value: string },
   workspacePath?: string,
   skillCatalog?: string,
+  maxSteps?: number,
 ): Promise<AgentResult> {
   const schemas = tools.map(({ execute, ...schema }) => schema);
 
@@ -95,9 +96,11 @@ export async function reactLoop(
 
   messages.push({ role: "user", content: taskContent });
 
+  const steps = maxSteps ?? DEFAULT_MAX_STEPS;
+
   const trace: AgentStep[] = [];
 
-  for (let step = 0; step < MAX_STEPS; step++) {
+  for (let step = 0; step < steps; step++) {
     currentStep.value = step + 1;
 
     const token = getClientToken();
@@ -198,6 +201,6 @@ export async function reactLoop(
     trace.push(agentStep);
   }
 
-  error.value = `Max steps (${MAX_STEPS}) reached`;
+  error.value = `Max steps (${steps}) reached`;
   return { result: JSON.stringify({ error: error.value, maxStepsReached: true }), trace };
 }
