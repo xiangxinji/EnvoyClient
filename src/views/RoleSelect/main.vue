@@ -6,7 +6,7 @@ import { type Locale } from "../../i18n";
 import { getSystemSettingService } from "../../composables/teamClientContext";
 import { useTeamClient } from "../../composables/useTeamClient";
 import { setTeamClientInstance } from "../../composables/teamClientContext";
-import { setManagerUrl, setClientToken } from "../../api";
+import { setManagerUrl, setClientToken, setCredentials } from "../../api";
 import { rsaEncrypt } from "../../utils/rsa";
 import GlassSelect from "../../components/GlassSelect";
 import GlassInput from "../../components/GlassInput";
@@ -102,6 +102,9 @@ async function handleLogin() {
 
     // Store client token for authenticated API calls
     if (data.token) setClientToken(data.token);
+
+    // Save credentials for auto re-login on 401
+    setCredentials(user, encrypted);
 
     // Save credentials + initialize workspace
     if (isTauri) {

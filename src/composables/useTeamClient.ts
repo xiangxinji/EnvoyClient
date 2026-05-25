@@ -9,6 +9,7 @@ import { useMessages } from "./useMessages";
 import { useTaskExecution } from "./useTaskExecution";
 import { useAutoReply } from "./useAutoReply";
 import { getMemberSettings, setTeamClientInstance, getTaskService, getBrainsSync } from "./teamClientContext";
+import { clearCredentials } from "../api";
 import { useUserProfile } from "./useUserProfile";
 import { sendDesktopNotification, requestTaskbarAttention, updateDockBadge, cancelTaskbarAttention, resetNotificationState } from "../utils/notification";
 
@@ -197,6 +198,7 @@ export function useTeamClient(
     cancelTaskbarAttention();
     resetNotificationState();
     setTeamClientInstance(null);
+    clearCredentials();
   }
 
   return {

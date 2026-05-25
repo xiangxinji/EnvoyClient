@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { getMemberSettings, getTeamClientInstance, setTeamClientInstance } from "../../composables/teamClientContext";
+import { getMemberSettings, getTeamClientInstance } from "../../composables/teamClientContext";
 import { useConfirm } from "../../composables/useConfirm";
 import { useUserProfile } from "../../composables/useUserProfile";
 import { useToast } from "../../composables/useToast";
@@ -107,10 +107,7 @@ function requestLogout() {
 }
 
 async function handleLogout() {
-  try {
-    await ctx.disconnect();
-  } catch {}
-  setTeamClientInstance(null);
+  ctx.logout();
   router.replace("/");
 }
 </script>
