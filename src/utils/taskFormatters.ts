@@ -79,6 +79,22 @@ export function getTraceSteps(traceRes: TaskResource): AgentStep[] {
   return data?.steps ?? [];
 }
 
+export function groupByAgent(steps: AgentStep[]): Map<string, AgentStep[]> {
+  const map = new Map<string, AgentStep[]>();
+  for (const step of steps) {
+    const key = step.agent ?? "";
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(step);
+  }
+  return map;
+}
+
+export const AGENT_LABELS: Record<string, string> = {
+  planner: "Planning",
+  executor: "Execution",
+  reviewer: "Review",
+};
+
 export function formatToolArgs(args: unknown): string {
   if (!args || typeof args !== "object") return String(args);
   const obj = args as Record<string, unknown>;

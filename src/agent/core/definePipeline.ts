@@ -22,6 +22,7 @@ export interface PipelineResult {
   outputs: Record<string, string>;
   traces: Record<string, AgentStep[]>;
   attempts: number;
+  reviewPassed: boolean;
 }
 
 export interface PipelineInstance {
@@ -34,6 +35,7 @@ export function definePipeline(def: PipelineDefinition): PipelineInstance {
     const traces: Record<string, AgentStep[]> = {};
     const maxAttempts = def.retry?.maxAttempts ?? 1;
     let attemptsMade = 0;
+    let reviewPassed = true;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       let startIdx = 0;
@@ -67,20 +69,29 @@ export function definePipeline(def: PipelineDefinition): PipelineInstance {
 
         const result: AgentRunResult = await stage.agent.run(stageInput);
         outputs[stage.output] = result.result;
-        traces[stage.output] = result.trace;
+        const tagged = result.trace.map((s) => ({ ...s, agent: stage.agent.name, attempt }));
+        if (!traces[stage.output]) traces[stage.output] = [];
+        traces[stage.output].push(...tagged);
       }
 
       attemptsMade = attempt;
 
       if (def.retry && attempt < maxAttempts) {
         const reviewOutput = outputs[def.retry.feedback];
-        if (def.retry.shouldRetry) {
-          if (!def.retry.shouldRetry(reviewOutput)) break;
-        }
+        const needsRetry = def.retry.shouldRetry
+          ? def.retry.shouldRetry(reviewOutput)
+          : false;
+        if (!needsRetry) break;
+        reviewPassed = false;
+      } else if (def.retry) {
+        const reviewOutput = outputs[def.retry.feedback];
+        reviewPassed = def.retry.shouldRetry
+          ? !def.retry.shouldRetry(reviewOutput)
+          : true;
       }
     }
 
-    return { outputs, traces, attempts: attemptsMade };
+    return { outputs, traces, attempts: attemptsMade, reviewPassed };
   }
 
   return { run };

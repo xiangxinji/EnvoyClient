@@ -4,7 +4,7 @@ import { getMemberSettings, getTaskService } from "./teamClientContext";
 import { isTauri, safeInvoke } from "../utils/platform";
 import { getErrorMessage } from "../utils/error";
 import { createTaskPipeline } from "../agent/pipelines/taskPipeline";
-import type { TaskResource, SkillCatalogResponse } from "../types";
+import type { TaskResource, SkillCatalogResponse, AgentStep } from "../types";
 import type { ServiceContext } from "../agent/core/defineService";
 
 interface TaskExecutionContext {
@@ -96,6 +96,12 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
 
       const pipelineResult = await pipeline.run(taskContent);
 
+      // 合并所有阶段的 trace
+      const allTraces: AgentStep[] = [];
+      for (const steps of Object.values(pipelineResult.traces)) {
+        allTraces.push(...steps);
+      }
+
       let parsed;
       try {
         parsed = JSON.parse(pipelineResult.outputs.execSummary);
@@ -105,9 +111,17 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
 
       void taskService.submitResult(taskId, {
         from: ctx.myId,
-        success: true,
-        data: { ...parsed, source: "ai" },
-        trace: pipelineResult.traces.execSummary,
+        success: pipelineResult.reviewPassed,
+        data: {
+          ...parsed,
+          source: "ai",
+          pipeline: {
+            plan: pipelineResult.outputs.plan,
+            reviewSummary: pipelineResult.outputs.reviewSummary,
+            attempts: pipelineResult.attempts,
+          },
+        },
+        trace: allTraces,
       });
       return parsed;
     } catch (e) {

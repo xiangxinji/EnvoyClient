@@ -90,6 +90,8 @@ export interface ToolResultRecord {
 export interface AgentStep {
   index: number;
   reasoning: string;
+  agent?: string;
+  attempt?: number;
   toolCalls: ToolCallRecord[];
   toolResults: ToolResultRecord[];
 }
