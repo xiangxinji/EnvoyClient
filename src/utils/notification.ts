@@ -1,4 +1,5 @@
 import { isTauri } from "./platform";
+import { getClientToken } from "../api";
 import { i18n } from "../i18n";
 
 let cachedIconPath: string | null = null;
@@ -85,7 +86,10 @@ export async function downloadFileWithDialog(
   filename: string,
   headers?: Record<string, string>,
 ): Promise<boolean> {
-  const res = await fetch(url, { headers: headers ?? {} });
+  const token = getClientToken();
+  const res = await fetch(url, {
+    headers: { ...(headers ?? {}), ...(token ? { "X-Envoy-Token": token } : {}) },
+  });
   if (!res.ok) throw new Error(i18n.global.t('common.downloadFailed'));
   const blob = await res.blob();
 

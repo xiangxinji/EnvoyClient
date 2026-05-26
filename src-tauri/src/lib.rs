@@ -3,6 +3,8 @@ mod credentials;
 mod settings;
 
 use std::collections::HashMap;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use std::process::Command;
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
