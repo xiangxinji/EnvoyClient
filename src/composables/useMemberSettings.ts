@@ -78,10 +78,10 @@ export function useMemberSettings() {
           ? userSettings.brains_sync_triggers
           : DEFAULT_SETTINGS.brains_sync_triggers,
         brains_sync_interval_hours: typeof userSettings.brains_sync_interval_hours === "number"
-          ? userSettings.brains_sync_interval_hours
+          ? Math.round(userSettings.brains_sync_interval_hours)
           : DEFAULT_SETTINGS.brains_sync_interval_hours,
         brains_sync_interval_minutes: typeof userSettings.brains_sync_interval_minutes === "number"
-          ? userSettings.brains_sync_interval_minutes
+          ? Math.round(userSettings.brains_sync_interval_minutes)
           : DEFAULT_SETTINGS.brains_sync_interval_minutes,
       };
     } catch (e) {

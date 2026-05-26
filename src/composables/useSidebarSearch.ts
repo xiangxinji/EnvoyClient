@@ -1,14 +1,8 @@
 import { ref, computed, type Ref, type ComputedRef } from "vue";
 import type { MemberInfo } from "../types";
 
-export interface ToolEntry {
-  id: string;
-  label: string;
-}
-
 export interface SidebarSearchResult {
   searchQuery: Ref<string>;
-  filteredTools: ComputedRef<ToolEntry[]>;
   filteredMembers: ComputedRef<MemberInfo[]>;
   matchHints: ComputedRef<Map<string, string>>;
   filteredNavItems: ComputedRef<string[]>;
@@ -17,30 +11,12 @@ export interface SidebarSearchResult {
 
 export function useSidebarSearch(
   members: Ref<MemberInfo[]>,
-  role: "leader" | "member",
+  _role: "leader" | "member",
   t: (key: string, params?: Record<string, unknown>) => string,
 ): SidebarSearchResult {
   const searchQuery = ref("");
 
-  const allTools = computed<ToolEntry[]>(() => {
-    const tools: ToolEntry[] = [
-      { id: "__cloud__", label: t("sidebar.cloudResources") },
-      { id: "__tasks__", label: t("sidebar.taskCenter") },
-    ];
-    if (role === "leader") {
-      tools.push({ id: "__dispatch__", label: t("sidebar.taskDispatch") });
-    }
-    return tools;
-  });
-
   const query = computed(() => searchQuery.value.trim().toLowerCase());
-
-  const filteredTools = computed(() => {
-    if (!query.value) return allTools.value;
-    return allTools.value.filter((tool) =>
-      tool.label.toLowerCase().includes(query.value),
-    );
-  });
 
   const filteredMembers = computed(() => {
     if (!query.value) return members.value;
@@ -80,14 +56,11 @@ export function useSidebarSearch(
 
   const isEmpty = computed(() => {
     if (!query.value) return false;
-    return filteredTools.value.length === 0 && filteredMembers.value.length === 0;
+    return filteredMembers.value.length === 0;
   });
 
   const filteredNavItems = computed(() => {
     const items: string[] = [];
-    for (const tool of filteredTools.value) {
-      items.push(tool.id);
-    }
     if (!query.value) {
       items.push("__team__");
     }
@@ -99,7 +72,6 @@ export function useSidebarSearch(
 
   return {
     searchQuery,
-    filteredTools,
     filteredMembers,
     matchHints,
     filteredNavItems,

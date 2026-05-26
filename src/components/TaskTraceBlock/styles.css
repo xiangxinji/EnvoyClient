@@ -35,6 +35,28 @@
   color: var(--accent);
 }
 
+.agent-stage-label {
+  font-size: 0.75em;
+  font-weight: 700;
+  color: var(--accent);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--border-light);
+  margin-top: var(--space-sm);
+}
+
+.agent-stage-label:first-child {
+  margin-top: 0;
+}
+
+.attempt-label {
+  font-size: 0.7em;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  margin-top: var(--space-xs);
+  border-left: 2px solid var(--border-light);
+}
+
 .trace-timeline {
   display: flex;
   flex-direction: column;

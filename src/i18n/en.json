@@ -87,7 +87,9 @@
     "taskQueue": "Task Queue",
     "taskQueueDesc": "View the current client's task queue, including queued, running, and recently completed tasks.",
     "collapse": "Collapse sidebar",
-    "expand": "Expand sidebar"
+    "expand": "Expand sidebar",
+    "executionPanel": "Execution",
+    "executionPanelDesc": "Monitor AI Agent task execution in real-time, including reasoning, tool calls, and progress."
   },
   "chat": {
     "selectPeer": "Select a member to start chatting",
@@ -393,5 +395,11 @@
     "statsCompleted": "Completed",
     "statsFailed": "Failed",
     "sendMessage": "Send Message"
+  },
+  "execution": {
+    "title": "Execution Panel",
+    "empty": "No task is currently executing",
+    "completed": "Execution completed",
+    "notifierRunning": "Task running"
   }
 }

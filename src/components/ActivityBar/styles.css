@@ -1,0 +1,247 @@
+.activity-bar {
+  width: 48px;
+  min-width: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-right: 1px solid var(--glass-border);
+  position: relative;
+  padding: var(--space-sm) 0;
+  z-index: 5;
+}
+
+.activity-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+  width: 100%;
+}
+
+.activity-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 40px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.2s, opacity 0.2s;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.activity-item {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: background 0.1s, color 0.1s;
+}
+
+.activity-item:hover {
+  background: var(--sidebar-hover);
+  color: var(--text-secondary);
+}
+
+.activity-item.active {
+  color: var(--accent);
+}
+
+.activity-item:active {
+  transform: scale(0.96);
+  transition: transform 0.1s;
+}
+
+.activity-separator {
+  width: 24px;
+  height: 1px;
+  background: var(--glass-border);
+  margin: 4px 0;
+}
+
+/* Task count badge on activity icon */
+.activity-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--badge-bg);
+  color: var(--text-on-accent);
+  font-size: 0.55em;
+  font-weight: 600;
+  padding: 0 4px;
+  border-radius: 8px;
+  min-width: 14px;
+  height: 14px;
+  line-height: 14px;
+  text-align: center;
+}
+
+/* Bottom section */
+.activity-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--glass-border);
+}
+
+.activity-spacer {
+  flex: 1;
+  min-height: 8px;
+}
+
+/* Sidebar toggle */
+.sidebar-toggle-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s, color 0.1s;
+  margin-bottom: 4px;
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--sidebar-hover);
+  color: var(--text-secondary);
+}
+
+.sidebar-toggle-btn:active {
+  transform: scale(0.96);
+  transition: transform 0.1s;
+}
+
+/* Quick toggle buttons */
+.activity-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg-light);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.activity-toggle:hover {
+  background: var(--sidebar-hover);
+  color: var(--text-secondary);
+}
+
+.activity-toggle.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.activity-toggle:active {
+  transform: scale(0.96);
+  transition: transform 0.1s;
+}
+
+/* User avatar button */
+.user-avatar-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.7em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.user-avatar-btn:hover {
+  background: var(--sidebar-hover);
+}
+
+/* User menu wrapper & popup */
+.user-menu-wrapper {
+  position: relative;
+}
+
+.user-menu {
+  position: absolute;
+  left: calc(100% + 4px);
+  bottom: 0;
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--glass-shadow);
+  min-width: 140px;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-4px);
+  transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
+  z-index: 100;
+}
+
+.user-menu-wrapper:hover .user-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.82em;
+  cursor: pointer;
+  transition: all 0.1s;
+  white-space: nowrap;
+}
+
+.user-menu-item:hover {
+  background: var(--sidebar-hover);
+  color: var(--text-primary);
+}
+
+.user-menu-item.active {
+  color: var(--accent);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}

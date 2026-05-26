@@ -1,9 +1,11 @@
 import type { AgentTool } from "./tools";
 import { apiUrl, getClientToken } from "../api";
-import type { AgentResult, AgentStep, AgentToolCall, AgentReasonResponse } from "../types";
+import type { AgentResult, AgentStep, AgentToolCall, AgentReasonResponse, ExecutionEvent } from "../types";
 import { getErrorMessage } from "../utils/error";
 
 // ─── Types ───
+
+export type ExecutionEventHandler = (event: ExecutionEvent) => void;
 
 export type AgentMessage =
   | { role: "user"; content: string }
@@ -16,7 +18,7 @@ export type AgentMessage =
 
 // ─── Helpers ───
 
-const MAX_STEPS = 20;
+const DEFAULT_MAX_STEPS = 20;
 
 function fetchWithTimeout(
   url: string,
@@ -74,6 +76,9 @@ export async function reactLoop(
   error: { value: string },
   workspacePath?: string,
   skillCatalog?: string,
+  maxSteps?: number,
+  stage?: string,
+  onEvent?: ExecutionEventHandler,
 ): Promise<AgentResult> {
   const schemas = tools.map(({ execute, ...schema }) => schema);
 
@@ -95,9 +100,11 @@ export async function reactLoop(
 
   messages.push({ role: "user", content: taskContent });
 
+  const steps = maxSteps ?? DEFAULT_MAX_STEPS;
+
   const trace: AgentStep[] = [];
 
-  for (let step = 0; step < MAX_STEPS; step++) {
+  for (let step = 0; step < steps; step++) {
     currentStep.value = step + 1;
 
     const token = getClientToken();
@@ -124,6 +131,7 @@ export async function reactLoop(
 
     if (!data.toolCalls?.length) {
       const result = data.text || JSON.stringify({ result: "Task completed" });
+      if (onEvent) onEvent({ type: "step:reasoning", stage: stage ?? "", stepIndex: step + 1, reasoning: data.text || "" });
       trace.push({
         index: step + 1,
         reasoning: data.text || "",
@@ -139,6 +147,8 @@ export async function reactLoop(
       toolCalls: data.toolCalls.map((c: AgentToolCall) => ({ name: c.name, args: c.args })),
       toolResults: [],
     };
+
+    if (onEvent) onEvent({ type: "step:reasoning", stage: stage ?? "", stepIndex: step + 1, reasoning: data.text || "" });
 
     messages.push({
       role: "assistant",
@@ -161,6 +171,7 @@ export async function reactLoop(
       }
 
       try {
+        if (onEvent) onEvent({ type: "step:tool_call", stage: stage ?? "", stepIndex: step + 1, toolName: call.name, args: call.args });
         let result = await executeWithTimeout(
           () => tool.execute(call.args),
           60_000,
@@ -169,6 +180,7 @@ export async function reactLoop(
         if (call.name === "done" && typeof result === "object" && result !== null && "done" in result) {
           const doneResult = result as { done: boolean; result: string };
           agentStep.toolResults.push({ name: call.name, result });
+          if (onEvent) onEvent({ type: "step:tool_result", stage: stage ?? "", stepIndex: step + 1, toolName: call.name, result });
           trace.push(agentStep);
           return { result: doneResult.result, trace };
         }
@@ -182,6 +194,7 @@ export async function reactLoop(
           toolName: call.name,
         });
         agentStep.toolResults.push({ name: call.name, result });
+        if (onEvent) onEvent({ type: "step:tool_result", stage: stage ?? "", stepIndex: step + 1, toolName: call.name, result });
       } catch (e: unknown) {
         const errMsg = getErrorMessage(e);
         const errResult = { error: errMsg };
@@ -192,12 +205,13 @@ export async function reactLoop(
           toolName: call.name,
         });
         agentStep.toolResults.push({ name: call.name, result: errResult });
+        if (onEvent) onEvent({ type: "step:tool_result", stage: stage ?? "", stepIndex: step + 1, toolName: call.name, result: errResult });
       }
     }
 
     trace.push(agentStep);
   }
 
-  error.value = `Max steps (${MAX_STEPS}) reached`;
+  error.value = `Max steps (${steps}) reached`;
   return { result: JSON.stringify({ error: error.value, maxStepsReached: true }), trace };
 }

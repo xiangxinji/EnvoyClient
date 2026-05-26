@@ -2,7 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import MemberSidebar from "../../components/MemberSidebar";
-import SvgIcon from "../../components/SvgIcon";
+import ActivityBar from "../../components/ActivityBar";
 import ChatPanel from "../../components/ChatPanel";
 import TaskCenterView from "../TaskCenterView";
 import TaskDispatchPanel from "../TaskDispatchPanel";
@@ -15,6 +15,8 @@ import QuickSettingsPanel from "../../components/QuickSettingsPanel";
 import TaskDetailPanel from "../../components/TaskDetailPanel";
 import MemberProfilePanel from "../../components/MemberProfilePanel";
 import CloudResourcesPanel from "../../components/CloudResourcesPanel";
+import ExecutionPanel from "../../components/ExecutionPanel";
+import ExecutionNotifier from "../../components/ExecutionNotifier";
 import ReconnectOverlay from "../../components/ReconnectOverlay";
 import LockScreen from "../../components/LockScreen";
 import { getTeamClientInstance } from "../../composables/teamClientContext";
@@ -140,19 +142,18 @@ watch(
 
 <template>
   <div v-if="ctx" class="chat-view">
+    <ActivityBar
+      :selected-peer="selectedPeer"
+      :sidebar-collapsed="sidebarCollapsed"
+      @select="handleSelectPeer"
+      @update:sidebar-collapsed="sidebarCollapsed = $event"
+    />
     <MemberSidebar
       :selected-peer="selectedPeer"
       :collapsed="sidebarCollapsed"
       @select="handleSelectPeer"
       @update:collapsed="sidebarCollapsed = $event"
     />
-    <button
-      class="sidebar-toggle"
-      :class="{ collapsed: sidebarCollapsed }"
-      @click="sidebarCollapsed = !sidebarCollapsed"
-    >
-      <SvgIcon :name="sidebarCollapsed ? 'chevron-right' : 'chevron-left'" :size="12" />
-    </button>
     <Transition :name="panelTransition" mode="out-in">
       <TaskDetailPanel
         v-if="selectedTask"
@@ -169,11 +170,13 @@ watch(
       <SettingsGeneral v-else-if="selectedPeer === '__settings_general__'" key="settings-general" @back="handleSettingsBack" />
       <QuickSettingsPanel v-else-if="selectedPeer === '__quick__'" key="quick-settings" @back="handleSettingsBack" />
       <CloudResourcesPanel v-else-if="selectedPeer === '__cloud__'" key="cloud" />
+      <ExecutionPanel v-else-if="selectedPeer === '__execution__'" key="execution" />
       <MemberProfilePanel v-else-if="isProfilePanel" key="profile" :username="profileUsername" @back="handleCloseDetail" @chat="(id: string) => handleSelectPeer(id)" />
       <TaskDispatchPanel v-else-if="selectedPeer === '__dispatch__'" key="dispatch" />
       <TaskCenterView v-else-if="selectedPeer === '__tasks__'" key="tasks" @select-task="handleSelectTask" />
       <ChatPanel v-else :key="'chat-' + selectedPeer" :peer-id="selectedPeer" @select-task="handleSelectTask" @view-profile="handleViewProfile" />
     </Transition>
+    <ExecutionNotifier :selected-peer="selectedPeer" @navigate="handleSelectPeer" />
     <ReconnectOverlay
       v-if="showReconnectOverlay"
       :status="ctx.status.value as 'disconnected' | 'connecting' | 'reconnecting' | 'reconnect_failed'"
