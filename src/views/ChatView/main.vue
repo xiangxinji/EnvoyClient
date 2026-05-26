@@ -19,6 +19,7 @@ import ExecutionPanel from "../../components/ExecutionPanel";
 import ExecutionNotifier from "../../components/ExecutionNotifier";
 import ReconnectOverlay from "../../components/ReconnectOverlay";
 import LockScreen from "../../components/LockScreen";
+import FloatingBadge from "../../components/FloatingBadge/main.vue";
 import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { useGlobalShortcuts } from "../../composables/useGlobalShortcuts";
 import { useLockScreen } from "../../composables/useLockScreen";
@@ -188,6 +189,7 @@ watch(
       :username="ctx.myId"
       @unlock="unlock"
     />
+    <FloatingBadge />
   </div>
 </template>
 

@@ -12,6 +12,7 @@ import { getMemberSettings, setTeamClientInstance, getTaskService, getBrainsSync
 import { clearCredentials } from "../api";
 import { useUserProfile } from "./useUserProfile";
 import { sendDesktopNotification, requestTaskbarAttention, updateDockBadge, cancelTaskbarAttention, resetNotificationState } from "../utils/notification";
+import { scanOutbox, submitWithRetry, deleteOutbox } from "../utils/outbox";
 
 export type { ConnectionStatus };
 export type { ConnectionClientOptions as TeamClientOptions };
@@ -62,6 +63,9 @@ export function useTeamClient(
 
     msg.loadHistory();
     loadMemberSettings(conn.myId);
+
+    // Flush outbox: resend any unsent task results
+    flushOutbox();
 
     // Setup brains sync triggers after settings are loaded
     const brainsSync = getBrainsSync();
@@ -174,6 +178,21 @@ export function useTeamClient(
 
   // Register task execution handler
   taskExec.registerHandler(conn.client);
+
+  async function flushOutbox() {
+    try {
+      const taskService = getTaskService();
+      const entries = await scanOutbox(conn.teamName);
+      for (const entry of entries) {
+        const { teamName: _, taskId, ...rest } = entry;
+        const payload = { ...rest, data: rest.data as Record<string, unknown> | undefined };
+        const ok = await submitWithRetry(() => taskService.submitResult(taskId, payload));
+        if (ok) await deleteOutbox(conn.teamName, taskId);
+      }
+    } catch (e) {
+      console.error("[outbox] flush failed:", e);
+    }
+  }
 
   // Sync unread counts to dock/taskbar badge (macOS Dock, Windows 10+)
   watch(msg.unreadCounts, (counts) => {

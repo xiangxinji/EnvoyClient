@@ -5,6 +5,7 @@ import { isTauri, safeInvoke } from "../utils/platform";
 import { getErrorMessage } from "../utils/error";
 import { createTaskPipeline } from "../agent/pipelines/taskPipeline";
 import { useExecutionMonitor } from "./useExecutionMonitor";
+import { writeOutbox, deleteOutbox, submitWithRetry } from "../utils/outbox";
 import type { TaskResource, SkillCatalogResponse, AgentStep } from "../types";
 import type { ServiceContext } from "../agent/core/defineService";
 
@@ -52,18 +53,24 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
       const ai = useAI();
       const reviewResult = await ai.reviewTaskResult(taskContent, memberResults);
 
-      void taskService.submitResult(taskId, {
+      const resultPayload = {
         from: ctx.myId,
         success: reviewResult.success,
         data: { review: reviewResult.summary, source: "ai", ...reviewResult },
-      });
+      };
+      await writeOutbox(ctx.teamName, taskId, resultPayload);
+      const ok = await submitWithRetry(() => taskService.submitResult(taskId, resultPayload));
+      if (ok) await deleteOutbox(ctx.teamName, taskId);
       return reviewResult;
     } catch (e) {
-      void taskService.submitResult(taskId, {
+      const errorPayload = {
         from: ctx.myId,
-        success: false,
+        success: false as const,
         error: `Leader review failed: ${getErrorMessage(e)}`,
-      });
+      };
+      await writeOutbox(ctx.teamName, taskId, errorPayload);
+      const ok = await submitWithRetry(() => taskService.submitResult(taskId, errorPayload));
+      if (ok) await deleteOutbox(ctx.teamName, taskId);
       return { error: getErrorMessage(e) };
     }
   }
@@ -73,7 +80,8 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
 
     if (!isTauri) {
       const result = { taskId, note: "browser mode, no agent tools" };
-      void taskService.submitResult(taskId, { from: ctx.myId, success: true, data: result });
+      const payload = { from: ctx.myId, success: true, data: result };
+      await submitWithRetry(() => taskService.submitResult(taskId, payload));
       return result;
     }
 
@@ -121,7 +129,7 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
         parsed = { result: pipelineResult.outputs.execSummary };
       }
 
-      void taskService.submitResult(taskId, {
+      const resultPayload = {
         from: ctx.myId,
         success: pipelineResult.reviewPassed,
         data: {
@@ -134,11 +142,17 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
           },
         },
         trace: allTraces,
-      });
+      };
+      await writeOutbox(ctx.teamName, taskId, resultPayload);
+      const ok = await submitWithRetry(() => taskService.submitResult(taskId, resultPayload));
+      if (ok) await deleteOutbox(ctx.teamName, taskId);
       return parsed;
     } catch (e) {
       const error = getErrorMessage(e);
-      void taskService.submitResult(taskId, { from: ctx.myId, success: false, error });
+      const errorPayload = { from: ctx.myId, success: false, error };
+      await writeOutbox(ctx.teamName, taskId, errorPayload);
+      const ok = await submitWithRetry(() => taskService.submitResult(taskId, errorPayload));
+      if (ok) await deleteOutbox(ctx.teamName, taskId);
       return { error };
     }
   }

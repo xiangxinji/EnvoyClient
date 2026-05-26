@@ -461,6 +461,44 @@ fn save_binary_file(path: String, data_b64: String) -> Result<(), String> {
     Ok(())
 }
 
+/// List files in a directory within ~/.envoy/ sandbox.
+/// Returns array of filenames (not full paths). Only lists files, not subdirectories.
+#[tauri::command]
+fn list_dir(path: String) -> Result<serde_json::Value, String> {
+    let safe_path = resolve_safe_path(&path).map_err(|v| {
+        serde_json::to_string(&v).unwrap_or_else(|_| r#"{"error":"Unknown error"}"#.to_string())
+    })?;
+
+    if !safe_path.exists() || !safe_path.is_dir() {
+        return Ok(serde_json::json!({ "files": [] }));
+    }
+
+    let mut files = Vec::new();
+    let entries = std::fs::read_dir(&safe_path).map_err(|e| e.to_string())?;
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        if entry.path().is_file() {
+            if let Some(name) = entry.file_name().to_str() {
+                files.push(name.to_string());
+            }
+        }
+    }
+    Ok(serde_json::json!({ "files": files }))
+}
+
+/// Delete a file within ~/.envoy/ sandbox.
+#[tauri::command]
+fn file_delete(path: String) -> Result<serde_json::Value, String> {
+    let safe_path = resolve_safe_path(&path).map_err(|v| {
+        serde_json::to_string(&v).unwrap_or_else(|_| r#"{"error":"Unknown error"}"#.to_string())
+    })?;
+
+    if safe_path.exists() && safe_path.is_file() {
+        std::fs::remove_file(&safe_path).map_err(|e| e.to_string())?;
+    }
+    Ok(serde_json::json!({ "success": true }))
+}
+
 #[tauri::command]
 fn app_exit(app: tauri::AppHandle) {
     app.exit(0);
@@ -550,6 +588,8 @@ pub fn run() {
             shell_exec,
             file_read,
             file_write,
+            file_delete,
+            list_dir,
             save_binary_file,
             brains::init_brains,
             brains::scan_brains_files,
