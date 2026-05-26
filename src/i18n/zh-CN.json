@@ -206,6 +206,10 @@
     "confirmRejectMsg": "确定要驳回此任务吗？驳回后任务将重新分派给所有成员。",
     "reviewFailed": "未通过审查",
     "taskRejected": "任务已驳回，将重新分派",
+    "currentTask": "当前任务",
+    "queued": "等待中",
+    "execute": "执行任务",
+    "executing": "执行中...",
     "dispatch": {
       "title": "任务分派",
       "onlineMembers": "在线成员 ({count})",

@@ -17,11 +17,14 @@ import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   task: TaskMessage;
   teamName?: string;
   myId?: string;
-}>();
+  showActions?: boolean;
+}>(), {
+  showActions: false,
+});
 
 const emit = defineEmits<{
   statusChanged: [];
@@ -121,6 +124,7 @@ watch(status, (newStatus, oldStatus) => {
 
     <!-- Operation buttons -->
     <TaskActionButtons
+      v-if="showActions"
       :is-assigned-to-me="isAssignedToMe"
       :can-start="canStart"
       :can-upload="canUpload"

@@ -95,3 +95,46 @@
 .task-list-move {
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+.current-task-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.execution-badge {
+  font-size: 0.75em;
+  font-weight: 500;
+  color: var(--accent);
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 2px 8px;
+  background: var(--glass-bg-light);
+  border-radius: var(--radius-sm);
+}
+
+.manual-execute {
+  display: flex;
+  padding: var(--space-xs) 0;
+}
+
+.execute-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.execute-btn:hover {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.execute-btn:active {
+  transform: scale(0.96);
+}

@@ -2,21 +2,28 @@
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { getTeamClientInstance } from "../../composables/teamClientContext";
+import { useTaskCenterExecution } from "../../composables/useTaskCenterExecution";
 import { managerFetch } from "../../api";
 import TaskCard from "../../components/TaskCard";
 import SvgIcon from "../../components/SvgIcon";
 import type { TaskMessage } from "../../types";
 import type { Task } from "../../../envoy/packages/core/task.js";
+import type { ClientTask } from "../../../envoy/packages/client/client.js";
 import { apiTaskToTaskMessage, type ApiTask } from "../../utils/taskFormatters";
 
 const { t } = useI18n();
 
 const ctx = getTeamClientInstance()!;
-const { teamName, myId, role } = ctx;
+const { teamName, myId, role, currentClientTask, clientTaskQueue, resolveCurrentTask } = ctx;
 
 const emit = defineEmits<{
   selectTask: [task: TaskMessage];
 }>();
+
+// Task center execution composable (Member only)
+const taskExec = role === "member"
+  ? useTaskCenterExecution({ myId, teamName }, currentClientTask, resolveCurrentTask)
+  : null;
 
 const tasks = ref<TaskMessage[]>([]);
 let loading = false;
@@ -54,9 +61,52 @@ function onTaskUpdate(task: Task) {
   } else {
     tasks.value.unshift(taskMsg);
   }
-  // Trigger reactivity
   tasks.value = [...tasks.value];
 }
+
+function clientTaskToTaskMessage(ct: ClientTask): TaskMessage {
+  const st = ct.serverTask;
+  return apiTaskToTaskMessage({
+    id: st.id,
+    createBy: st.createBy,
+    subscribe: st.subscribe,
+    content: st.content,
+    mode: st.mode,
+    status: st.status,
+    resources: st.resources,
+    createdAt: st.createdAt,
+    attempt: st.attempt,
+  });
+}
+
+// IDs currently in the ClientTask queue (current + waiting)
+const queuedTaskIds = computed(() => {
+  const ids = new Set<string>();
+  if (currentClientTask.value) {
+    ids.add(currentClientTask.value.serverTask.id);
+  }
+  for (const ct of clientTaskQueue.value) {
+    ids.add(ct.serverTask.id);
+  }
+  return ids;
+});
+
+// Current task as TaskMessage (for display)
+const currentTaskMsg = computed<TaskMessage | null>(() => {
+  if (!currentClientTask.value) return null;
+  // Merge with latest REST data if available
+  const ct = currentClientTask.value;
+  const latest = tasks.value.find((t) => t.taskId === ct.serverTask.id);
+  return latest ?? clientTaskToTaskMessage(ct);
+});
+
+// Queued tasks as TaskMessage list
+const queuedTaskMsgs = computed<TaskMessage[]>(() => {
+  return clientTaskQueue.value.map((ct) => {
+    const latest = tasks.value.find((t) => t.taskId === ct.serverTask.id);
+    return latest ?? clientTaskToTaskMessage(ct);
+  });
+});
 
 const allTasks = computed<TaskMessage[]>(() => {
   if (role === "leader") {
@@ -75,6 +125,9 @@ const groupedTasks = computed(() => {
   const failed: TaskMessage[] = [];
 
   for (const task of allTasks.value) {
+    // Exclude tasks currently in the ClientTask queue (shown in current/queued sections)
+    if (role === "member" && queuedTaskIds.value.has(task.taskId)) continue;
+
     switch (task.status) {
       case "running":
         running.push(task);
@@ -125,18 +178,61 @@ onUnmounted(() => {
       <span class="header-name">{{ $t('task.taskCenter') }}</span>
     </div>
 
-    <div v-if="allTasks.length === 0" class="empty-state">
+    <div v-if="allTasks.length === 0 && !currentTaskMsg && queuedTaskMsgs.length === 0" class="empty-state">
       <SvgIcon name="check-circle" :size="48" />
       <p>{{ $t('task.noTasks') }}</p>
     </div>
 
     <div v-else class="task-groups">
+      <!-- Current task section (Member only) -->
+      <div v-if="role === 'member' && currentTaskMsg" class="task-group">
+        <div class="group-header current-task-header">
+          {{ t('task.currentTask', '当前任务') }}
+          <span v-if="taskExec?.isRunning?.value" class="execution-badge">{{ t('task.executing', '执行中...') }}</span>
+        </div>
+        <TaskCard
+          :task="currentTaskMsg"
+          :team-name="teamName"
+          :my-id="myId"
+          :show-actions="true"
+          @select-task="emit('selectTask', $event)"
+        />
+        <div v-if="taskExec && !taskExec.isRunning?.value" class="manual-execute">
+          <button class="execute-btn" @click="taskExec.executeCurrentTask()">
+            {{ t('task.execute', '执行任务') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Queued tasks section (Member only) -->
+      <div v-if="role === 'member' && queuedTaskMsgs.length > 0" class="task-group">
+        <div class="group-header">{{ t('task.queued', '等待中') }} ({{ queuedTaskMsgs.length }})</div>
+        <TransitionGroup name="task-list" tag="div" class="group-tasks">
+          <TaskCard
+            v-for="task in queuedTaskMsgs"
+            :key="task.taskId"
+            :task="task"
+            :team-name="teamName"
+            :my-id="myId"
+            @select-task="emit('selectTask', $event)"
+          />
+        </TransitionGroup>
+      </div>
+
+      <!-- Regular status groups -->
       <div v-for="group in statusGroups" :key="group.key" class="task-group">
         <div v-if="group.tasks.length > 0" class="group-header">
           {{ group.label }} ({{ group.tasks.length }})
         </div>
         <TransitionGroup name="task-list" tag="div" class="group-tasks">
-          <TaskCard v-for="task in group.tasks" :key="task.taskId" :task="task" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
+          <TaskCard
+            v-for="task in group.tasks"
+            :key="task.taskId"
+            :task="task"
+            :team-name="teamName"
+            :my-id="myId"
+            @select-task="emit('selectTask', $event)"
+          />
         </TransitionGroup>
       </div>
     </div>

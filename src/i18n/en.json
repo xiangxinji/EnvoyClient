@@ -206,6 +206,10 @@
     "confirmRejectMsg": "Are you sure you want to reject this task? The task will be re-dispatched to all members.",
     "reviewFailed": "Review failed",
     "taskRejected": "Task rejected, will be re-dispatched",
+    "currentTask": "Current Task",
+    "queued": "Queued",
+    "execute": "Execute Task",
+    "executing": "Executing...",
     "dispatch": {
       "title": "Task Dispatch",
       "onlineMembers": "Online Members ({count})",
