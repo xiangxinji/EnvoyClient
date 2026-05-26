@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { apiUrl } from "../../api";
+import { managerFetch } from "../../api";
 import { isTauri } from "../../utils/platform";
 import { defineService } from "../core/defineService";
 
@@ -34,7 +34,7 @@ export const resourceService = defineService({
         formData.append("file", blob, filename);
         formData.append("from", ctx.myId);
 
-        const res = await fetch(apiUrl(`/api/tasks/${ctx.taskId}/resources`), {
+        const res = await managerFetch(`/api/tasks/${ctx.taskId}/resources`, {
           method: "POST",
           headers: { team: ctx.teamName },
           body: formData,
@@ -56,8 +56,9 @@ export const resourceService = defineService({
       },
       run: async (args, ctx) => {
         const taskId = (args.taskId as string) || ctx.taskId;
-        const res = await fetch(
-          apiUrl(`/api/tasks/${taskId}/resources`),
+        if (!taskId) return { error: "No task ID available" };
+        const res = await managerFetch(
+          `/api/tasks/${taskId}/resources`,
           { headers: { team: ctx.teamName } },
         );
         if (!res.ok) {
@@ -80,9 +81,10 @@ export const resourceService = defineService({
       },
       run: async (args, ctx) => {
         const taskId = (args.taskId as string) || ctx.taskId;
+        if (!taskId) return { error: "No task ID available" };
         const file = args.file as string;
-        const res = await fetch(
-          apiUrl(`/api/tasks/${taskId}/resources/${encodeURIComponent(file)}`),
+        const res = await managerFetch(
+          `/api/tasks/${taskId}/resources/${encodeURIComponent(file)}`,
           { headers: { team: ctx.teamName } },
         );
         if (!res.ok) {

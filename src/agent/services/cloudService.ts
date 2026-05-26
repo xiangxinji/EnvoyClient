@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { apiUrl } from "../../api";
+import { managerFetch } from "../../api";
 import { isTauri } from "../../utils/platform";
 import { defineService } from "../core/defineService";
 
@@ -17,10 +17,9 @@ export const cloudService = defineService({
       run: async (args, ctx) => {
         const path = args.path as string | undefined;
         const query = path ? `?path=${encodeURIComponent(path)}` : "";
-        const res = await fetch(
-          apiUrl(`/api/cloud/files${query}`),
-          { headers: { team: ctx.teamName } },
-        );
+        const res = await managerFetch(`/api/cloud/files${query}`, {
+          headers: { team: ctx.teamName },
+        });
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: "List failed" }));
           return { error: err.error };
@@ -50,7 +49,7 @@ export const cloudService = defineService({
         if (path) formData.append("path", path);
         formData.append("uploadedBy", ctx.myId);
 
-        const res = await fetch(apiUrl("/api/cloud/files"), {
+        const res = await managerFetch("/api/cloud/files", {
           method: "POST",
           headers: { team: ctx.teamName },
           body: formData,
@@ -93,7 +92,7 @@ export const cloudService = defineService({
         if (cloudPath) formData.append("path", cloudPath);
         formData.append("uploadedBy", ctx.myId);
 
-        const res = await fetch(apiUrl("/api/cloud/files"), {
+        const res = await managerFetch("/api/cloud/files", {
           method: "POST",
           headers: { team: ctx.teamName },
           body: formData,

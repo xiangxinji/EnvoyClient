@@ -300,8 +300,11 @@ fn validate_cd_paths(command: &str, workspace: &std::path::Path) -> Result<(), S
     for seg in segments {
         let seg = seg.trim();
         // Match cd with a target (handle quoted and unquoted paths)
-        // Pattern: cd <path> or cd "<path>"
+        // Pattern: cd [/d] <path> or cd [/d] "<path>"
         let rest = if let Some(s) = seg.strip_prefix("cd ") {
+            let s = s.trim();
+            // Skip CMD /d or /D flag (change drive and directory)
+            let s = s.strip_prefix("/d ").or_else(|| s.strip_prefix("/D ")).unwrap_or(s);
             s.trim()
         } else {
             continue;
@@ -416,17 +419,21 @@ fn shell_exec(command: String, working_dir: Option<String>) -> Result<serde_json
     // Validate cd targets don't escape workspace
     validate_cd_paths(&command, &workspace)?;
 
-    let ws_str = workspace.to_string_lossy().to_string();
+    // Strip UNC prefix (\\?\) for clean path
+    let ws_clean = clean_path(&workspace);
 
     let output = if cfg!(target_os = "windows") {
-        let full_cmd = format!("cd /d \"{}\" && {}", ws_str, command);
+        // Use current_dir() to avoid cd /d quoting issues with CMD.
+        // Use raw_arg() to bypass MSVC CRT quoting that corrupts paths.
         let mut cmd = Command::new("cmd");
-        cmd.args(["/C", &full_cmd]);
+        cmd.current_dir(&ws_clean)
+            .raw_arg(format!("/C {}", command));
         cmd.output()
     } else {
-        let full_cmd = format!("cd \"{}\" && {}", ws_str, command);
         let mut cmd = Command::new("sh");
-        cmd.arg("-c").arg(&full_cmd);
+        cmd.current_dir(&ws_clean)
+            .arg("-c")
+            .arg(&command);
         cmd.output()
     }
     .map_err(|e| e.to_string())?;
