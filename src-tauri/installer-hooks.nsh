@@ -10,7 +10,7 @@
 
 ; Welcome page title and text
 !define MUI_WELCOMEPAGE_TITLE "欢迎使用 Envoy 安装向导"
-!define MUI_WELCOMEPAGE_TEXT "即将在您的计算机上安装 Envoy $_CLICK\r\n\r\nEnvoy 是一个团队 AI Agent 协作桌面客户端。\r\n\r\n建议在安装前关闭其他应用程序。"
+!define MUI_WELCOMEPAGE_TEXT "即将在您的计算机上安装 Envoy $_CLICK$\r$\n$\r$\nAI 驱动的团队协作，让任务自动流转。$\r$\n$\r$\n· 智能调度 — AI 自动分配与执行团队任务$\r$\n· 实时协作 — 成员间即时通讯与资源共享$\r$\n· 云端资源 — 团队文件统一管理，触手可及$\r$\n$\r$\n建议在安装前关闭其他应用程序。"
 
 ; Finish page text
 !define MUI_FINISHPAGE_TITLE "安装完成"

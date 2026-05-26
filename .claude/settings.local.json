@@ -128,7 +128,8 @@
       "Bash(npx playwright@latest install --with-deps chromium)",
       "Bash(npm uninstall *)",
       "Bash(xxd \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\EnvoyClient\\\\src\\\\views\\\\RoleSelect\\\\main.vue\")",
-      "Bash(gh pr *)"
+      "Bash(gh pr *)",
+      "Bash(xxd \"C:/Users/xiangxj/Desktop/workspace/EnvoyClient/src-tauri/installer-hooks.nsh\")"
     ]
   },
   "enabledPlugins": {
