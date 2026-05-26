@@ -33,6 +33,12 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
     client.on("task_completed", syncQueue);
     client.on("task_failed", syncQueue);
     client.on("task_skipped", syncQueue);
+    client.on("task_finished", (task: ClientTask) => {
+      if (currentClientTask.value?.id === task.id) {
+        currentClientTask.value = null;
+      }
+      syncQueue();
+    });
 
     client.doing(async (clientTask) => {
       const taskStatus = clientTask.serverTask.status;

@@ -28,6 +28,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   statusChanged: [];
+  taskResolved: [];
   selectTask: [task: TaskMessage];
 }>();
 
@@ -136,9 +137,9 @@ watch(status, (newStatus, oldStatus) => {
       :reviewing="reviewing"
       @start="handleStart(() => emit('statusChanged'))"
       @upload="handleUpload(() => emit('statusChanged'))"
-      @complete="requestComplete(() => emit('statusChanged'))"
-      @approve="requestApprove(() => emit('statusChanged'))"
-      @reject="requestReject(() => emit('statusChanged'))"
+      @complete="requestComplete(() => { emit('statusChanged'); emit('taskResolved'); })"
+      @approve="requestApprove(() => { emit('statusChanged'); emit('taskResolved'); })"
+      @reject="requestReject(() => { emit('statusChanged'); emit('taskResolved'); })"
     />
 
     <ConfirmDialog

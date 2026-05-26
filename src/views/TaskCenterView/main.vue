@@ -196,6 +196,7 @@ onUnmounted(() => {
           :my-id="myId"
           :show-actions="true"
           @select-task="emit('selectTask', $event)"
+          @task-resolved="resolveCurrentTask({ manual: true })"
         />
         <div v-if="taskExec && !taskExec.isRunning?.value" class="manual-execute">
           <button class="execute-btn" @click="taskExec.executeCurrentTask()">
