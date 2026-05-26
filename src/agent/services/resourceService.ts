@@ -48,14 +48,14 @@ export const resourceService = defineService({
     },
     {
       name: "query_resources",
-      description: "查询指定任务的资源文件列表，支持查自己或其他成员的任务",
+      description: "查询指定任务的资源文件列表，不传 taskId 则查询当前任务",
       parameters: {
         type: "object",
-        properties: { taskId: { type: "string", description: "任务 ID" } },
-        required: ["taskId"],
+        properties: { taskId: { type: "string", description: "任务 ID（不填则使用当前任务）" } },
+        required: [],
       },
       run: async (args, ctx) => {
-        const taskId = args.taskId as string;
+        const taskId = (args.taskId as string) || ctx.taskId;
         const res = await fetch(
           apiUrl(`/api/tasks/${taskId}/resources`),
           { headers: { team: ctx.teamName } },
@@ -69,17 +69,17 @@ export const resourceService = defineService({
     },
     {
       name: "read_resource",
-      description: "读取指定任务的具体资源文件内容",
+      description: "读取指定任务的具体资源文件内容，不传 taskId 则读取当前任务",
       parameters: {
         type: "object",
         properties: {
-          taskId: { type: "string", description: "任务 ID" },
+          taskId: { type: "string", description: "任务 ID（不填则使用当前任务）" },
           file: { type: "string", description: "资源文件名（从 query_resources 获取）" },
         },
-        required: ["taskId", "file"],
+        required: ["file"],
       },
       run: async (args, ctx) => {
-        const taskId = args.taskId as string;
+        const taskId = (args.taskId as string) || ctx.taskId;
         const file = args.file as string;
         const res = await fetch(
           apiUrl(`/api/tasks/${taskId}/resources/${encodeURIComponent(file)}`),
