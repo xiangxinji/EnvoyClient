@@ -28,7 +28,12 @@ export function createTaskPipeline(opts: TaskPipelineOptions) {
       maxAttempts: opts.maxRetryAttempts ?? 2,
       feedback: "reviewSummary",
       shouldRetry: (reviewOutput: string) => {
-        return reviewOutput.includes("需要修正") || reviewOutput.includes("发现问题");
+        try {
+          const parsed = JSON.parse(reviewOutput);
+          return parsed.passed === false;
+        } catch {
+          return reviewOutput.includes("需要修正") || reviewOutput.includes("发现问题");
+        }
       },
     },
   });

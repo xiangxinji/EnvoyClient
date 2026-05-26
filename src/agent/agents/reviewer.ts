@@ -13,9 +13,11 @@ export function createReviewer(ctx: ServiceContext) {
 2. 执行结果是否符合预期
 3. 是否有遗漏或错误
 
-如果发现问题，在结果中明确指出需要修正的内容，标注为"需要修正"。
-如果没有问题，确认任务完成。
-使用 done 工具提交审查摘要。`,
+使用 done 工具提交审查结果，result 参数必须是合法 JSON，格式如下：
+通过：{"passed": true, "summary": "审查通过的简短说明"}
+未通过：{"passed": false, "summary": "发现的具体问题描述"}
+
+不要输出 JSON 以外的内容，不要用 markdown 代码块包裹。`,
     tools: [
       ...toTools([fileService, resourceService], ctx, { only: ["file_read", "query_resources", "read_resource"] }),
       createDoneTool(),
