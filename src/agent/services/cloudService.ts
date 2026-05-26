@@ -11,12 +11,12 @@ export const cloudService = defineService({
       description: "列出团队云资源目录下的文件和子目录",
       parameters: {
         type: "object",
-        properties: { path: { type: "string", description: "目录路径，留空表示根目录" } },
+        properties: { parentId: { type: "string", description: "父目录 ID，留空表示根目录" } },
         required: [],
       },
       run: async (args, ctx) => {
-        const path = args.path as string | undefined;
-        const query = path ? `?path=${encodeURIComponent(path)}` : "";
+        const parentId = args.parentId as string | undefined;
+        const query = parentId ? `?parentId=${encodeURIComponent(parentId)}` : "";
         const res = await managerFetch(`/api/cloud/files${query}`, {
           headers: { team: ctx.teamName },
         });
@@ -33,20 +33,20 @@ export const cloudService = defineService({
       parameters: {
         type: "object",
         properties: {
-          path: { type: "string", description: "目标目录路径，留空表示根目录" },
+          parentId: { type: "string", description: "目标目录 ID，留空表示根目录" },
           filename: { type: "string", description: "文件名" },
           content: { type: "string", description: "文件内容" },
         },
         required: ["filename", "content"],
       },
       run: async (args, ctx) => {
-        const path = args.path as string | undefined;
+        const parentId = args.parentId as string | undefined;
         const filename = args.filename as string;
         const content = args.content as string;
         const blob = new Blob([content]);
         const formData = new FormData();
         formData.append("file", blob, filename);
-        if (path) formData.append("path", path);
+        if (parentId) formData.append("parentId", parentId);
         formData.append("uploadedBy", ctx.myId);
 
         const res = await managerFetch("/api/cloud/files", {
@@ -68,7 +68,7 @@ export const cloudService = defineService({
         type: "object",
         properties: {
           path: { type: "string", description: "本地文件路径（~ 开头表示用户 home 目录）" },
-          cloudPath: { type: "string", description: "目标云目录路径，留空表示根目录" },
+          parentId: { type: "string", description: "目标云目录 ID，留空表示根目录" },
         },
         required: ["path"],
       },
@@ -88,8 +88,8 @@ export const cloudService = defineService({
         const blob = new Blob([result.content]);
         const formData = new FormData();
         formData.append("file", blob, filename);
-        const cloudPath = args.cloudPath as string | undefined;
-        if (cloudPath) formData.append("path", cloudPath);
+        const parentId = args.parentId as string | undefined;
+        if (parentId) formData.append("parentId", parentId);
         formData.append("uploadedBy", ctx.myId);
 
         const res = await managerFetch("/api/cloud/files", {

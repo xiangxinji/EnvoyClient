@@ -1,8 +1,8 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 
 export interface CloudRefAttrs {
+  id: string;
   name: string;
-  path: string;
   type: "file" | "directory";
   size: number;
 }
@@ -15,8 +15,8 @@ export const CloudReference = Node.create({
 
   addAttributes() {
     return {
+      id: { default: "" },
       name: { default: "" },
-      path: { default: "" },
       type: { default: "file" },
       size: { default: 0 },
     };

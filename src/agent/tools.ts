@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { apiUrl } from "../api";
 import { isTauri } from "../utils/platform";
 import {
   createUploadResourceTool,
@@ -106,85 +105,6 @@ export {
   createReadResourceTool,
   createReadSkillTool,
 };
-
-// ─── Cloud tools (Manager REST API) ───
-
-export function createCloudListTool(ctx: {
-  teamName: string;
-}): AgentTool {
-  return {
-    name: "cloud_list",
-    description: "列出团队云资源目录下的文件和子目录",
-    parameters: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description: "目录路径，留空表示根目录",
-        },
-      },
-      required: [],
-    },
-    execute: async ({ path }) => {
-      const query = path ? `?path=${encodeURIComponent(path as string)}` : "";
-      const res = await fetch(
-        apiUrl(`/api/cloud/files${query}`),
-        { headers: { team: ctx.teamName } }
-      );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "List failed" }));
-        return { error: err.error };
-      }
-      return await res.json();
-    },
-  };
-}
-
-export function createCloudUploadTool(ctx: {
-  teamName: string;
-  myId: string;
-}): AgentTool {
-  return {
-    name: "cloud_upload",
-    description: "上传文件内容到团队云资源",
-    parameters: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description: "目标目录路径，留空表示根目录",
-        },
-        filename: {
-          type: "string",
-          description: "文件名",
-        },
-        content: {
-          type: "string",
-          description: "文件内容",
-        },
-      },
-      required: ["filename", "content"],
-    },
-    execute: async ({ path, filename, content }) => {
-      const blob = new Blob([content as string]);
-      const formData = new FormData();
-      formData.append("file", blob, filename as string);
-      if (path) formData.append("path", path as string);
-      formData.append("uploadedBy", ctx.myId);
-
-      const res = await fetch(apiUrl("/api/cloud/files"), {
-        method: "POST",
-        headers: { team: ctx.teamName },
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Upload failed" }));
-        return { error: err.error };
-      }
-      return await res.json();
-    },
-  };
-}
 
 // ─── Default tool set ───
 

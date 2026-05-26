@@ -88,11 +88,11 @@ function onBubbleClick(e: MouseEvent) {
 
 const forwardedDialogVisible = ref(false);
 const cloudDirDialogVisible = ref(false);
-const cloudDirPath = ref("");
+const cloudDirId = ref("");
 const cloudDirName = ref("");
 
-function handleOpenDir(data: { path: string; name: string }) {
-  cloudDirPath.value = data.path;
+function handleOpenDir(data: { id: string; name: string }) {
+  cloudDirId.value = data.id;
   cloudDirName.value = data.name;
   cloudDirDialogVisible.value = true;
 }
@@ -221,7 +221,7 @@ function bubbleClick(e: MouseEvent) {
   <!-- Forwarded history dialog -->
   <ForwardedDialog v-if="message.forwarded?.length" :records="message.forwarded" :team-name="teamName" v-model:visible="forwardedDialogVisible" />
 
-  <CloudDirDialog :visible="cloudDirDialogVisible" :dir-path="cloudDirPath" :dir-name="cloudDirName" :team-name="teamName" @update:visible="cloudDirDialogVisible = $event" />
+  <CloudDirDialog :visible="cloudDirDialogVisible" :dir-id="cloudDirId" :dir-name="cloudDirName" :team-name="teamName" @update:visible="cloudDirDialogVisible = $event" />
 
   <MemberHoverCard v-if="hoverMember" :member="hoverMember" :rect="hoverRect" :visible="hoverVisible" @mouseenter="onCardEnter" @mouseleave="onCardLeave" @view-profile="onViewProfile" />
 </template>

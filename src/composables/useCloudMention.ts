@@ -38,8 +38,8 @@ export function useCloudMention() {
       }
     }
 
-    const ref: CloudRef = { name: item.name, path: item.path, type: item.type, size: item.size };
-    if (!pendingCloudRefs.value.some(r => r.path === ref.path)) {
+    const ref: CloudRef = { id: item.id, name: item.name, type: item.type, size: item.size };
+    if (!pendingCloudRefs.value.some(r => r.id === ref.id)) {
       pendingCloudRefs.value.push(ref);
     }
     cloudPopupVisible.value = false;

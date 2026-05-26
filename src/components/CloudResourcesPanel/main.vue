@@ -25,7 +25,7 @@ const cloudService = getCloudResourceService();
 const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
 const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
 
-const currentPath = ref("");
+const currentDirId = ref<string | null>(null);
 const items = ref<CloudFileItem[]>([]);
 const loading = ref(false);
 const uploadProgress = ref<number | null>(null);
@@ -58,39 +58,40 @@ function exitSelectMode() {
   selectedIds.value = new Set();
 }
 
-// ─── Breadcrumb ────────────────────────────────────────────────
+interface Breadcrumb { id: string | null; label: string }
 
-interface Breadcrumb { label: string; path: string }
-
-const breadcrumbs = computed<Breadcrumb[]>(() => {
-  if (!currentPath.value) return [];
-  const parts = currentPath.value.split("/").filter(Boolean);
-  const crumbs: Breadcrumb[] = [];
-  let acc = "";
-  for (const part of parts) { acc += part + "/"; crumbs.push({ label: part, path: acc }); }
-  return crumbs;
-});
+const breadcrumbs = ref<Breadcrumb[]>([]);
 
 // ─── Core actions ──────────────────────────────────────────────
 
 async function loadFiles() {
   loading.value = true;
   try {
-    const result = await cloudService.listFiles(currentPath.value);
+    const result = await cloudService.listFiles(currentDirId.value);
     items.value = result.items;
+    // Update breadcrumb from listing metadata
+    if (currentDirId.value === null) {
+      breadcrumbs.value = [];
+    } else {
+      // Build breadcrumb by querying the server
+      const chain = await cloudService.getBreadcrumb(currentDirId.value);
+      breadcrumbs.value = chain.map(b => ({ id: b.id, label: b.name }));
+    }
   } catch { items.value = []; }
   finally { loading.value = false; }
 }
 
-function navigateTo(path: string) {
-  currentPath.value = path;
+function navigateTo(dirId: string | null) {
+  currentDirId.value = dirId;
   exitSelectMode();
   loadFiles();
 }
 
 function enterDir(item: CloudFileItem) {
   if (item.type !== "directory") return;
-  navigateTo(currentPath.value + item.name + "/");
+  currentDirId.value = item.id;
+  exitSelectMode();
+  loadFiles();
 }
 
 async function handleUpload() {
@@ -99,7 +100,7 @@ async function handleUpload() {
   if (!file) return;
   uploadProgress.value = 0;
   try {
-    await cloudService.uploadFile(file, currentPath.value, pct => { uploadProgress.value = pct; });
+    await cloudService.uploadFile(file, currentDirId.value, pct => { uploadProgress.value = pct; });
     await loadFiles();
   } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.uploadFailed"), "error"); }
   finally { uploadProgress.value = null; }
@@ -110,7 +111,7 @@ async function confirmNewDir() {
   if (!name) return;
   showNewDirDialog.value = false;
   try {
-    await cloudService.createDirectory(name, currentPath.value);
+    await cloudService.createDirectory(name, currentDirId.value);
     await loadFiles();
   } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.operationFailed"), "error"); }
 }
@@ -134,8 +135,7 @@ function requestBatchDelete() {
 
 async function performDelete(targets: CloudFileItem[]) {
   for (const item of targets) {
-    const filePath = item.type === "directory" ? currentPath.value + item.name + "/" : currentPath.value + item.name;
-    try { await cloudService.deleteFile(filePath); }
+    try { await cloudService.deleteFile(item.id); }
     catch (e: unknown) { showToast(getErrorMessage(e) || t("common.operationFailed"), "error"); break; }
   }
   exitSelectMode();
@@ -144,7 +144,7 @@ async function performDelete(targets: CloudFileItem[]) {
 
 async function handleDownload(item: CloudFileItem) {
   try {
-    const url = cloudService.downloadUrl(currentPath.value + item.name);
+    const url = cloudService.downloadUrl(item.id);
     await downloadFileWithDialog(url, item.name, { team: ctx.teamName });
   } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.fileDownloadFailed"), "error"); }
 }
@@ -160,12 +160,12 @@ onMounted(loadFiles);
 
     <div class="cloud-toolbar">
       <div class="breadcrumb">
-        <button class="breadcrumb-btn root-btn" :class="{ current: !currentPath }" @click="navigateTo('')">
+        <button class="breadcrumb-btn root-btn" :class="{ current: !currentDirId }" @click="navigateTo(null)">
           <SvgIcon name="home" :size="14" />
         </button>
-        <template v-for="(crumb, idx) in breadcrumbs" :key="idx">
+        <template v-for="(crumb, idx) in breadcrumbs" :key="crumb.id">
           <span class="breadcrumb-sep">/</span>
-          <button class="breadcrumb-btn" :class="{ current: idx === breadcrumbs.length - 1 }" @click="navigateTo(crumb.path)">{{ crumb.label }}</button>
+          <button class="breadcrumb-btn" :class="{ current: idx === breadcrumbs.length - 1 }" @click="navigateTo(crumb.id)">{{ crumb.label }}</button>
         </template>
       </div>
       <div class="toolbar-actions">

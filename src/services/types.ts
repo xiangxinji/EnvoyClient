@@ -45,6 +45,7 @@ export interface TaskSubmitResult {
 export interface CloudFileItem {
   readonly id: string;
   readonly name: string;
+  readonly parentId: string | null;
   readonly type: "file" | "directory";
   readonly size: number;
   readonly uploadedBy: string;
@@ -52,13 +53,16 @@ export interface CloudFileItem {
 }
 
 export interface CloudDirListing {
-  readonly path: string;
+  readonly id: string | null;
+  readonly parentId: string | null;
+  readonly name: string;
   readonly items: CloudFileItem[];
 }
 
 export interface CloudSearchResult {
+  readonly id: string;
   readonly name: string;
-  readonly path: string;
+  readonly displayPath: string;
   readonly type: "file" | "directory";
   readonly size: number;
 }

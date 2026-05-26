@@ -23,10 +23,14 @@ const downloading = ref(false);
 let cancelled = false;
 
 onMounted(async () => {
-  if (!props.data.path) return;
+  // Old messages without id field — show as expired
+  if (!props.data.id) {
+    expired.value = true;
+    return;
+  }
   try {
-    const result = await getCloudResourceService().validatePaths([props.data.path]);
-    if (!cancelled) expired.value = result[props.data.path] === false;
+    const result = await getCloudResourceService().validateIds([props.data.id]);
+    if (!cancelled) expired.value = result[props.data.id] === false;
   } catch {
     // silent
   }
@@ -35,10 +39,10 @@ onMounted(async () => {
 onUnmounted(() => { cancelled = true; });
 
 async function handleDownload() {
-  if (downloading.value || expired.value) return;
+  if (downloading.value || expired.value || !props.data.id) return;
   downloading.value = true;
   try {
-    const url = getCloudResourceService().downloadUrl(props.data.path);
+    const url = getCloudResourceService().downloadUrl(props.data.id);
     await downloadFileWithDialog(url, props.data.name, props.teamName ? { team: props.teamName } : undefined);
   } catch {
     // silent

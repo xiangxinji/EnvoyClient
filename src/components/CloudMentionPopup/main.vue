@@ -31,11 +31,11 @@ async function doSearch(query: string) {
     if (query) {
       results.value = await getCloudResourceService().search(query);
     } else {
-      const listing = await getCloudResourceService().listFiles("");
-      // CloudFileItem lacks 'path', construct it from listing.path + item.name
+      const listing = await getCloudResourceService().listFiles(null);
       results.value = listing.items.map(item => ({
+        id: item.id,
         name: item.name,
-        path: listing.path + item.name + (item.type === "directory" ? "/" : ""),
+        displayPath: item.name,
         type: item.type,
         size: item.size,
       }));
@@ -104,7 +104,7 @@ defineExpose({ handleKeydown });
     <template v-else>
       <div
         v-for="(item, idx) in results"
-        :key="item.path"
+        :key="item.id"
         class="cloud-item"
         :class="{ selected: idx === selectedIndex }"
         @click="emit('select', item)"
@@ -115,7 +115,7 @@ defineExpose({ handleKeydown });
         </span>
         <div class="cloud-item-info">
           <span class="cloud-item-name">{{ item.name }}</span>
-          <span class="cloud-item-path">{{ item.path }}</span>
+          <span class="cloud-item-path">{{ item.displayPath }}</span>
         </div>
         <SvgIcon v-if="item.type === 'directory'" name="chevron-right" :size="12" class="cloud-item-arrow" />
       </div>

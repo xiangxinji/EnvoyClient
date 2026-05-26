@@ -34,11 +34,11 @@ const cleanedRecords = computed(() =>
 );
 
 const cloudDirDialogVisible = ref(false);
-const cloudDirPath = ref("");
+const cloudDirId = ref("");
 const cloudDirName = ref("");
 
-function handleOpenDir(data: { path: string; name: string }) {
-  cloudDirPath.value = data.path;
+function handleOpenDir(data: { id: string; name: string }) {
+  cloudDirId.value = data.id;
   cloudDirName.value = data.name;
   cloudDirDialogVisible.value = true;
 }
@@ -54,7 +54,7 @@ async function handleCloudDownload(ref: CloudRef) {
   if (downloading.value) return;
   downloading.value = true;
   try {
-    const url = getCloudResourceService().downloadUrl(ref.path);
+    const url = getCloudResourceService().downloadUrl(ref.id);
     await downloadFileWithDialog(url, ref.name, props.teamName ? { team: props.teamName } : undefined);
   } catch { /* download failed */ }
   finally { downloading.value = false; }
@@ -108,7 +108,7 @@ watch(() => props.visible, (open) => {
                 </template>
               </div>
               <div v-if="rec.cloudRefs?.length" class="fd-cloud-refs">
-                <div v-for="(ref, j) in rec.cloudRefs" :key="j" class="cloud-card" :class="ref.type" @click="ref.type === 'file' ? handleCloudDownload(ref) : handleOpenDir({ path: ref.path, name: ref.name })">
+                <div v-for="(ref, j) in rec.cloudRefs" :key="j" class="cloud-card" :class="ref.type" @click="ref.type === 'file' ? handleCloudDownload(ref) : handleOpenDir({ id: ref.id, name: ref.name })">
                   <div class="cloud-card-icon"><SvgIcon :name="ref.type === 'directory' ? 'folder' : 'file'" :size="16" /></div>
                   <div class="cloud-card-info">
                     <span class="cloud-card-name">{{ ref.name }}</span>
@@ -148,7 +148,7 @@ watch(() => props.visible, (open) => {
       </div>
     </Transition>
 
-    <CloudDirDialog :visible="cloudDirDialogVisible" :dir-path="cloudDirPath" :dir-name="cloudDirName" :team-name="props.teamName" @update:visible="cloudDirDialogVisible = $event" />
+    <CloudDirDialog :visible="cloudDirDialogVisible" :dir-id="cloudDirId" :dir-name="cloudDirName" :team-name="props.teamName" @update:visible="cloudDirDialogVisible = $event" />
   </Teleport>
 </template>
 

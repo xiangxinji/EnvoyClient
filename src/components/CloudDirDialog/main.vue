@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { getCloudResourceService } from "../../composables/teamClientContext";
 import { downloadFileWithDialog } from "../../utils/notification";
 import { formatFileSize } from "../../utils/taskFormatters";
-import type { CloudFileItem, CloudDirListing } from "../../services/types";
+import type { CloudFileItem } from "../../services/types";
 import SvgIcon from "../SvgIcon";
 
 const { t } = useI18n();
 
 const props = defineProps<{
   visible: boolean;
-  dirPath: string;
+  dirId: string;
   dirName: string;
   teamName?: string;
 }>();
@@ -22,28 +22,25 @@ const emit = defineEmits<{
 
 const loading = ref(false);
 const items = ref<CloudFileItem[]>([]);
-const currentPath = ref("");
+const currentDirId = ref<string | null>(null);
 const downloading = ref(false);
 
-interface Breadcrumb { label: string; path: string }
+interface Breadcrumb { id: string | null; label: string }
+const breadcrumbs = ref<Breadcrumb[]>([]);
 
-const breadcrumbs = computed<Breadcrumb[]>(() => {
-  const parts = currentPath.value.replace(/\/$/, "").split("/").filter(Boolean);
-  const crumbs: Breadcrumb[] = [];
-  let acc = "";
-  for (const part of parts) {
-    acc += part + "/";
-    crumbs.push({ label: part, path: acc });
-  }
-  return crumbs;
-});
-
-async function loadDir(path: string) {
+async function loadDir(dirId: string | null) {
   loading.value = true;
-  currentPath.value = path;
+  currentDirId.value = dirId;
   try {
-    const result: CloudDirListing = await getCloudResourceService().listFiles(path);
+    const result = await getCloudResourceService().listFiles(dirId);
     items.value = result.items;
+    // Update breadcrumbs
+    if (dirId === null) {
+      breadcrumbs.value = [];
+    } else {
+      const chain = await getCloudResourceService().getBreadcrumb(dirId);
+      breadcrumbs.value = chain.map(b => ({ id: b.id, label: b.name }));
+    }
   } catch {
     items.value = [];
   } finally {
@@ -53,20 +50,20 @@ async function loadDir(path: string) {
 
 function enterDir(item: CloudFileItem) {
   if (item.type !== "directory") return;
-  loadDir(currentPath.value + item.name + "/");
+  loadDir(item.id);
 }
 
-function navigateTo(path: string) {
-  loadDir(path);
+function navigateTo(dirId: string | null) {
+  loadDir(dirId);
 }
 
 async function handleDownload(item: CloudFileItem) {
   if (downloading.value) return;
   downloading.value = true;
   try {
-    const url = getCloudResourceService().downloadUrl(currentPath.value + item.name);
+    const url = getCloudResourceService().downloadUrl(item.id);
     await downloadFileWithDialog(url, item.name, props.teamName ? { team: props.teamName } : undefined);
-  } catch (e: unknown) {
+  } catch {
     // silent
   } finally {
     downloading.value = false;
@@ -83,11 +80,12 @@ function handleKeydown(e: KeyboardEvent) {
 
 watch(() => props.visible, (open) => {
   if (open) {
-    loadDir(props.dirPath);
+    loadDir(props.dirId);
     document.addEventListener("keydown", handleKeydown);
   } else {
     items.value = [];
-    currentPath.value = "";
+    currentDirId.value = null;
+    breadcrumbs.value = [];
     document.removeEventListener("keydown", handleKeydown);
   }
 });
@@ -104,12 +102,12 @@ watch(() => props.visible, (open) => {
           </div>
 
           <div class="dir-breadcrumb">
-            <button class="breadcrumb-btn" @click="navigateTo('')">
+            <button class="breadcrumb-btn" @click="navigateTo(null)">
               <SvgIcon name="home" :size="14" />
             </button>
-            <template v-for="(crumb, idx) in breadcrumbs" :key="idx">
+            <template v-for="(crumb, idx) in breadcrumbs" :key="crumb.id">
               <span class="breadcrumb-sep">/</span>
-              <button class="breadcrumb-btn" :class="{ current: idx === breadcrumbs.length - 1 }" @click="navigateTo(crumb.path)">{{ crumb.label }}</button>
+              <button class="breadcrumb-btn" :class="{ current: idx === breadcrumbs.length - 1 }" @click="navigateTo(crumb.id)">{{ crumb.label }}</button>
             </template>
           </div>
 

@@ -32,8 +32,8 @@ export interface StickerInfo {
 }
 
 export interface CloudRef {
+  id: string;
   name: string;
-  path: string;
   type: "file" | "directory";
   size: number;
 }
