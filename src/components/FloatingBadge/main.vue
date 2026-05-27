@@ -17,6 +17,8 @@ const dragOffset = { x: 0, y: 0 };
 const SNAP_THRESHOLD = 30;
 const badgeRef = ref<HTMLElement | null>(null);
 
+let refreshTimer: ReturnType<typeof setInterval> | null = null;
+
 function refreshCounts() {
   if (!client) {
     console.warn('[FloatingBadge] client is null');
@@ -77,18 +79,16 @@ function onDragEnd() {
 
 onMounted(() => {
   refreshCounts();
-
-  // Poll for updates since events may not fire for existing tasks
-  const timer = setInterval(refreshCounts, 3000);
+  refreshTimer = setInterval(refreshCounts, 3000);
 
   window.addEventListener("mousemove", onDragMove);
   window.addEventListener("mouseup", onDragEnd);
+});
 
-  onUnmounted(() => {
-    clearInterval(timer);
-    window.removeEventListener("mousemove", onDragMove);
-    window.removeEventListener("mouseup", onDragEnd);
-  });
+onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer);
+  window.removeEventListener("mousemove", onDragMove);
+  window.removeEventListener("mouseup", onDragEnd);
 });
 </script>
 

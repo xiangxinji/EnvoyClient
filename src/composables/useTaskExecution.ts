@@ -16,6 +16,8 @@ interface TaskExecutionContext {
 export function useTaskExecution(ctx: TaskExecutionContext) {
   const currentClientTask = ref<ClientTask | null>(null);
   const clientTaskQueue = ref<ClientTask[]>([]);
+  // Single pending resolve is safe: client.doing is a sequential handler,
+  // so only one task awaits at a time.
   let pendingResolve: ((result: unknown) => void) | null = null;
   let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
 

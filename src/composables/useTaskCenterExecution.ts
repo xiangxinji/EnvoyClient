@@ -121,7 +121,7 @@ export function useTaskCenterExecution(
 
   // Auto mode: watch currentClientTask and auto-execute
   watch(currentClientTask, async (task) => {
-    if (!task) return;
+    if (!task || isRunning.value) return;
     await loadSettings(ctx.myId);
     if (settings.value.task_execution_mode === "auto") {
       await executeCurrentTask();
