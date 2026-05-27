@@ -20,7 +20,7 @@ export function useConnection(
   role: "leader" | "member",
   options: ConnectionClientOptions,
 ) {
-  const clientOpts = { ...options, autoSendResult: false };
+  const clientOpts = { ...options };
   const client = role === "leader"
     ? new Leader(clientOpts)
     : new Member(clientOpts);

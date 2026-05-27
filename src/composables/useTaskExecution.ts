@@ -28,6 +28,7 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
 
   function registerHandler(client: {
     doing: (handler: (task: ClientTask) => Promise<unknown>) => void;
+    reviewing: (handler: (task: ClientTask) => Promise<unknown>) => void;
     on: (event: string, handler: (...args: unknown[]) => void) => void;
     taskQueue: readonly ClientTask[];
   }) {
@@ -49,14 +50,7 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
     });
 
     client.doing(async (clientTask) => {
-      const taskStatus = clientTask.serverTask.status;
-
-      // Leader reviewing: execute directly, no queue bridge
-      if (ctx.role === "leader" && taskStatus === "reviewing") {
-        return await handleLeaderReview(clientTask);
-      }
-
-      // Member: bridge to UI, wait for resolveCurrentTask
+      // Bridge to UI, wait for resolveCurrentTask
       currentClientTask.value = clientTask;
       const taskId = clientTask.serverTask.id;
 
@@ -71,6 +65,10 @@ export function useTaskExecution(ctx: TaskExecutionContext) {
         }, timeoutMs);
         pendingResolves.set(taskId, { resolve, timer });
       });
+    });
+
+    client.reviewing(async (clientTask) => {
+      return await handleLeaderReview(clientTask);
     });
   }
 
