@@ -138,3 +138,24 @@
 .execute-btn:active {
   transform: scale(0.96);
 }
+
+.abort-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--danger, #e74c3c);
+  background: transparent;
+  color: var(--danger, #e74c3c);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.abort-btn:hover {
+  background: var(--danger, #e74c3c);
+  color: #fff;
+}
+
+.abort-btn:active {
+  transform: scale(0.96);
+}

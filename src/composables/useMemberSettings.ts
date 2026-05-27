@@ -6,6 +6,7 @@ export type TaskExecutionMode = "manual" | "auto";
 export interface MemberSettings {
   working_directory: string;
   task_execution_mode: TaskExecutionMode;
+  task_execution_timeout_ms: number;
   ai_suggestion_history_count: number;
   ai_auto_reply: boolean;
   shortcut_auto_reply: string;
@@ -21,6 +22,7 @@ export interface MemberSettings {
 const DEFAULT_SETTINGS: MemberSettings = {
   working_directory: "",
   task_execution_mode: "auto",
+  task_execution_timeout_ms: 10 * 60 * 1000,
   ai_suggestion_history_count: 5,
   ai_auto_reply: false,
   shortcut_auto_reply: "",
@@ -53,6 +55,9 @@ export function useMemberSettings() {
       _settings.value = {
         working_directory: (userSettings.working_directory as string) ?? DEFAULT_SETTINGS.working_directory,
         task_execution_mode: (userSettings.task_execution_mode as TaskExecutionMode) ?? DEFAULT_SETTINGS.task_execution_mode,
+        task_execution_timeout_ms: typeof userSettings.task_execution_timeout_ms === "number"
+          ? userSettings.task_execution_timeout_ms
+          : DEFAULT_SETTINGS.task_execution_timeout_ms,
         ai_suggestion_history_count: typeof userSettings.ai_suggestion_history_count === "number"
           ? userSettings.ai_suggestion_history_count
           : DEFAULT_SETTINGS.ai_suggestion_history_count,
@@ -104,6 +109,9 @@ export function useMemberSettings() {
     if (updates.task_execution_mode !== undefined) {
       _settings.value.task_execution_mode = updates.task_execution_mode;
     }
+    if (updates.task_execution_timeout_ms !== undefined) {
+      _settings.value.task_execution_timeout_ms = updates.task_execution_timeout_ms;
+    }
     if (updates.working_directory !== undefined) {
       _settings.value.working_directory = updates.working_directory;
     }
@@ -141,6 +149,7 @@ export function useMemberSettings() {
 
     if (updates.working_directory !== undefined) existing.working_directory = updates.working_directory;
     if (updates.task_execution_mode !== undefined) existing.task_execution_mode = updates.task_execution_mode;
+    if (updates.task_execution_timeout_ms !== undefined) existing.task_execution_timeout_ms = updates.task_execution_timeout_ms;
     if (updates.ai_suggestion_history_count !== undefined) existing.ai_suggestion_history_count = updates.ai_suggestion_history_count;
     if (updates.ai_auto_reply !== undefined) existing.ai_auto_reply = updates.ai_auto_reply;
     if (updates.shortcut_auto_reply !== undefined) existing.shortcut_auto_reply = updates.shortcut_auto_reply;

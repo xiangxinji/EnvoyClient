@@ -135,7 +135,9 @@
       "Bash(xxd \"C:/Users/xiangxj/Desktop/workspace/EnvoyClient/src-tauri/installer-hooks.nsh\")",
       "Bash(bash *)",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(git pull *)"
+      "Bash(git pull *)",
+      "Bash(git -C \"C:/Users/xiangxj/Desktop/workspace/EnvoyClient/manager/web\" status --short)",
+      "Bash(git *)"
     ]
   },
   "enabledPlugins": {

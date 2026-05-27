@@ -1,5 +1,5 @@
 import { managerPost, managerFetch, managerUpload, apiUrl } from "../api";
-import type { ServiceConfig, TaskCompleteData, TaskSubmitResult } from "./types";
+import type { ServiceConfig, TaskSubmitResult } from "./types";
 import type { ApiTask } from "../utils/taskFormatters";
 
 export class TaskService {
@@ -20,11 +20,6 @@ export class TaskService {
   async start(taskId: string): Promise<void> {
     const { myId, teamName } = this.getConfig();
     await managerPost(`/api/tasks/${taskId}/start`, { from: myId }, { team: teamName });
-  }
-
-  async complete(taskId: string, data: Readonly<TaskCompleteData>): Promise<void> {
-    const { myId, teamName } = this.getConfig();
-    await managerPost(`/api/tasks/${taskId}/complete`, { from: myId, data }, { team: teamName });
   }
 
   async submitResult(taskId: string, result: Readonly<TaskSubmitResult>): Promise<void> {

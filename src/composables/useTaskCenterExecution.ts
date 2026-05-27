@@ -5,8 +5,7 @@ import { isTauri, safeInvoke } from "../utils/platform";
 import { getErrorMessage } from "../utils/error";
 import { createTaskPipeline } from "../agent/pipelines/taskPipeline";
 import { useExecutionMonitor } from "./useExecutionMonitor";
-import { writeOutbox, deleteOutbox, submitWithRetry } from "../utils/outbox";
-import type { SkillCatalogResponse, AgentStep } from "../types";
+import type { TaskResolution, SkillCatalogResponse, AgentStep } from "../types";
 import type { ServiceContext } from "../agent/core/defineService";
 
 interface TaskCenterExecutionCtx {
@@ -17,7 +16,7 @@ interface TaskCenterExecutionCtx {
 export function useTaskCenterExecution(
   ctx: TaskCenterExecutionCtx,
   currentClientTask: Ref<ClientTask | null>,
-  resolveCurrentTask: (result: unknown) => void,
+  resolveCurrentTask: (result: TaskResolution) => void,
 ) {
   const { settings, loadSettings } = getMemberSettings();
   const taskService = getTaskService();
@@ -38,8 +37,7 @@ export function useTaskCenterExecution(
       void taskService.start(taskId);
 
       if (!isTauri) {
-        const result = { taskId, note: "browser mode, no agent tools" };
-        resolveCurrentTask(result);
+        resolveCurrentTask({ success: true, source: "manual", data: { taskId, note: "browser mode, no agent tools" } });
         return;
       }
 
@@ -85,12 +83,11 @@ export function useTaskCenterExecution(
         parsed = { result: pipelineResult.outputs.execSummary };
       }
 
-      const resultPayload = {
-        from: ctx.myId,
+      resolveCurrentTask({
         success: pipelineResult.reviewPassed,
+        source: "ai",
         data: {
           ...parsed,
-          source: "ai",
           pipeline: {
             plan: pipelineResult.outputs.plan,
             reviewSummary: pipelineResult.outputs.reviewSummary,
@@ -98,22 +95,14 @@ export function useTaskCenterExecution(
           },
         },
         trace: allTraces,
-      };
-      await writeOutbox(ctx.teamName, taskId, resultPayload);
-      const ok = await submitWithRetry(() => taskService.submitResult(taskId, resultPayload));
-      if (ok) await deleteOutbox(ctx.teamName, taskId);
-
-      resolveCurrentTask(parsed);
+      });
     } catch (e) {
       const error = getErrorMessage(e);
-      const taskId = currentClientTask.value?.serverTask.id;
-      if (taskId) {
-        const errorPayload = { from: ctx.myId, success: false, error };
-        await writeOutbox(ctx.teamName, taskId, errorPayload);
-        const ok = await submitWithRetry(() => taskService.submitResult(taskId, errorPayload));
-        if (ok) await deleteOutbox(ctx.teamName, taskId);
-      }
-      resolveCurrentTask({ error });
+      resolveCurrentTask({
+        success: false,
+        source: "ai",
+        error,
+      });
     } finally {
       isRunning.value = false;
     }

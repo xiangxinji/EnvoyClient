@@ -196,10 +196,13 @@ onUnmounted(() => {
           :my-id="myId"
           :show-actions="true"
           @select-task="emit('selectTask', $event)"
-          @task-resolved="resolveCurrentTask({ manual: true })"
+          @task-resolved="resolveCurrentTask({ success: true, source: 'manual' })"
         />
-        <div v-if="taskExec && !taskExec.isRunning?.value" class="manual-execute">
-          <button class="execute-btn" @click="taskExec.executeCurrentTask()">
+        <div v-if="taskExec" class="manual-execute">
+          <button v-if="taskExec.isRunning?.value" class="abort-btn" @click="resolveCurrentTask({ success: false, source: 'aborted', error: 'User aborted' })">
+            {{ t('task.abort', '中止任务') }}
+          </button>
+          <button v-else class="execute-btn" @click="taskExec.executeCurrentTask()">
             {{ t('task.execute', '执行任务') }}
           </button>
         </div>

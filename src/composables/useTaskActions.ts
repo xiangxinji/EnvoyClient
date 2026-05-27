@@ -68,7 +68,7 @@ export function useTaskActions(
 
   async function doComplete(onSuccess?: () => void) {
     await runAction(completing, () =>
-      getTaskService().complete(taskId.value, { note: t('task.manualComplete'), source: "manual" }),
+      getTaskService().submitResult(taskId.value, { from: myId ?? "", success: true, data: { note: t('task.manualComplete'), source: "manual" } }),
       onSuccess,
     );
   }

@@ -27,17 +27,12 @@ export interface SendResult {
 
 // ─── Task Types ──────────────────────────────────────────────
 
-export interface TaskCompleteData {
-  readonly note: string;
-  readonly source: string;
-}
-
 export interface TaskSubmitResult {
   readonly from: string;
   readonly success: boolean;
   readonly data?: Record<string, unknown>;
   readonly error?: string;
-  readonly trace?: unknown;
+  readonly trace?: unknown[];
 }
 
 // ─── Cloud Types ─────────────────────────────────────────────

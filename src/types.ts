@@ -184,3 +184,12 @@ export interface ExecutionEntry {
 /** Skill catalog entry */
 export interface SkillCatalogEntry { name: string; description: string; filename: string }
 export interface SkillCatalogResponse { skills: SkillCatalogEntry[] }
+
+/** Unified task resolution payload — all completion paths use this structure */
+export interface TaskResolution {
+  success: boolean;
+  source: "manual" | "ai" | "timeout" | "aborted";
+  data?: Record<string, unknown>;
+  error?: string;
+  trace?: AgentStep[];
+}
