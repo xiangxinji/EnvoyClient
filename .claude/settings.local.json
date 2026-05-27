@@ -1,4 +1,7 @@
 {
+  "env": {
+    "ECC_DISABLED_HOOKS": "pre:edit-write:gateguard-fact-force"
+  },
   "permissions": {
     "allow": [
       "Bash(cargo --version)",
@@ -129,13 +132,13 @@
       "Bash(npm uninstall *)",
       "Bash(xxd \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\EnvoyClient\\\\src\\\\views\\\\RoleSelect\\\\main.vue\")",
       "Bash(gh pr *)",
-      "Bash(xxd \"C:/Users/xiangxj/Desktop/workspace/EnvoyClient/src-tauri/installer-hooks.nsh\")"
+      "Bash(xxd \"C:/Users/xiangxj/Desktop/workspace/EnvoyClient/src-tauri/installer-hooks.nsh\")",
+      "Bash(bash *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(git pull *)"
     ]
   },
   "enabledPlugins": {
     "ui-ux-pro-max@ui-ux-pro-max-skill": true
-  },
-  "env": {
-    "ECC_DISABLED_HOOKS": "pre:edit-write:gateguard-fact-force"
   }
 }
