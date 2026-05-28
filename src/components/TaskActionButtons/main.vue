@@ -26,8 +26,10 @@ const emit = defineEmits<{
 
 <template>
   <div v-if="isAssignedToMe && (canStart || canUpload || canComplete)" class="task-actions" @click.stop>
-    <button v-if="canStart" class="action-btn action-start" :disabled="starting" @click="emit('start')">
-      <SvgIcon name="play" :size="12" />
+    <button v-if="canStart" class="action-btn action-ai" :disabled="starting" @click="emit('start')">
+      <span class="ai-icon-wrap" :class="{ spinning: starting }">
+        <SvgIcon name="sparkles" :size="13" />
+      </span>
       {{ starting ? $t('task.starting') : $t('task.startExecution') }}
     </button>
     <button v-if="canUpload" class="action-btn action-upload" :disabled="uploading" @click="emit('upload')">

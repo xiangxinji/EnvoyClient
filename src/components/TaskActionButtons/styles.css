@@ -30,11 +30,45 @@
   cursor: not-allowed;
 }
 
-.action-start:hover:not(:disabled) {
-  background: var(--task-running-bg);
-  border-color: var(--task-running-border);
-  color: var(--task-running-text);
+/* ── AI Execute button (primary CTA) ── */
+
+.action-ai {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #8b5cf6));
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+  padding: 5px 14px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
 }
+
+.action-ai:hover:not(:disabled) {
+  filter: brightness(1.1);
+  color: #fff;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.action-ai:active:not(:disabled) {
+  filter: brightness(0.95);
+  transform: scale(0.97);
+}
+
+.ai-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-icon-wrap.spinning {
+  animation: ai-spin 1.5s linear infinite;
+}
+
+@keyframes ai-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── Other action buttons ── */
 
 .action-complete:hover:not(:disabled) {
   background: var(--task-completed-bg);
@@ -56,4 +90,10 @@
   background: var(--task-failed-bg);
   border-color: var(--task-failed-border);
   color: var(--task-failed-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-icon-wrap.spinning {
+    animation: none;
+  }
 }
