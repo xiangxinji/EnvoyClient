@@ -153,7 +153,7 @@
 
 .abort-btn:hover {
   background: var(--danger, #e74c3c);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .abort-btn:active {
@@ -201,7 +201,7 @@
 
 .reject-btn:hover {
   background: var(--danger, #e74c3c);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .reject-btn:active {

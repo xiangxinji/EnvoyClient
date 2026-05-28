@@ -1,4 +1,4 @@
-.forwarded-dialog-overlay { position: fixed; inset: 0; z-index: 9998; background: var(--overlay-bg); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; }
+.forwarded-dialog-overlay { position: fixed; inset: 0; z-index: 9998; background: var(--overlay-bg); backdrop-filter: blur(var(--glass-overlay-blur)); -webkit-backdrop-filter: blur(var(--glass-overlay-blur)); display: flex; align-items: center; justify-content: center; }
 .forwarded-dialog { width: 440px; max-height: 70vh; display: flex; flex-direction: column; background: var(--glass-bg-heavy); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); box-shadow: var(--glass-shadow-heavy); overflow: hidden; }
 .forwarded-dialog-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.95em; color: var(--text-primary); border-bottom: 1px solid var(--glass-border); }
 .forwarded-dialog-close { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
@@ -33,10 +33,10 @@
 .cloud-card-action { color: var(--text-muted); flex-shrink: 0; transition: color 0.15s; }
 .cloud-card.file:hover .cloud-card-action, .cloud-card.directory:hover .cloud-card-action { color: var(--accent); }
 
-.fullscreen-overlay { position: fixed; inset: 0; z-index: 9999; background: var(--image-overlay-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.fullscreen-overlay { position: fixed; inset: 0; z-index: 9999; background: var(--image-overlay-bg); backdrop-filter: blur(var(--glass-blur-screen)); -webkit-backdrop-filter: blur(var(--glass-blur-screen)); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .fullscreen-image { max-width: 90vw; max-height: 85vh; object-fit: contain; border-radius: var(--radius-md); box-shadow: var(--glass-shadow-heavy); transition: transform 0.2s ease; cursor: grab; user-select: none; -webkit-user-drag: none; }
 .fullscreen-image.dragging { cursor: grabbing; transition: none; }
-.fullscreen-toolbar { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--image-toolbar-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--image-toolbar-border); border-radius: 12px; box-shadow: var(--image-toolbar-shadow); }
+.fullscreen-toolbar { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--image-toolbar-bg); backdrop-filter: blur(var(--glass-toolbar-blur)); -webkit-backdrop-filter: blur(var(--glass-toolbar-blur)); border: 1px solid var(--image-toolbar-border); border-radius: 12px; box-shadow: var(--image-toolbar-shadow); }
 .toolbar-btn { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: none; border-radius: 8px; background: transparent; color: var(--image-toolbar-btn); cursor: pointer; transition: background 0.15s, color 0.15s; }
 .toolbar-btn:hover { background: var(--image-toolbar-btn-hover); color: var(--image-toolbar-btn-active); }
 .toolbar-scale { min-width: 42px; text-align: center; font-size: 0.8em; font-weight: 500; color: var(--image-toolbar-text); user-select: none; }

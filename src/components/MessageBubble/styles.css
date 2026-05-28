@@ -4,7 +4,7 @@
 .checkbox.checked { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); }
 .bubble {  padding: 10px 14px; border-radius: 18px; background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); color: var(--bubble-other-text); align-self: flex-start; border: 1px solid var(--glass-border); }
 .bubble.mine { background: var(--bubble-mine); color: var(--bubble-mine-text); align-self: flex-end; border-bottom-right-radius: 4px; }
-.bubble.mine ::selection { background: rgba(255, 255, 255, 0.35); }
+.bubble.mine ::selection { background: var(--bubble-mine-selection); }
 .bubble:not(.mine) { border-bottom-left-radius: 4px; }
 .bubble.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .bubble.sticker-mode { background: transparent; border: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 4px; box-shadow: none; }

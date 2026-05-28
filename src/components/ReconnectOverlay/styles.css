@@ -2,8 +2,8 @@
   position: fixed;
   inset: 0;
   background: var(--overlay-bg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur-light));
+  -webkit-backdrop-filter: blur(var(--glass-blur-light));
   display: flex;
   align-items: center;
   justify-content: center;
