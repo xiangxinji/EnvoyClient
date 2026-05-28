@@ -137,7 +137,8 @@
       "Bash(echo \"EXIT: $?\")",
       "Bash(git pull *)",
       "Bash(git -C \"C:/Users/xiangxj/Desktop/workspace/EnvoyClient/manager/web\" status --short)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(npx vitest *)"
     ]
   },
   "enabledPlugins": {
