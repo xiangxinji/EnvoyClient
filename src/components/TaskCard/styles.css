@@ -1,59 +1,89 @@
-/* ── TaskCard — Minimalist breathing style ── */
+/* ── TaskCard — Layered card with status wash ── */
 
 .task-card {
-  max-width: 80%;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--glass-border);
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: none;
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--text-primary);
-  align-self: flex-start;
-  box-shadow: var(--glass-shadow);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 6px 16px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
+  transition: box-shadow 0.25s ease-out, transform 0.2s ease-out;
   overflow: hidden;
+  position: relative;
 }
 
 .task-card:hover {
-  box-shadow: var(--glass-shadow-heavy);
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.06),
+    0 12px 28px rgba(0, 0, 0, 0.1);
 }
 
 .task-card:active {
-  transform: scale(0.985);
+  transform: scale(0.98);
+  transition-duration: 0.1s;
 }
 
-/* ── Status border accent (left 3px via border-left) ── */
+/* ── Status background wash ── */
 
-.task-card.running { border-left: 3px solid var(--task-running-border); }
-.task-card.reviewing { border-left: 3px solid var(--task-reviewing-border); }
-.task-card.completed { border-left: 3px solid var(--task-completed-border); }
-.task-card.failed { border-left: 3px solid var(--task-failed-border); }
-.task-card.pending { border-left: 3px solid var(--border); }
+.task-card.pending { background: var(--glass-bg); }
 
-/* ── Running status flow glow ── */
-
-.task-card.running::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, transparent, var(--task-running-border), transparent);
-  background-size: 100% 200%;
-  animation: task-running-flow 2s ease-in-out infinite;
+.task-card.running {
+  background: linear-gradient(
+    160deg,
+    var(--task-running-bg) 0%,
+    var(--glass-bg) 70%
+  );
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-@keyframes task-running-flow {
-  0%, 100% { background-position: 0% 0%; }
-  50% { background-position: 0% 100%; }
+.task-card.reviewing {
+  background: linear-gradient(
+    160deg,
+    var(--task-reviewing-bg) 0%,
+    var(--glass-bg) 70%
+  );
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.task-card.completed {
+  background: linear-gradient(
+    160deg,
+    var(--task-completed-bg) 0%,
+    var(--glass-bg) 70%
+  );
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.task-card.failed {
+  background: linear-gradient(
+    160deg,
+    var(--task-failed-bg) 0%,
+    var(--glass-bg) 70%
+  );
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 /* ── Status change flash ── */
 
 .task-card.status-flash-running {
-  box-shadow: 0 0 0 0 var(--task-running-border);
   animation: task-flash 0.4s ease-out;
 }
 
@@ -66,14 +96,13 @@
 }
 
 .task-card.status-flash-reviewing {
-  box-shadow: 0 0 0 0 var(--task-reviewing-border);
   animation: task-flash 0.4s ease-out;
 }
 
 @keyframes task-flash {
   0% { box-shadow: 0 0 0 0 var(--accent); }
   50% { box-shadow: 0 0 12px 2px var(--accent); }
-  100% { box-shadow: var(--glass-shadow); }
+  100% { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 16px rgba(0, 0, 0, 0.08); }
 }
 
 @keyframes task-bounce {
@@ -93,7 +122,7 @@
 /* ── Card body ── */
 
 .task-body {
-  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  padding: var(--space-xl);
 }
 
 /* ── Content row: text + pill ── */
@@ -106,8 +135,8 @@
 
 .task-content {
   flex: 1;
-  font-size: 0.9em;
-  line-height: 1.5;
+  font-size: 0.95em;
+  line-height: 1.6;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -119,32 +148,39 @@
 
 .status-pill {
   flex-shrink: 0;
-  font-size: 0.68em;
-  font-weight: 600;
-  padding: 3px 10px;
+  font-size: 0.75em;
+  font-weight: 700;
+  padding: 5px 16px;
   border-radius: 99px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   white-space: nowrap;
   line-height: 1.4;
+  background: var(--glass-bg);
+  border: none;
 }
 
-.status-pill.pending { background: var(--task-pending-bg); color: var(--task-pending-text); }
-.status-pill.running { background: var(--task-running-bg); color: var(--task-running-text); }
-.status-pill.reviewing { background: var(--task-reviewing-bg); color: var(--task-reviewing-text); }
-.status-pill.completed { background: var(--task-completed-bg); color: var(--task-completed-text); }
-.status-pill.failed { background: var(--task-failed-bg); color: var(--task-failed-text); }
+.status-pill.pending { color: var(--task-pending-text); }
+.status-pill.running { color: var(--task-running-border); }
+.status-pill.reviewing { color: var(--task-reviewing-border); }
+.status-pill.completed { color: var(--task-completed-border); }
+.status-pill.failed { color: var(--task-failed-border); }
 
-/* ── Divider ── */
+/* ── Running & Reviewing tag breathing ── */
 
-.task-divider {
-  height: 1px;
-  background: var(--border-light);
-  margin: var(--space-md) 0;
+.status-pill.running,
+.status-pill.reviewing {
+  animation: tag-breathe 2.5s ease-in-out infinite;
 }
 
-/* ── Footer: meta + actions ── */
+@keyframes tag-breathe {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* ── Footer ── */
 
 .task-footer {
+  margin-top: var(--space-sm);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -156,11 +192,25 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  font-size: 0.72em;
+  font-size: 0.78em;
   color: var(--text-muted);
 }
 
 .meta-sep {
   color: var(--text-muted);
   opacity: 0.5;
+}
+
+/* ── Reduced motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .task-card,
+  .task-card:hover,
+  .task-card:active,
+  .status-pill.running,
+  .status-pill.reviewing {
+    animation: none;
+    transition: none;
+    transform: none;
+  }
 }

@@ -138,7 +138,13 @@
       "Bash(git pull *)",
       "Bash(git -C \"C:/Users/xiangxj/Desktop/workspace/EnvoyClient/manager/web\" status --short)",
       "Bash(git *)",
-      "Bash(npx vitest *)"
+      "Bash(npx vitest *)",
+      "mcp__pencil__get_guidelines",
+      "mcp__pencil__get_style_guide_tags",
+      "mcp__pencil__get_style_guide",
+      "mcp__plugin_ecc_exa__web_search_exa",
+      "Bash(where python *)",
+      "Bash(C:\\\\Users\\\\xiangxj\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe *)"
     ]
   },
   "enabledPlugins": {

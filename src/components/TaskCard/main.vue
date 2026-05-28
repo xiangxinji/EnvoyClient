@@ -73,8 +73,6 @@ watch(status, (newStatus, oldStatus) => {
         <span class="status-pill" :class="task.status">{{ statusLabels[task.status] }}</span>
       </div>
 
-      <div class="task-divider" />
-
       <div class="task-footer">
         <span class="task-meta">
           <SvgIcon name="user" :size="12" />

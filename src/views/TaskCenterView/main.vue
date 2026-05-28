@@ -253,7 +253,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Regular status groups -->
-      <div v-for="group in statusGroups" :key="group.key" class="task-group">
+      <div v-for="group in statusGroups" :key="group.key" v-show="group.tasks.length > 0" class="task-group">
         <div v-if="group.tasks.length > 0" class="group-header">
           {{ group.label }} ({{ group.tasks.length }})
         </div>
