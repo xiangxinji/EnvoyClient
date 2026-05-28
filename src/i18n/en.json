@@ -173,6 +173,8 @@
     "duration": "Duration",
     "task": "Task",
     "from": "From {from}",
+    "members": "collaborators",
+    "collaborators": "collaborators",
     "manual": "Manual",
     "pendingExecute": "Pending",
     "timeline": "Event Timeline",
