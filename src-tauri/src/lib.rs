@@ -62,7 +62,12 @@ fn resolve_safe_path(path: &str) -> Result<std::path::PathBuf, serde_json::Value
                 serde_json::json!({ "error": format!("Failed to resolve path: {}", e) })
             })?
         } else {
-            return Err(serde_json::json!({ "error": "Parent directory does not exist" }));
+            std::fs::create_dir_all(parent).map_err(|e| {
+                serde_json::json!({ "error": format!("Failed to create parent directory: {}", e) })
+            })?;
+            parent.canonicalize().map_err(|e| {
+                serde_json::json!({ "error": format!("Failed to resolve path: {}", e) })
+            })?
         };
 
         canonical_parent.join(file_name)

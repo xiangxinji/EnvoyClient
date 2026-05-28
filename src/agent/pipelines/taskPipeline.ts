@@ -4,6 +4,7 @@ import { createExecutor } from "../agents/executor";
 import { createReviewer } from "../agents/reviewer";
 import type { ServiceContext } from "../core/defineService";
 import type { ExecutionEventHandler } from "../react";
+import { parseReviewOutput } from "./reviewUtils";
 
 export interface TaskPipelineOptions {
   ctx: ServiceContext;
@@ -28,12 +29,8 @@ export function createTaskPipeline(opts: TaskPipelineOptions) {
       maxAttempts: opts.maxRetryAttempts ?? 2,
       feedback: "reviewSummary",
       shouldRetry: (reviewOutput: string) => {
-        try {
-          const parsed = JSON.parse(reviewOutput);
-          return parsed.passed === false;
-        } catch {
-          return reviewOutput.includes("需要修正") || reviewOutput.includes("发现问题");
-        }
+        const review = parseReviewOutput(reviewOutput);
+        return !review.passed;
       },
     },
   });

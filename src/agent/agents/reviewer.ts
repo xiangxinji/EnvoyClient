@@ -3,7 +3,7 @@ import { toTools } from "../core/toTools";
 import { fileService } from "../services/fileService";
 import { cloudService } from "../services/cloudService";
 import { resourceService } from "../services/resourceService";
-import { createDoneTool } from "../tools";
+import { createReviewDoneTool } from "../tools";
 import type { ServiceContext } from "../core/defineService";
 
 export function createReviewer(ctx: ServiceContext) {
@@ -16,15 +16,13 @@ export function createReviewer(ctx: ServiceContext) {
 
 额外检查：如果任务描述中提到了云资源、全局资源、上传到云等要求，必须使用 cloud_list 工具验证目标目录中是否存在对应的文件。未找到已上传的文件时，审查不通过。
 
-使用 done 工具提交审查结果，result 参数必须是合法 JSON，格式如下：
-通过：{"passed": true, "summary": "审查通过的简短说明"}
-未通过：{"passed": false, "summary": "发现的具体问题描述"}
-
-不要输出 JSON 以外的内容，不要用 markdown 代码块包裹。`,
+使用 done 工具提交审查结果：
+- passed: 布尔值，true 表示通过，false 表示未通过
+- summary: 字符串，简要说明审查结论或发现的问题`,
     tools: [
       ...toTools([fileService, resourceService], ctx, { only: ["file_read", "query_resources", "read_resource"] }),
       ...toTools([cloudService], ctx, { only: ["cloud_list"] }),
-      createDoneTool(),
+      createReviewDoneTool(),
     ],
     maxSteps: 10,
   });

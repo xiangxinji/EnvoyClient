@@ -97,6 +97,34 @@ export function createDoneTool(): AgentTool {
   };
 }
 
+export function createReviewDoneTool(): AgentTool {
+  return {
+    name: "done",
+    description: "提交审查结果。passed 为 true 表示通过，false 表示未通过。",
+    parameters: {
+      type: "object",
+      properties: {
+        passed: {
+          type: "boolean",
+          description: "审查是否通过。通过为 true，未通过为 false。",
+        },
+        summary: {
+          type: "string",
+          description: "审查结论摘要。通过时简述理由，未通过时列出具体问题。",
+        },
+      },
+      required: ["passed", "summary"],
+    },
+    execute: async ({ passed, summary }) => ({
+      done: true,
+      result: JSON.stringify({
+        passed: passed === true,
+        summary: typeof summary === "string" ? summary : String(summary),
+      }),
+    }),
+  };
+}
+
 // ─── Re-export resource tools ───
 
 export {

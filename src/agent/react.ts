@@ -104,6 +104,7 @@ export async function reactLoop(
 
   const trace: AgentStep[] = [];
 
+  try {
   for (let step = 0; step < steps; step++) {
     currentStep.value = step + 1;
 
@@ -210,6 +211,11 @@ export async function reactLoop(
     }
 
     trace.push(agentStep);
+  }
+  } catch (e: unknown) {
+    const msg = getErrorMessage(e);
+    error.value = msg;
+    return { result: JSON.stringify({ error: msg }), trace };
   }
 
   error.value = `Max steps (${steps}) reached`;

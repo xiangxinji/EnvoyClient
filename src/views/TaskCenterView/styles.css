@@ -159,3 +159,51 @@
 .abort-btn:active {
   transform: scale(0.96);
 }
+
+.manual-review {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+}
+
+.approve-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.approve-btn:hover {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.approve-btn:active {
+  transform: scale(0.96);
+}
+
+.reject-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--danger, #e74c3c);
+  background: transparent;
+  color: var(--danger, #e74c3c);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.reject-btn:hover {
+  background: var(--danger, #e74c3c);
+  color: #fff;
+}
+
+.reject-btn:active {
+  transform: scale(0.96);
+}

@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from "vue";
+import { ref, type Ref } from "vue";
 import type { ClientTask } from "../../envoy/packages/client/client.js";
 import { getMemberSettings, getTaskService } from "./teamClientContext";
 import { isTauri, safeInvoke } from "../utils/platform";
@@ -17,6 +17,7 @@ export function useTaskCenterExecution(
   ctx: TaskCenterExecutionCtx,
   currentClientTask: Ref<ClientTask | null>,
   resolveCurrentTask: (result: TaskResolution) => void,
+  setAutoExecutor: (executor: (task: ClientTask) => Promise<void>) => void,
 ) {
   const { settings, loadSettings } = getMemberSettings();
   const taskService = getTaskService();
@@ -34,7 +35,7 @@ export function useTaskCenterExecution(
     isRunning.value = true;
 
     try {
-      void taskService.start(taskId);
+      await taskService.start(taskId);
 
       if (!isTauri) {
         resolveCurrentTask({ success: true, source: "manual", data: { taskId, note: "browser mode, no agent tools" } });
@@ -108,9 +109,7 @@ export function useTaskCenterExecution(
     }
   }
 
-  // Auto mode: watch currentClientTask and auto-execute
-  watch(currentClientTask, async (task) => {
-    if (!task || isRunning.value) return;
+  setAutoExecutor(async () => {
     await loadSettings(ctx.myId);
     if (settings.value.task_execution_mode === "auto") {
       await executeCurrentTask();

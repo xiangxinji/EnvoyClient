@@ -14,7 +14,7 @@ import { apiTaskToTaskMessage, type ApiTask } from "../../utils/taskFormatters";
 const { t } = useI18n();
 
 const ctx = getTeamClientInstance()!;
-const { teamName, myId, role, currentClientTask, clientTaskQueue, resolveCurrentTask } = ctx;
+const { teamName, myId, role, currentClientTask, currentReviewTask, clientTaskQueue, isReviewing, resolveCurrentTask, resolveCurrentReview, setAutoExecutor } = ctx;
 
 const emit = defineEmits<{
   selectTask: [task: TaskMessage];
@@ -22,7 +22,7 @@ const emit = defineEmits<{
 
 // Task center execution composable (Member only)
 const taskExec = role === "member"
-  ? useTaskCenterExecution({ myId, teamName }, currentClientTask, resolveCurrentTask)
+  ? useTaskCenterExecution({ myId, teamName }, currentClientTask, resolveCurrentTask, setAutoExecutor)
   : null;
 
 const tasks = ref<TaskMessage[]>([]);
@@ -94,8 +94,15 @@ const queuedTaskIds = computed(() => {
 // Current task as TaskMessage (for display)
 const currentTaskMsg = computed<TaskMessage | null>(() => {
   if (!currentClientTask.value) return null;
-  // Merge with latest REST data if available
   const ct = currentClientTask.value;
+  const latest = tasks.value.find((t) => t.taskId === ct.serverTask.id);
+  return latest ?? clientTaskToTaskMessage(ct);
+});
+
+// Current review task as TaskMessage (Leader only)
+const reviewTaskMsg = computed<TaskMessage | null>(() => {
+  if (!currentReviewTask.value) return null;
+  const ct = currentReviewTask.value;
   const latest = tasks.value.find((t) => t.taskId === ct.serverTask.id);
   return latest ?? clientTaskToTaskMessage(ct);
 });
@@ -221,6 +228,28 @@ onUnmounted(() => {
             @select-task="emit('selectTask', $event)"
           />
         </TransitionGroup>
+      </div>
+
+      <!-- Reviewing task section (Leader only) -->
+      <div v-if="role === 'leader' && reviewTaskMsg" class="task-group">
+        <div class="group-header current-task-header">
+          {{ t('task.reviewing', '审核中') }}
+          <span v-if="isReviewing" class="execution-badge">{{ t('task.aiReviewing', 'AI 审核中...') }}</span>
+        </div>
+        <TaskCard
+          :task="reviewTaskMsg"
+          :team-name="teamName"
+          :my-id="myId"
+          @select-task="emit('selectTask', $event)"
+        />
+        <div v-if="!isReviewing" class="manual-review">
+          <button class="approve-btn" @click="resolveCurrentReview({ success: true, source: 'manual', data: {} })">
+            {{ t('task.approve', '通过') }}
+          </button>
+          <button class="reject-btn" @click="resolveCurrentReview({ success: false, source: 'manual', error: 'Leader rejected' })">
+            {{ t('task.reject', '驳回') }}
+          </button>
+        </div>
       </div>
 
       <!-- Regular status groups -->
