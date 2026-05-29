@@ -104,5 +104,44 @@ export const cloudService = defineService({
         return res.json();
       },
     },
+    {
+      name: "smart_upload",
+      description: "智能上传文件到团队云资源，AI自动判断最佳存放目录。优先使用此工具上传文件，只需提供文件名、内容和简短描述",
+      parameters: {
+        type: "object",
+        properties: {
+          filename: { type: "string", description: "文件名" },
+          content: { type: "string", description: "文件内容" },
+          description: { type: "string", description: "文件内容的简短描述（一句话说明这是什么文件）" },
+          taskContext: { type: "string", description: "可选，任务上下文描述" },
+        },
+        required: ["filename", "content", "description"],
+      },
+      run: async (args, ctx) => {
+        const filename = args.filename as string;
+        const content = args.content as string;
+        const description = args.description as string;
+        const taskContext = args.taskContext as string | undefined;
+
+        const blob = new Blob([content]);
+        const formData = new FormData();
+        formData.append("file", blob, filename);
+        formData.append("filename", filename);
+        formData.append("description", description);
+        formData.append("uploadedBy", ctx.myId);
+        if (taskContext) formData.append("taskContext", taskContext);
+
+        const res = await managerFetch("/api/cloud/smart-upload", {
+          method: "POST",
+          headers: { team: ctx.teamName },
+          body: formData,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Smart upload failed" }));
+          return { error: err.error, fallback: err.fallback };
+        }
+        return res.json();
+      },
+    },
   ],
 });

@@ -147,7 +147,8 @@
       "Bash(C:\\\\Users\\\\xiangxj\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe *)",
       "Bash(npx playwright *)",
       "Bash(npx --yes playwright-cli --version)",
-      "Bash(npx --yes playwright install chromium)"
+      "Bash(npx --yes playwright install chromium)",
+      "Bash(findstr \":8080\")"
     ]
   },
   "enabledPlugins": {
