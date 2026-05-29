@@ -144,7 +144,10 @@
       "mcp__pencil__get_style_guide",
       "mcp__plugin_ecc_exa__web_search_exa",
       "Bash(where python *)",
-      "Bash(C:\\\\Users\\\\xiangxj\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe *)"
+      "Bash(C:\\\\Users\\\\xiangxj\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe *)",
+      "Bash(npx playwright *)",
+      "Bash(npx --yes playwright-cli --version)",
+      "Bash(npx --yes playwright install chromium)"
     ]
   },
   "enabledPlugins": {
