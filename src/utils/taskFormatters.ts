@@ -48,6 +48,8 @@ export function getResultText(data: unknown): string {
       const val = obj.result;
       return typeof val === "string" ? val : JSON.stringify(val, null, 2);
     }
+    if ("review" in obj && typeof obj.review === "string") return obj.review;
+    if ("summary" in obj && typeof obj.summary === "string") return obj.summary;
     if ("error" in obj) return `**Error:** ${obj.error}`;
   }
   return JSON.stringify(data, null, 2);

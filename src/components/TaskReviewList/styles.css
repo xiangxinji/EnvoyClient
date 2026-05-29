@@ -41,6 +41,20 @@
   margin-top: var(--space-xs);
 }
 
+.review-data .markdown-content {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--glass-bg-light);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.82em;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.review-item.rejected .review-data .markdown-content {
+  border-left-color: var(--error);
+}
+
 .review-error {
   width: 100%;
   margin-top: var(--space-xs);
