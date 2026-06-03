@@ -284,6 +284,8 @@
     "brainsSyncRetry": "Retry",
     "brainsSyncNow": "Sync Now",
     "brainsSyncNoChange": "Already up to date, no sync needed",
+    "taskReflectionMemory": "Remember task reflections",
+    "taskReflectionMemoryHint": "After AI task execution, write a structured reflection to your local knowledge base. Skill files are not changed automatically.",
     "brainsRestore": "Restore from Cloud",
     "brainsRestoreConfirmTitle": "Restore Knowledge Base",
     "brainsRestoreConfirmMsg": "Are you sure you want to restore from cloud? This will overwrite all local files with the cloud backup. This action cannot be undone.",

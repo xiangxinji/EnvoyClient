@@ -16,6 +16,7 @@ export interface MemberSettings {
   brains_sync_triggers: ("interval" | "after_task")[];
   brains_sync_interval_hours: number;
   brains_sync_interval_minutes: number;
+  task_reflection_memory_enabled: boolean;
 }
 
 const DEFAULT_SETTINGS: MemberSettings = {
@@ -31,6 +32,7 @@ const DEFAULT_SETTINGS: MemberSettings = {
   brains_sync_triggers: [],
   brains_sync_interval_hours: 1,
   brains_sync_interval_minutes: 30,
+  task_reflection_memory_enabled: true,
 };
 
 const _settings = ref<MemberSettings>({ ...DEFAULT_SETTINGS });
@@ -83,6 +85,9 @@ export function useMemberSettings() {
         brains_sync_interval_minutes: typeof userSettings.brains_sync_interval_minutes === "number"
           ? Math.round(userSettings.brains_sync_interval_minutes)
           : DEFAULT_SETTINGS.brains_sync_interval_minutes,
+        task_reflection_memory_enabled: typeof userSettings.task_reflection_memory_enabled === "boolean"
+          ? userSettings.task_reflection_memory_enabled
+          : DEFAULT_SETTINGS.task_reflection_memory_enabled,
       };
     } catch (e) {
       console.error(`[settings] loadSettings failed for ${username}:`, e);
@@ -131,6 +136,9 @@ export function useMemberSettings() {
     if (updates.brains_sync_interval_minutes !== undefined) {
       _settings.value.brains_sync_interval_minutes = updates.brains_sync_interval_minutes;
     }
+    if (updates.task_reflection_memory_enabled !== undefined) {
+      _settings.value.task_reflection_memory_enabled = updates.task_reflection_memory_enabled;
+    }
 
     if (!isTauri) return;
 
@@ -151,6 +159,7 @@ export function useMemberSettings() {
     if (updates.brains_sync_triggers !== undefined) existing.brains_sync_triggers = updates.brains_sync_triggers;
     if (updates.brains_sync_interval_hours !== undefined) existing.brains_sync_interval_hours = updates.brains_sync_interval_hours;
     if (updates.brains_sync_interval_minutes !== undefined) existing.brains_sync_interval_minutes = updates.brains_sync_interval_minutes;
+    if (updates.task_reflection_memory_enabled !== undefined) existing.task_reflection_memory_enabled = updates.task_reflection_memory_enabled;
 
     users[username] = existing;
     settings.users = users;

@@ -284,6 +284,8 @@
     "brainsSyncRetry": "重试",
     "brainsSyncNow": "立即同步",
     "brainsSyncNoChange": "已是最新，无需同步",
+    "taskReflectionMemory": "记录任务复盘",
+    "taskReflectionMemoryHint": "AI 任务执行完成后，将结构化复盘写入本地知识库。不会自动修改 skills 文件。",
     "brainsRestore": "从云端恢复知识库",
     "brainsRestoreConfirmTitle": "恢复知识库",
     "brainsRestoreConfirmMsg": "确定要从云端恢复知识库吗？这将用云端备份覆盖本地所有文件，此操作不可撤销。",

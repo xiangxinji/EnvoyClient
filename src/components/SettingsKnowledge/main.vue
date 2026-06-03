@@ -30,6 +30,7 @@ const syncInterval = ref(false);
 const syncAfterTask = ref(false);
 const syncIntervalHours = ref(1);
 const syncIntervalMinutes = ref(30);
+const reflectionMemory = ref(false);
 
 // Track if there are unsaved changes
 const hasChanges = computed(() => {
@@ -38,7 +39,8 @@ const hasChanges = computed(() => {
     syncInterval.value !== savedTriggers.includes("interval") ||
     syncAfterTask.value !== savedTriggers.includes("after_task") ||
     syncIntervalHours.value !== settings.value.brains_sync_interval_hours ||
-    syncIntervalMinutes.value !== settings.value.brains_sync_interval_minutes
+    syncIntervalMinutes.value !== settings.value.brains_sync_interval_minutes ||
+    reflectionMemory.value !== settings.value.task_reflection_memory_enabled
   );
 });
 
@@ -48,6 +50,7 @@ onMounted(async () => {
   syncAfterTask.value = settings.value.brains_sync_triggers.includes("after_task");
   syncIntervalHours.value = settings.value.brains_sync_interval_hours;
   syncIntervalMinutes.value = settings.value.brains_sync_interval_minutes;
+  reflectionMemory.value = settings.value.task_reflection_memory_enabled;
 });
 
 async function applySettings() {
@@ -70,6 +73,7 @@ async function applySettings() {
       brains_sync_triggers: triggers,
       brains_sync_interval_hours: hours,
       brains_sync_interval_minutes: minutes,
+      task_reflection_memory_enabled: reflectionMemory.value,
     });
     // Only start the timer after Apply is clicked
     brainsSync.setupTriggers(username);
@@ -80,6 +84,7 @@ async function applySettings() {
     syncAfterTask.value = settings.value.brains_sync_triggers.includes("after_task");
     syncIntervalHours.value = settings.value.brains_sync_interval_hours;
     syncIntervalMinutes.value = settings.value.brains_sync_interval_minutes;
+    reflectionMemory.value = settings.value.task_reflection_memory_enabled;
   }
   saving.value = false;
 }
@@ -170,6 +175,11 @@ const formattedLastSync = computed(() => {
           <div class="setting-group">
             <GlassCheckbox v-model="syncAfterTask">{{ t('settings.brainsSyncAfterTask') }}</GlassCheckbox>
             <p class="setting-hint">{{ t('settings.brainsSyncAfterTaskHint') }}</p>
+          </div>
+
+          <div class="setting-group">
+            <GlassCheckbox v-model="reflectionMemory">{{ t('settings.taskReflectionMemory') }}</GlassCheckbox>
+            <p class="setting-hint">{{ t('settings.taskReflectionMemoryHint') }}</p>
           </div>
 
           <!-- Apply button -->

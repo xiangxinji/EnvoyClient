@@ -4,6 +4,7 @@ import { getMemberSettings, getTaskService } from "./teamClientContext";
 import { isTauri, safeInvoke } from "../utils/platform";
 import { getErrorMessage } from "../utils/error";
 import { createTaskPipeline } from "../agent/pipelines/taskPipeline";
+import { shouldWriteTaskReflection, writeTaskReflection } from "../agent/reflectionMemory";
 import { useExecutionMonitor } from "./useExecutionMonitor";
 import type { TaskResolution, SkillCatalogResponse, AgentStep } from "../types";
 import type { ServiceContext } from "../agent/core/defineService";
@@ -84,6 +85,28 @@ export function useTaskCenterExecution(
         parsed = { result: pipelineResult.outputs.execSummary };
       }
 
+      if (shouldWriteTaskReflection(settings.value.task_reflection_memory_enabled)) {
+        try {
+          const reflection = await writeTaskReflection({
+            username: ctx.myId,
+            taskId,
+            taskContent,
+            success: pipelineResult.reviewPassed,
+            plan: pipelineResult.outputs.plan,
+            execSummary: pipelineResult.outputs.execSummary,
+            reviewSummary: pipelineResult.outputs.reviewSummary,
+            attempts: pipelineResult.attempts,
+            trace: allTraces,
+            completedAt: new Date(),
+          });
+          if (reflection) {
+            console.info(`[reflection-memory] wrote task reflection: ${reflection.path}`);
+          }
+        } catch (reflectionError) {
+          console.warn("[reflection-memory] failed to write task reflection:", reflectionError);
+        }
+      }
+
       resolveCurrentTask({
         success: pipelineResult.reviewPassed,
         source: "ai",
@@ -99,6 +122,26 @@ export function useTaskCenterExecution(
       });
     } catch (e) {
       const error = getErrorMessage(e);
+      if (shouldWriteTaskReflection(settings.value.task_reflection_memory_enabled)) {
+        try {
+          const reflection = await writeTaskReflection({
+            username: ctx.myId,
+            taskId,
+            taskContent,
+            success: false,
+            execSummary: error,
+            reviewSummary: "Task execution failed before review completed.",
+            attempts: 0,
+            trace: [],
+            completedAt: new Date(),
+          });
+          if (reflection) {
+            console.info(`[reflection-memory] wrote failed-task reflection: ${reflection.path}`);
+          }
+        } catch (reflectionError) {
+          console.warn("[reflection-memory] failed to write failed-task reflection:", reflectionError);
+        }
+      }
       resolveCurrentTask({
         success: false,
         source: "ai",
