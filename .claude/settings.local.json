@@ -148,7 +148,13 @@
       "Bash(npx playwright *)",
       "Bash(npx --yes playwright-cli --version)",
       "Bash(npx --yes playwright install chromium)",
-      "Bash(findstr \":8080\")"
+      "Bash(findstr \":8080\")",
+      "Bash(schtasks //Create //SC ONCE //TN \"OpenBrowser\" //TR \"cmd /c start http://localhost:1420\" //ST 00:00 //F //IT)",
+      "Bash(schtasks //Run //TN \"OpenBrowser\")",
+      "Bash(schtasks //Delete //TN \"OpenBrowser\" //F)",
+      "Bash(schtasks //Create //SC ONCE //TN \"LaunchApp\" //TR \"notepad.exe\" //ST 00:00 //F //IT)",
+      "Bash(schtasks //Run //TN \"LaunchApp\")",
+      "Bash(schtasks //Delete //TN \"LaunchApp\" //F)"
     ]
   },
   "enabledPlugins": {
