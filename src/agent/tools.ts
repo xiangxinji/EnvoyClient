@@ -6,6 +6,7 @@ import {
   createReadResourceTool,
   createReadSkillTool,
 } from "./resourceTools";
+import { apiUrl, getClientToken } from "../api";
 
 // ─── Tool interfaces ───
 
@@ -133,6 +134,63 @@ export {
   createReadResourceTool,
   createReadSkillTool,
 };
+
+// ─── Glossary tool ───
+
+interface GlossaryItem {
+  term: string;
+  definition: string;
+}
+
+export function createGlossaryTool(teamName: string): AgentTool {
+  let cached: GlossaryItem[] | null = null;
+
+  async function fetchGlossary(): Promise<GlossaryItem[]> {
+    if (cached) return cached;
+    try {
+      const token = getClientToken();
+      const res = await fetch(apiUrl(`/api/glossary?team=${encodeURIComponent(teamName)}`), {
+        headers: { ...(token ? { "X-Envoy-Token": token } : {}) },
+      });
+      if (!res.ok) return [];
+      cached = (await res.json()) as GlossaryItem[];
+      return cached;
+    } catch {
+      return [];
+    }
+  }
+
+  return {
+    name: "query_glossary",
+    description: "查询术语词汇的统一定义。当遇到不确定含义的专业术语或需要统一用语时，使用此工具查询标准释义。",
+    parameters: {
+      type: "object",
+      properties: {
+        term: {
+          type: "string",
+          description: "要查询的术语名称。留空则返回所有术语列表。支持模糊匹配。",
+        },
+      },
+    },
+    execute: async ({ term }) => {
+      const entries = await fetchGlossary();
+      if (entries.length === 0) {
+        return { found: false, message: "词汇表为空或不可用" };
+      }
+      const q = ((term as string) || "").trim().toLowerCase();
+      if (!q) {
+        return { terms: entries.map((e) => ({ term: e.term, definition: e.definition })) };
+      }
+      const matched = entries.filter(
+        (e) => e.term.toLowerCase().includes(q) || e.definition.toLowerCase().includes(q),
+      );
+      if (matched.length === 0) {
+        return { found: false, message: `未找到术语「${term}」的释义` };
+      }
+      return { found: true, terms: matched.map((e) => ({ term: e.term, definition: e.definition })) };
+    },
+  };
+}
 
 // ─── Default tool set ───
 
