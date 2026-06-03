@@ -4,6 +4,24 @@
 
 ---
 
+## 项目结构
+
+这是一个由根仓库协调多个子项目的桌面应用：
+
+| 路径 | 说明 |
+|------|------|
+| `src/` | Tauri 桌面客户端前端（Vue） |
+| `src-tauri/` | Tauri/Rust 桌面壳和本地能力 |
+| `manager/` | 管理后台，包含 `server/` 后端和 `web/` 前端 |
+| `envoy/` | Envoy 协作通信库子模块 |
+| `website/` | 官网和文档站子模块 |
+| `openspec/` | 功能规格和变更记录 |
+| `docs/` | 架构和补充文档 |
+
+`envoy`、`manager`、`website` 是 Git submodule，首次拉取后需要初始化。
+
+---
+
 ## 安装
 
 ### 你需要先安装
@@ -11,6 +29,8 @@
 1. **Node.js**（>= 18）— [下载地址](https://nodejs.org/)
 2. **Rust** — [下载地址](https://rustup.rs/)
 3. **Git** — [下载地址](https://git-scm.com/)
+
+> 构建 `website/` 文档站需要 Node.js >= 22.12.0；只运行桌面客户端和管理后台时 Node.js >= 18 即可。
 
 ### 下载项目
 
@@ -25,8 +45,7 @@ git submodule update --init --recursive
 ### 安装依赖
 
 ```bash
-npm install
-npm run prepare
+npm run all:install
 ```
 
 等待安装完成即可。
@@ -166,15 +185,40 @@ npm run tauri:dev
 ## 其他命令
 
 ```bash
+# 启动桌面前端（不启动 Tauri 壳）
+npm run dev
+
 # 仅启动管理后台后端
 npm run manager:server
 
 # 仅启动管理后台前端
 npm run manager:web
 
+# 启动文档站
+npm run website:dev
+
+# 构建桌面前端
+npm run build
+
 # 构建桌面安装包
 npm run tauri build
+
+# 运行 Envoy 库测试
+npm run envoy:test
+
+# 运行管理后台后端测试
+npm run manager:server:test
 ```
+
+### 管理后台环境变量
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `MANAGER_PORT` | 管理后台 API 端口 | `8080` |
+| `MANAGER_CORS_ORIGINS` | 允许访问 API 的来源，多个值用逗号分隔 | 开发环境允许本地 Vite/Tauri 来源；生产环境允许 Tauri 本地来源 |
+| `ENVOY_TEAM_HOST` | 团队 WebSocket 服务监听地址 | 开发环境 `0.0.0.0`，生产环境 `127.0.0.1` |
+| `ENVOY_DEFAULT_ADMIN_USERNAME` | 首次初始化默认管理员用户名 | `admin` |
+| `ENVOY_DEFAULT_ADMIN_PASSWORD` | 首次初始化默认管理员密码 | `admin123` |
 
 ## 数据位置
 

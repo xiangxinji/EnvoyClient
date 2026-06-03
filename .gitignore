@@ -10,7 +10,25 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+coverage
+test-results
+playwright-report
+.cache
+.turbo
 *.local
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Tauri / Rust build artifacts
+src-tauri/target
+src-tauri/gen
+*.pdb
+
+# Local runtime data
+.envoy
 
 # Editor directories and files
 .vscode/*

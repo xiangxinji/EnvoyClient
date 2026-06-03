@@ -3,20 +3,27 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "packageManager": "npm@10.9.0",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "manager:server": "tsx manager/server/index.ts",
-    "manager:web": "cd manager/web && npx vite",
+    "manager:server": "npm --prefix manager/server run start",
+    "manager:web": "npm --prefix manager/web run dev",
     "manager": "concurrently -n server,web -c blue,green \"npm run manager:server\" \"npm run manager:web\"",
-    "website:dev": "cd website && npm run dev",
-    "website:build": "cd website && npm run generate",
-    "manager:server:install": "cd manager/server && npm install",
-    "manager:web:install": "cd manager/web && npm install",
-    "all:install": "npm install && npm run manager:server:install && npm run manager:web:install"
+    "website:dev": "npm --prefix website run dev",
+    "website:build": "npm --prefix website run build",
+    "envoy:build": "npm --prefix envoy run build",
+    "envoy:test": "npm --prefix envoy run test",
+    "manager:server:test": "npm --prefix manager/server run test",
+    "manager:web:build": "npm --prefix manager/web run build",
+    "install:envoy": "npm --prefix envoy install",
+    "install:manager:server": "npm --prefix manager/server install",
+    "install:manager:web": "npm --prefix manager/web install",
+    "install:website": "npm --prefix website install",
+    "all:install": "npm install && npm run install:envoy && npm run install:manager:server && npm run install:manager:web && npm run install:website"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.0.0",
@@ -40,7 +47,7 @@
     "vue": "^3.5.13",
     "vue-i18n": "^11.4.2",
     "vue-router": "^5.0.6",
-    "ws": "^8.20.0"
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
