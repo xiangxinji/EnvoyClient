@@ -16,6 +16,7 @@ import TaskDetailPanel from "../../components/TaskDetailPanel";
 import MemberProfilePanel from "../../components/MemberProfilePanel";
 import CloudResourcesPanel from "../../components/CloudResourcesPanel";
 import ExecutionPanel from "../../components/ExecutionPanel";
+import AgentPanel from "../../components/AgentPanel";
 import ExecutionNotifier from "../../components/ExecutionNotifier";
 import ReconnectOverlay from "../../components/ReconnectOverlay";
 import LockScreen from "../../components/LockScreen";
@@ -171,6 +172,7 @@ watch(
       <QuickSettingsPanel v-else-if="selectedPeer === '__quick__'" key="quick-settings" @back="handleSettingsBack" />
       <CloudResourcesPanel v-else-if="selectedPeer === '__cloud__'" key="cloud" />
       <ExecutionPanel v-else-if="selectedPeer === '__execution__'" key="execution" />
+      <AgentPanel v-else-if="selectedPeer === '__agents__'" key="agents" />
       <MemberProfilePanel v-else-if="isProfilePanel" key="profile" :username="profileUsername" @back="handleCloseDetail" @chat="(id: string) => handleSelectPeer(id)" />
       <TaskDispatchPanel v-else-if="selectedPeer === '__dispatch__'" key="dispatch" />
       <TaskCenterView v-else-if="selectedPeer === '__tasks__'" key="tasks" @select-task="handleSelectTask" />

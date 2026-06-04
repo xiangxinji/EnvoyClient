@@ -2,6 +2,7 @@ import { definePipeline } from "../core/definePipeline";
 import { createPlanner } from "../agents/planner";
 import { createExecutor } from "../agents/executor";
 import { createReviewer } from "../agents/reviewer";
+import { createScorer } from "../agents/scorer";
 import type { ServiceContext } from "../core/defineService";
 import type { ExecutionEventHandler } from "../react";
 import { parseReviewOutput } from "./reviewUtils";
@@ -38,6 +39,9 @@ export function createTaskPipeline(opts: TaskPipelineOptions) {
   return {
     run(taskContent: string) {
       return pipeline.run(taskContent, opts.onEvent);
+    },
+    createScorerAgent() {
+      return createScorer(opts.ctx);
     },
   };
 }

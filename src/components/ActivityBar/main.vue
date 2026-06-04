@@ -31,6 +31,7 @@ const toolItems = computed(() => {
     { id: "__cloud__", icon: "cloud" as const, labelKey: "sidebar.cloudResources", descKey: "sidebar.cloudResourcesDesc" },
     { id: "__tasks__", icon: "tasks" as const, labelKey: "sidebar.taskCenter", descKey: "sidebar.taskCenterDesc" },
     { id: "__execution__", icon: "terminal" as const, labelKey: "sidebar.executionPanel", descKey: "sidebar.executionPanelDesc" },
+    { id: "__agents__", icon: "grid" as const, labelKey: "sidebar.agents", descKey: "sidebar.agentsDesc" },
   ];
   if (ctx.role === "leader") {
     items.push({ id: "__dispatch__", icon: "lightning", labelKey: "sidebar.taskDispatch", descKey: "sidebar.taskDispatchDesc" });
@@ -38,7 +39,7 @@ const toolItems = computed(() => {
   return items;
 });
 
-const toolPeerIds = new Set(["__cloud__", "__tasks__", "__execution__", "__dispatch__"]);
+const toolPeerIds = new Set(["__cloud__", "__tasks__", "__execution__", "__dispatch__", "__agents__"]);
 const isChatActive = computed(() => !toolPeerIds.has(props.selectedPeer));
 
 const toolHover = useHoverCard<string>();
@@ -53,12 +54,14 @@ const toolDescMap: Record<string, string> = {
   __tasks__: "sidebar.taskCenterDesc",
   __dispatch__: "sidebar.taskDispatchDesc",
   __execution__: "sidebar.executionPanelDesc",
+  __agents__: "sidebar.agentsDesc",
 };
-const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch" | "terminal"> = {
+const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch" | "terminal" | "grid"> = {
   __cloud__: "cloud",
   __tasks__: "tasks",
   __dispatch__: "dispatch",
   __execution__: "terminal",
+  __agents__: "grid",
 };
 
 const menuItems = [
@@ -208,7 +211,7 @@ onMounted(updateIndicator);
     <ToolHoverCard
       v-if="toolHover.hoveredItem.value"
       :icon="toolIconMap[toolHover.hoveredItem.value] ?? 'tasks'"
-      :name="t(`sidebar.${toolHover.hoveredItem.value === '__cloud__' ? 'cloudResources' : toolHover.hoveredItem.value === '__tasks__' ? 'taskCenter' : toolHover.hoveredItem.value === '__execution__' ? 'executionPanel' : 'taskDispatch'}`)"
+      :name="t(`sidebar.${toolHover.hoveredItem.value === '__cloud__' ? 'cloudResources' : toolHover.hoveredItem.value === '__tasks__' ? 'taskCenter' : toolHover.hoveredItem.value === '__execution__' ? 'executionPanel' : toolHover.hoveredItem.value === '__agents__' ? 'agents' : 'taskDispatch'}`)"
       :description="t(toolDescMap[toolHover.hoveredItem.value]!)"
       :rect="toolHover.hoverRect.value"
       :visible="toolHover.visible.value"

@@ -154,7 +154,9 @@
       "Bash(schtasks //Delete //TN \"OpenBrowser\" //F)",
       "Bash(schtasks //Create //SC ONCE //TN \"LaunchApp\" //TR \"notepad.exe\" //ST 00:00 //F //IT)",
       "Bash(schtasks //Run //TN \"LaunchApp\")",
-      "Bash(schtasks //Delete //TN \"LaunchApp\" //F)"
+      "Bash(schtasks //Delete //TN \"LaunchApp\" //F)",
+      "Bash(shutdown *)",
+      "Bash(node C:/Users/Administrator/Desktop/EnvoyClient/shutdown.js)"
     ]
   },
   "enabledPlugins": {

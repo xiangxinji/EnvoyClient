@@ -3,7 +3,7 @@ import { computed } from "vue";
 import SvgIcon from "../SvgIcon";
 
 const props = defineProps<{
-  icon: "cloud" | "tasks" | "dispatch" | "org" | "terminal";
+  icon: "cloud" | "tasks" | "dispatch" | "org" | "terminal" | "grid";
   name: string;
   description: string;
   rect: DOMRect | null;
@@ -11,7 +11,7 @@ const props = defineProps<{
 }>();
 
 const iconName = computed(() => {
-  const m: Record<string, string> = { cloud: "cloud", tasks: "tasks", dispatch: "lightning", org: "users", terminal: "terminal" };
+  const m: Record<string, string> = { cloud: "cloud", tasks: "tasks", dispatch: "lightning", org: "users", terminal: "terminal", grid: "grid" };
   return m[props.icon] ?? "lightning";
 });
 

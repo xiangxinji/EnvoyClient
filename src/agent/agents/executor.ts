@@ -3,11 +3,12 @@ import { toTools } from "../core/toTools";
 import { fileService } from "../services/fileService";
 import { cloudService } from "../services/cloudService";
 import { resourceService } from "../services/resourceService";
-import { createDoneTool, createGlossaryTool } from "../tools";
+import { brainsService } from "../services/brainsService";
+import { createDoneTool } from "../tools";
 import type { ServiceContext } from "../core/defineService";
 
 export function createExecutor(ctx: ServiceContext, skillCatalog?: string) {
-  const serviceTools = toTools([fileService, cloudService, resourceService], ctx);
+  const serviceTools = toTools([fileService, cloudService, resourceService, brainsService], ctx);
 
   return defineAgent({
     name: "executor",
@@ -19,7 +20,7 @@ export function createExecutor(ctx: ServiceContext, skillCatalog?: string) {
 
 上传文件到云资源时，优先使用 smart_upload 工具。该工具会自动将文件归类到合适的目录。
 使用时需要提供：filename（文件名）、content（文件内容）和 description（一句话描述文件内容，如"市场调研报告"或"项目技术方案"）。`,
-    tools: [...serviceTools, createGlossaryTool(ctx.teamName), createDoneTool()],
+    tools: [...serviceTools, createDoneTool()],
     maxSteps: 20,
     workspacePath: ctx.workspacePath,
     skillCatalog,

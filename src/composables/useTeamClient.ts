@@ -10,6 +10,7 @@ import { useTaskExecution } from "./useTaskExecution";
 import { useAutoReply } from "./useAutoReply";
 import { getMemberSettings, setTeamClientInstance, getTaskService, getBrainsSync } from "./teamClientContext";
 import { clearCredentials } from "../api";
+import { syncGlossary } from "./useGlossarySync";
 import { useUserProfile } from "./useUserProfile";
 import { sendDesktopNotification, requestTaskbarAttention, updateDockBadge, cancelTaskbarAttention, resetNotificationState } from "../utils/notification";
 import { scanOutbox, submitWithRetry, deleteOutbox } from "../utils/outbox";
@@ -72,6 +73,9 @@ export function useTeamClient(
     brainsSync.setTeamName(conn.teamName);
     brainsSync.setupTriggers(conn.myId);
     brainsSync.registerTaskListener();
+
+    // Sync glossary to local knowledge base
+    syncGlossary(conn.teamName, conn.myId);
 
     // Load configured members (now includes profile data: nickname, avatar_url)
     conn.loadConfiguredMembers().then(() => {

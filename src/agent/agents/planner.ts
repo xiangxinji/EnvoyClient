@@ -1,7 +1,8 @@
 import { defineAgent } from "../core/defineAgent";
 import { toTools } from "../core/toTools";
 import { fileService } from "../services/fileService";
-import { createDoneTool, createGlossaryTool } from "../tools";
+import { brainsService } from "../services/brainsService";
+import { createDoneTool } from "../tools";
 import type { ServiceContext } from "../core/defineService";
 
 export function createPlanner(ctx: ServiceContext) {
@@ -22,7 +23,7 @@ export function createPlanner(ctx: ServiceContext) {
 - 不要验证之前的操作是否成功
 
 直接输出计划，使用 done 工具提交。`,
-    tools: [...toTools([fileService], ctx, { only: ["file_read"] }), createGlossaryTool(ctx.teamName), createDoneTool()],
+    tools: [...toTools([fileService], ctx, { only: ["file_read"] }), ...toTools([brainsService], ctx), createDoneTool()],
     maxSteps: 5,
   });
 }

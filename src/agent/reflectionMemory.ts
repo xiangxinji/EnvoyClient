@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { AgentStep } from "../types";
+import type { AgentStep, TaskScoreData } from "../types";
 import { evaluateTaskLog, type LogEvaluatorInput, type TaskLogDraft } from "./agents/logEvaluator";
 import { isTauri } from "../utils/platform";
 
@@ -301,4 +301,32 @@ async function readExistingLog(path: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+export async function appendScoreToLog(username: string, score: TaskScoreData): Promise<void> {
+  if (!isTauri) return;
+
+  const date = formatDailyDate(new Date());
+  const path = `~/brains/${sanitizePathSegment(username)}/raw/${LOG_DIR}/${EXECUTION_LOG_DIR}/${date}.md`;
+
+  const dimLines = score.dimensions
+    .map((d) => `- **${d.name}**：${d.score}/10 — ${sanitizeLogField(d.comment)}`)
+    .join("\n");
+
+  const scoreEntry = [
+    "## 任务评分",
+    "",
+    dimLines,
+    "",
+    `**总分**：${score.totalScore}/${score.maxScore}`,
+    "",
+    "### 总评",
+    sanitizeLogField(score.summary),
+    "",
+  ].join("\n");
+
+  const existing = await readExistingLog(path);
+  const content = mergeDailyExecutionLog(existing, scoreEntry);
+
+  await invoke("file_write", { path, content, workingDir: null });
 }

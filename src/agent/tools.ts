@@ -6,7 +6,6 @@ import {
   createReadResourceTool,
   createReadSkillTool,
 } from "./resourceTools";
-import { apiUrl, getClientToken } from "../api";
 
 // ─── Tool interfaces ───
 
@@ -126,6 +125,53 @@ export function createReviewDoneTool(): AgentTool {
   };
 }
 
+export function createScorerDoneTool(): AgentTool {
+  return {
+    name: "done",
+    description: "提交任务评分结果。对四个维度分别打分并给出总评。",
+    parameters: {
+      type: "object",
+      properties: {
+        dimensions: {
+          type: "array",
+          description: "四个评分维度：任务理解、规划质量、执行质量、结果质量",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "维度名称" },
+              score: { type: "number", description: "分数（1-10）" },
+              comment: { type: "string", description: "评语" },
+            },
+            required: ["name", "score", "comment"],
+          },
+        },
+        summary: {
+          type: "string",
+          description: "总体评价",
+        },
+      },
+      required: ["dimensions", "summary"],
+    },
+    execute: async ({ dimensions, summary }) => {
+      const dims = (dimensions as Array<{ name: string; score: number; comment: string }>).map((d) => ({
+        name: String(d.name),
+        score: Math.max(1, Math.min(10, Math.round(Number(d.score) || 1))),
+        comment: String(d.comment),
+      }));
+      const totalScore = dims.reduce((sum, d) => sum + d.score, 0);
+      return {
+        done: true,
+        result: JSON.stringify({
+          dimensions: dims,
+          totalScore,
+          maxScore: 40,
+          summary: typeof summary === "string" ? summary : String(summary),
+        }),
+      };
+    },
+  };
+}
+
 // ─── Re-export resource tools ───
 
 export {
@@ -134,63 +180,6 @@ export {
   createReadResourceTool,
   createReadSkillTool,
 };
-
-// ─── Glossary tool ───
-
-interface GlossaryItem {
-  term: string;
-  definition: string;
-}
-
-export function createGlossaryTool(teamName: string): AgentTool {
-  let cached: GlossaryItem[] | null = null;
-
-  async function fetchGlossary(): Promise<GlossaryItem[]> {
-    if (cached) return cached;
-    try {
-      const token = getClientToken();
-      const res = await fetch(apiUrl(`/api/glossary?team=${encodeURIComponent(teamName)}`), {
-        headers: { ...(token ? { "X-Envoy-Token": token } : {}) },
-      });
-      if (!res.ok) return [];
-      cached = (await res.json()) as GlossaryItem[];
-      return cached;
-    } catch {
-      return [];
-    }
-  }
-
-  return {
-    name: "query_glossary",
-    description: "查询术语词汇的统一定义。当遇到不确定含义的专业术语或需要统一用语时，使用此工具查询标准释义。",
-    parameters: {
-      type: "object",
-      properties: {
-        term: {
-          type: "string",
-          description: "要查询的术语名称。留空则返回所有术语列表。支持模糊匹配。",
-        },
-      },
-    },
-    execute: async ({ term }) => {
-      const entries = await fetchGlossary();
-      if (entries.length === 0) {
-        return { found: false, message: "词汇表为空或不可用" };
-      }
-      const q = ((term as string) || "").trim().toLowerCase();
-      if (!q) {
-        return { terms: entries.map((e) => ({ term: e.term, definition: e.definition })) };
-      }
-      const matched = entries.filter(
-        (e) => e.term.toLowerCase().includes(q) || e.definition.toLowerCase().includes(q),
-      );
-      if (matched.length === 0) {
-        return { found: false, message: `未找到术语「${term}」的释义` };
-      }
-      return { found: true, terms: matched.map((e) => ({ term: e.term, definition: e.definition })) };
-    },
-  };
-}
 
 // ─── Default tool set ───
 

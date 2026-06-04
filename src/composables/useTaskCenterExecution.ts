@@ -4,9 +4,9 @@ import { getMemberSettings, getTaskService } from "./teamClientContext";
 import { isTauri, safeInvoke } from "../utils/platform";
 import { getErrorMessage } from "../utils/error";
 import { createTaskPipeline } from "../agent/pipelines/taskPipeline";
-import { shouldWriteTaskReflection, writeTaskReflection } from "../agent/reflectionMemory";
+import { shouldWriteTaskReflection, writeTaskReflection, appendScoreToLog } from "../agent/reflectionMemory";
 import { useExecutionMonitor } from "./useExecutionMonitor";
-import type { TaskResolution, SkillCatalogResponse, AgentStep } from "../types";
+import type { TaskResolution, SkillCatalogResponse, AgentStep, TaskScoreData } from "../types";
 import type { ServiceContext } from "../agent/core/defineService";
 
 interface TaskCenterExecutionCtx {
@@ -107,11 +107,36 @@ export function useTaskCenterExecution(
         }
       }
 
+      // Run scorer only when review passed
+      let scoreData: TaskScoreData | undefined;
+      if (pipelineResult.reviewPassed) {
+        try {
+          const scorerAgent = pipeline.createScorerAgent();
+          const scorerInput = [
+            `[原始任务]\n${taskContent}`,
+            `[规划阶段结果]\n${pipelineResult.outputs.plan}`,
+            `[执行阶段结果]\n${pipelineResult.outputs.execSummary}`,
+            `[审查阶段结果]\n${pipelineResult.outputs.reviewSummary}`,
+          ].join("\n\n");
+
+          const scorerResult = await scorerAgent.run(scorerInput, monitor.emit);
+          scoreData = JSON.parse(scorerResult.result) as TaskScoreData;
+
+          // Append score to daily execution log
+          if (shouldWriteTaskReflection(settings.value.task_reflection_memory_enabled)) {
+            await appendScoreToLog(ctx.myId, scoreData);
+          }
+        } catch (scorerError) {
+          console.warn("[scorer] scoring failed, continuing without score:", scorerError);
+        }
+      }
+
       resolveCurrentTask({
         success: pipelineResult.reviewPassed,
         source: "ai",
         data: {
           ...parsed,
+          ...(scoreData ? { score: scoreData } : {}),
           pipeline: {
             plan: pipelineResult.outputs.plan,
             reviewSummary: pipelineResult.outputs.reviewSummary,

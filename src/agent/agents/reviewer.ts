@@ -3,7 +3,8 @@ import { toTools } from "../core/toTools";
 import { fileService } from "../services/fileService";
 import { cloudService } from "../services/cloudService";
 import { resourceService } from "../services/resourceService";
-import { createReviewDoneTool, createGlossaryTool } from "../tools";
+import { brainsService } from "../services/brainsService";
+import { createReviewDoneTool } from "../tools";
 import type { ServiceContext } from "../core/defineService";
 
 export function createReviewer(ctx: ServiceContext) {
@@ -22,7 +23,7 @@ export function createReviewer(ctx: ServiceContext) {
     tools: [
       ...toTools([fileService, resourceService], ctx, { only: ["file_read", "query_resources", "read_resource"] }),
       ...toTools([cloudService], ctx, { only: ["cloud_list"] }),
-      createGlossaryTool(ctx.teamName),
+      ...toTools([brainsService], ctx),
       createReviewDoneTool(),
     ],
     maxSteps: 10,

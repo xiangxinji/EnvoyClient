@@ -115,6 +115,19 @@ export type ExecutionTraceData = { steps: AgentStep[] };
 export type LeaderReviewData = { success: boolean; data?: unknown; error?: string };
 export type TaskResourceData = ClientResultData | FileResourceData | ExecutionTraceData | LeaderReviewData;
 
+export interface ScoreDimension {
+  name: string;
+  score: number;
+  comment: string;
+}
+
+export interface TaskScoreData {
+  dimensions: ScoreDimension[];
+  totalScore: number;
+  maxScore: number;
+  summary: string;
+}
+
 export interface TaskMessage {
   type: "task";
   id: string;
