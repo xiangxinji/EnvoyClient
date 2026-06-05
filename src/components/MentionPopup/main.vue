@@ -2,6 +2,8 @@
 import { computed, ref, watch, nextTick } from "vue";
 import type { MemberInfo } from "../../types";
 import { useUserProfile } from "../../composables/useUserProfile";
+import { motionPresets } from "../../styles/motion-presets";
+import { useReducedMotion } from "../../composables/useReducedMotion";
 
 const props = defineProps<{
   visible: boolean;
@@ -16,6 +18,13 @@ const emit = defineEmits<{
 }>();
 
 const { getDisplayName, getAvatarUrl, getInitial } = useUserProfile();
+const isReduced = useReducedMotion();
+
+const popupMotion = computed(() =>
+  isReduced.value
+    ? { initial: { opacity: 0 }, enter: { opacity: 1 } }
+    : motionPresets.popupIn
+);
 
 const listRef = ref<HTMLDivElement | null>(null);
 const selectedIndex = ref(0);
@@ -73,8 +82,7 @@ defineExpose({ handleKeydown });
 
 <template>
   <div v-if="visible && filteredOptions.length > 0" ref="listRef" class="mention-popup"
-       v-motion:initial="{ opacity: 0, y: 8, scale: 0.96 }"
-       v-motion:enter="{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } }">
+       v-motion="popupMotion">
     <div
       v-for="(opt, idx) in filteredOptions"
       :key="opt.id"

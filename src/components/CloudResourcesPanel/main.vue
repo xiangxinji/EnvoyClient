@@ -5,6 +5,8 @@ import { useEventListener } from "@vueuse/core";
 import { getTeamClientInstance, getCloudResourceService } from "../../composables/teamClientContext";
 import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
+import { motionPresets } from "../../styles/motion-presets";
+import { useReducedMotion } from "../../composables/useReducedMotion";
 import type { CloudFileItem } from "../../services/types";
 import { downloadFileWithDialog } from "../../utils/notification";
 import { getErrorMessage } from "../../utils/error";
@@ -21,6 +23,13 @@ import GlassButton from "../GlassButton";
 const { t } = useI18n();
 const ctx = getTeamClientInstance()!;
 const cloudService = getCloudResourceService();
+const isReduced = useReducedMotion();
+
+const dialogMotion = computed(() =>
+  isReduced.value
+    ? { initial: { opacity: 0 }, enter: { opacity: 1 } }
+    : motionPresets.scaleIn
+);
 
 const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
 const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
@@ -243,8 +252,7 @@ onMounted(loadFiles);
           <div
             class="dir-dialog"
             @click.stop
-            v-motion:initial="{ opacity: 0, scale: 0.92 }"
-            v-motion:enter="{ opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } }"
+            v-motion="dialogMotion"
           >
             <h3>{{ t('cloud.createDir') }}</h3>
             <GlassInput ref="newDirInputRef" v-model="newDirName" :placeholder="t('cloud.createDirPrompt')" bordered @keydown.enter="confirmNewDir" />

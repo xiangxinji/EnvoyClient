@@ -50,6 +50,10 @@
   --role-member-bg: #e5e5e7;
   --role-member-text: #6e6e73;
   --error: #ff3b30;
+  --danger: #ff3b30;
+  --status-warning: #ff9f0a;
+  --status-success: #34c759;
+  --status-error: #ff3b30;
   --input-border: #d2d2d7;
   --sidebar-active: #e9f6f0;
   --sidebar-hover: #f0f0f2;
@@ -173,6 +177,10 @@
   --role-member-bg: #2c2c2e;
   --role-member-text: #98989d;
   --error: #ff453a;
+  --danger: #ff453a;
+  --status-warning: #ffb340;
+  --status-success: #30d158;
+  --status-error: #ff453a;
   --input-border: #3a3a3c;
   --sidebar-active: #1c1732;
   --sidebar-hover: #1c1c1e;
@@ -261,6 +269,10 @@ html.dark {
   --role-member-bg: #2c2c2e;
   --role-member-text: #98989d;
   --error: #ff453a;
+  --danger: #ff453a;
+  --status-warning: #ffb340;
+  --status-success: #30d158;
+  --status-error: #ff453a;
   --input-border: #3a3a3c;
   --sidebar-active: #142c23;
   --sidebar-hover: #1c1c1e;

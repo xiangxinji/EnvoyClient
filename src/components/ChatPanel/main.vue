@@ -9,7 +9,7 @@ import { useMentionSystem } from "../../composables/useMentionSystem";
 import { useCloudMention } from "../../composables/useCloudMention";
 import { useMultiSelect } from "../../composables/useMultiSelect";
 import { useMessageContextMenu } from "../../composables/useMessageContextMenu";
-import { getErrorMessage } from "../../utils/error";
+import { useChatSend } from "../../composables/useChatSend";
 import MessageBubble from "../MessageBubble";
 import { useUserProfile } from "../../composables/useUserProfile";
 import TaskCard from "../TaskCard";
@@ -24,7 +24,7 @@ import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
 import SvgIcon from "../SvgIcon";
 import GlassInput from "../GlassInput";
-import type { TimelineItem, ChatMessage, TaskMessage, QuoteInfo, ContentSegment } from "../../types";
+import type { TimelineItem, ChatMessage, TaskMessage } from "../../types";
 import { formatFileSize } from "../../utils/taskFormatters";
 
 const { t } = useI18n();
@@ -61,6 +61,23 @@ const { currentMentions, mentionPopupVisible, mentionQuery, mentionPopupRef, han
 const { cloudPopupVisible, cloudQuery, cloudPopupRef, handleEditorInput: handleCloudEditorInput, handleCloudSelect, handleCloudClose, handleCloudKeydown, clearCloudRefs, pendingCloudRefs, removeCloudRef } = useCloudMention();
 const { selectMode, selectedIds, forwardDialogVisible, enterSelectMode, exitSelectMode, toggleMessageSelect, handleForwardClick, handleForwardConfirm } = useMultiSelect(conversation, sendChat, showToast);
 const { contextMenuVisible, contextMenuX, contextMenuY, contextMenuMsg, quotingMsg, handleMessageContextmenu, handleQuoteReply, handleContextForward, clearQuotingMsg, generateSnapshotText, handleRevoke, handleScrollToQuote, closeContextMenu, handleCopy, canCopyMessage, handleAddSticker } = useMessageContextMenu(messageList, loadAll, revokeMessage, enterSelectMode, (ids) => { selectMode.value = true; selectedIds.value = ids; }, showToast);
+
+const { handleSegmentedSend } = useChatSend({
+  getPeerId: () => props.peerId,
+  isChannel,
+  sendChat,
+  quotingMsg,
+  pendingFiles,
+  pendingCloudRefs,
+  currentMentions,
+  uploading,
+  attachmentError,
+  uploadImages,
+  uploadAttachment: (file) => getMessageService().uploadAttachment(file),
+  clearMentions,
+  clearCloudRefs,
+  generateSnapshotText,
+});
 
 // AI
 const { suggestion, isStreaming, aiError, aiAvailable, suggestReply, acceptSuggestion, clearSuggestion } = useAI();
@@ -116,86 +133,6 @@ function resetDisplayCountWithConv() {
   resetDisplayCount();
   prevConvLength = conversation.value.length;
   newMessageIds.value = new Set();
-}
-
-async function handleSegmentedSend(segments: ContentSegment[]) {
-  if (!props.peerId) return;
-  if (segments.length === 0 && pendingFiles.value.length === 0 && pendingCloudRefs.value.length === 0) return;
-  attachmentError.value = "";
-
-  const quoteInfo: QuoteInfo | undefined = quotingMsg.value
-    ? { id: quotingMsg.value.id, from: quotingMsg.value.from, text: generateSnapshotText(quotingMsg.value), timestamp: quotingMsg.value.timestamp }
-    : undefined;
-
-  let isFirst = true;
-
-  for (const seg of segments) {
-    try {
-      if (seg.type === "text") {
-        const mentions = isChannel.value ? extractMentionsForText(seg.content) : undefined;
-        await sendChat(props.peerId, seg.content || " ", {
-          quote: isFirst ? quoteInfo : undefined,
-          channel: isChannel.value ? "general" : undefined,
-          mentions,
-        });
-      } else if (seg.type === "image") {
-        uploading.value = true;
-        const [uploaded] = await uploadImages([seg]);
-        uploading.value = false;
-        await sendChat(props.peerId, " ", {
-          attachments: [uploaded],
-          quote: isFirst ? quoteInfo : undefined,
-          channel: isChannel.value ? "general" : undefined,
-        });
-      }
-      isFirst = false;
-    } catch (e: unknown) {
-      attachmentError.value = getErrorMessage(e);
-      uploading.value = false;
-      break;
-    }
-  }
-
-  for (const ref of pendingCloudRefs.value) {
-    try {
-      await sendChat(props.peerId, "{cloud:0}", {
-        cloudRefs: [ref],
-        quote: isFirst ? quoteInfo : undefined,
-        channel: isChannel.value ? "general" : undefined,
-      });
-      isFirst = false;
-    } catch (e: unknown) {
-      attachmentError.value = getErrorMessage(e);
-      break;
-    }
-  }
-
-  for (const att of pendingFiles.value) {
-    try {
-      uploading.value = true;
-      const data = await getMessageService().uploadAttachment(att.file);
-      uploading.value = false;
-      await sendChat(props.peerId, " ", {
-        attachments: [data],
-        channel: isChannel.value ? "general" : undefined,
-      });
-    } catch (e: unknown) {
-      attachmentError.value = getErrorMessage(e);
-      uploading.value = false;
-      break;
-    }
-  }
-
-  clearMentions();
-  clearCloudRefs();
-  pendingFiles.value = [];
-  if (quoteInfo) quotingMsg.value = null;
-}
-
-function extractMentionsForText(text: string): string[] | undefined {
-  if (!currentMentions.value.length) return undefined;
-  const matched = currentMentions.value.filter((id) => text.includes(`@${id}`));
-  return matched.length > 0 ? matched : undefined;
 }
 
 function handleClearChat() { const peerDisplay = isChannel.value ? t('sidebar.channelGeneral') : getDisplayName(props.peerId); menuOpen.value = false; showConfirm(t('chat.confirmClearTitle'), t('chat.confirmClearMsg', { peer: peerDisplay }), () => { if (!props.peerId) return; clearConversation(props.peerId); showToast(t('chat.cleared', { peer: peerDisplay }), "success"); }, true); }

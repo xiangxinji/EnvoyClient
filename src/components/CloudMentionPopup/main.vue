@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from "vue";
+import { ref, watch, nextTick, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { CloudSearchResult } from "../../services/types";
 import { getCloudResourceService } from "../../composables/teamClientContext";
 import { getFileCategory } from "../../utils/fileCategories";
+import { motionPresets } from "../../styles/motion-presets";
+import { useReducedMotion } from "../../composables/useReducedMotion";
 import FileIcon from "../FileIcon";
 import SvgIcon from "../SvgIcon";
 
@@ -19,6 +21,13 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const isReduced = useReducedMotion();
+
+const popupMotion = computed(() =>
+  isReduced.value
+    ? { initial: { opacity: 0 }, enter: { opacity: 1 } }
+    : motionPresets.popupIn
+);
 
 const listRef = ref<HTMLDivElement | null>(null);
 const selectedIndex = ref(0);
@@ -93,8 +102,7 @@ defineExpose({ handleKeydown });
 
 <template>
   <div v-if="visible && (results.length > 0 || loading)" ref="listRef" class="cloud-popup"
-       v-motion:initial="{ opacity: 0, y: 8, scale: 0.96 }"
-       v-motion:enter="{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } }">
+       v-motion="popupMotion">
     <div v-if="loading" class="cloud-popup-loading">
       <span class="spinner-small"></span>
     </div>
