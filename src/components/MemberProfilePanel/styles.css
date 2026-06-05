@@ -167,9 +167,9 @@
 }
 
 .stat-value.running { color: var(--accent); }
-.stat-value.pending { color: var(--status-warning, #f59e0b); }
-.stat-value.completed { color: var(--status-success, #10b981); }
-.stat-value.failed { color: var(--status-error, #ef4444); }
+.stat-value.pending { color: var(--status-warning); }
+.stat-value.completed { color: var(--status-success); }
+.stat-value.failed { color: var(--status-error); }
 
 .stat-label {
   font-size: 0.65em;

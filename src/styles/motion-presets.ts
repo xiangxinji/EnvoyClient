@@ -47,6 +47,15 @@ export const motionPresets = {
       transition: { type: "spring", stiffness: 400, damping: 15 },
     },
   },
+  popupIn: {
+    initial: { opacity: 0, y: 8, scale: 0.96 },
+    enter: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { type: "spring", stiffness: 300, damping: 25 },
+    },
+  },
   pressScale: {
     initial: { scale: 1 },
     enter: { scale: 1 },
