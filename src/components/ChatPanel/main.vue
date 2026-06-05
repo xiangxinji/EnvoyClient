@@ -76,6 +76,7 @@ const { handleSegmentedSend } = useChatSend({
   uploadAttachment: (file) => getMessageService().uploadAttachment(file),
   clearMentions,
   clearCloudRefs,
+  clearQuotingMsg,
   generateSnapshotText,
 });
 

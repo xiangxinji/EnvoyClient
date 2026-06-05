@@ -19,6 +19,9 @@ export interface MemberSettings {
   task_reflection_memory_enabled: boolean;
 }
 
+type FieldType = "string" | "number" | "boolean" | "array";
+type SettingKey = keyof MemberSettings;
+
 const DEFAULT_SETTINGS: MemberSettings = {
   working_directory: "",
   task_execution_mode: "auto",
@@ -34,6 +37,39 @@ const DEFAULT_SETTINGS: MemberSettings = {
   brains_sync_interval_minutes: 30,
   task_reflection_memory_enabled: true,
 };
+
+const FIELD_TYPES: Record<SettingKey, FieldType> = {
+  working_directory: "string",
+  task_execution_mode: "string",
+  ai_suggestion_history_count: "number",
+  ai_auto_reply: "boolean",
+  shortcut_auto_reply: "string",
+  shortcut_execution_mode: "string",
+  shortcut_lock_screen: "string",
+  shortcut_sync_now: "string",
+  shortcut_restore_brains: "string",
+  brains_sync_triggers: "array",
+  brains_sync_interval_hours: "number",
+  brains_sync_interval_minutes: "number",
+  task_reflection_memory_enabled: "boolean",
+};
+
+const SETTING_KEYS = Object.keys(FIELD_TYPES) as SettingKey[];
+
+function parseFieldValue(key: SettingKey, raw: unknown): unknown {
+  const type = FIELD_TYPES[key];
+  const def = DEFAULT_SETTINGS[key];
+  if (type === "number") return typeof raw === "number" ? (key.includes("interval") ? Math.round(raw) : raw) : def;
+  if (type === "boolean") return typeof raw === "boolean" ? raw : def;
+  if (type === "array") return Array.isArray(raw) ? raw : def;
+  return (raw as string) ?? def;
+}
+
+function applyPartial(target: Record<string, unknown>, updates: Partial<MemberSettings>) {
+  for (const key of SETTING_KEYS) {
+    if (updates[key] !== undefined) target[key] = updates[key];
+  }
+}
 
 const _settings = ref<MemberSettings>({ ...DEFAULT_SETTINGS });
 
@@ -52,43 +88,11 @@ export function useMemberSettings() {
       const users = (raw?.users ?? {}) as Record<string, unknown>;
       const userSettings = (users[username] ?? {}) as Record<string, unknown>;
 
-      _settings.value = {
-        working_directory: (userSettings.working_directory as string) ?? DEFAULT_SETTINGS.working_directory,
-        task_execution_mode: (userSettings.task_execution_mode as TaskExecutionMode) ?? DEFAULT_SETTINGS.task_execution_mode,
-        ai_suggestion_history_count: typeof userSettings.ai_suggestion_history_count === "number"
-          ? userSettings.ai_suggestion_history_count
-          : DEFAULT_SETTINGS.ai_suggestion_history_count,
-        ai_auto_reply: typeof userSettings.ai_auto_reply === "boolean"
-          ? userSettings.ai_auto_reply
-          : DEFAULT_SETTINGS.ai_auto_reply,
-        shortcut_auto_reply: typeof userSettings.shortcut_auto_reply === "string"
-          ? userSettings.shortcut_auto_reply
-          : DEFAULT_SETTINGS.shortcut_auto_reply,
-        shortcut_execution_mode: typeof userSettings.shortcut_execution_mode === "string"
-          ? userSettings.shortcut_execution_mode
-          : DEFAULT_SETTINGS.shortcut_execution_mode,
-        shortcut_lock_screen: typeof userSettings.shortcut_lock_screen === "string"
-          ? userSettings.shortcut_lock_screen
-          : DEFAULT_SETTINGS.shortcut_lock_screen,
-        shortcut_sync_now: typeof userSettings.shortcut_sync_now === "string"
-          ? userSettings.shortcut_sync_now
-          : DEFAULT_SETTINGS.shortcut_sync_now,
-        shortcut_restore_brains: typeof userSettings.shortcut_restore_brains === "string"
-          ? userSettings.shortcut_restore_brains
-          : DEFAULT_SETTINGS.shortcut_restore_brains,
-        brains_sync_triggers: Array.isArray(userSettings.brains_sync_triggers)
-          ? userSettings.brains_sync_triggers
-          : DEFAULT_SETTINGS.brains_sync_triggers,
-        brains_sync_interval_hours: typeof userSettings.brains_sync_interval_hours === "number"
-          ? Math.round(userSettings.brains_sync_interval_hours)
-          : DEFAULT_SETTINGS.brains_sync_interval_hours,
-        brains_sync_interval_minutes: typeof userSettings.brains_sync_interval_minutes === "number"
-          ? Math.round(userSettings.brains_sync_interval_minutes)
-          : DEFAULT_SETTINGS.brains_sync_interval_minutes,
-        task_reflection_memory_enabled: typeof userSettings.task_reflection_memory_enabled === "boolean"
-          ? userSettings.task_reflection_memory_enabled
-          : DEFAULT_SETTINGS.task_reflection_memory_enabled,
-      };
+      const parsed: Record<string, unknown> = { ...DEFAULT_SETTINGS };
+      for (const key of SETTING_KEYS) {
+        parsed[key] = parseFieldValue(key, userSettings[key]);
+      }
+      _settings.value = parsed as unknown as MemberSettings;
     } catch (e) {
       console.error(`[settings] loadSettings failed for ${username}:`, e);
       _settings.value = { ...DEFAULT_SETTINGS };
@@ -100,45 +104,7 @@ export function useMemberSettings() {
 
   async function saveSettings(username: string, updates: Partial<MemberSettings>): Promise<void> {
     // Always update in-memory settings immediately (even in browser mode)
-    if (updates.ai_auto_reply !== undefined) {
-      _settings.value.ai_auto_reply = updates.ai_auto_reply;
-    }
-    if (updates.ai_suggestion_history_count !== undefined) {
-      _settings.value.ai_suggestion_history_count = updates.ai_suggestion_history_count;
-    }
-    if (updates.task_execution_mode !== undefined) {
-      _settings.value.task_execution_mode = updates.task_execution_mode;
-    }
-    if (updates.working_directory !== undefined) {
-      _settings.value.working_directory = updates.working_directory;
-    }
-    if (updates.shortcut_auto_reply !== undefined) {
-      _settings.value.shortcut_auto_reply = updates.shortcut_auto_reply;
-    }
-    if (updates.shortcut_execution_mode !== undefined) {
-      _settings.value.shortcut_execution_mode = updates.shortcut_execution_mode;
-    }
-    if (updates.shortcut_lock_screen !== undefined) {
-      _settings.value.shortcut_lock_screen = updates.shortcut_lock_screen;
-    }
-    if (updates.shortcut_sync_now !== undefined) {
-      _settings.value.shortcut_sync_now = updates.shortcut_sync_now;
-    }
-    if (updates.shortcut_restore_brains !== undefined) {
-      _settings.value.shortcut_restore_brains = updates.shortcut_restore_brains;
-    }
-    if (updates.brains_sync_triggers !== undefined) {
-      _settings.value.brains_sync_triggers = updates.brains_sync_triggers;
-    }
-    if (updates.brains_sync_interval_hours !== undefined) {
-      _settings.value.brains_sync_interval_hours = updates.brains_sync_interval_hours;
-    }
-    if (updates.brains_sync_interval_minutes !== undefined) {
-      _settings.value.brains_sync_interval_minutes = updates.brains_sync_interval_minutes;
-    }
-    if (updates.task_reflection_memory_enabled !== undefined) {
-      _settings.value.task_reflection_memory_enabled = updates.task_reflection_memory_enabled;
-    }
+    applyPartial(_settings.value as unknown as Record<string, unknown>, updates);
 
     if (!isTauri) return;
 
@@ -147,19 +113,7 @@ export function useMemberSettings() {
     const users = { ...((settings.users ?? {}) as Record<string, unknown>) };
     const existing = { ...((users[username] ?? {}) as Record<string, unknown>) };
 
-    if (updates.working_directory !== undefined) existing.working_directory = updates.working_directory;
-    if (updates.task_execution_mode !== undefined) existing.task_execution_mode = updates.task_execution_mode;
-    if (updates.ai_suggestion_history_count !== undefined) existing.ai_suggestion_history_count = updates.ai_suggestion_history_count;
-    if (updates.ai_auto_reply !== undefined) existing.ai_auto_reply = updates.ai_auto_reply;
-    if (updates.shortcut_auto_reply !== undefined) existing.shortcut_auto_reply = updates.shortcut_auto_reply;
-    if (updates.shortcut_execution_mode !== undefined) existing.shortcut_execution_mode = updates.shortcut_execution_mode;
-    if (updates.shortcut_lock_screen !== undefined) existing.shortcut_lock_screen = updates.shortcut_lock_screen;
-    if (updates.shortcut_sync_now !== undefined) existing.shortcut_sync_now = updates.shortcut_sync_now;
-    if (updates.shortcut_restore_brains !== undefined) existing.shortcut_restore_brains = updates.shortcut_restore_brains;
-    if (updates.brains_sync_triggers !== undefined) existing.brains_sync_triggers = updates.brains_sync_triggers;
-    if (updates.brains_sync_interval_hours !== undefined) existing.brains_sync_interval_hours = updates.brains_sync_interval_hours;
-    if (updates.brains_sync_interval_minutes !== undefined) existing.brains_sync_interval_minutes = updates.brains_sync_interval_minutes;
-    if (updates.task_reflection_memory_enabled !== undefined) existing.task_reflection_memory_enabled = updates.task_reflection_memory_enabled;
+    applyPartial(existing, updates);
 
     users[username] = existing;
     settings.users = users;

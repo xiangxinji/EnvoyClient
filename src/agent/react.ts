@@ -25,27 +25,22 @@ function fetchWithTimeout(
   options: RequestInit,
   timeoutMs: number,
 ): Promise<Response> {
-  return Promise.race([
-    fetch(url, options),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("AI reasoning timeout")), timeoutMs),
-    ),
-  ]);
+  let timer: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("AI reasoning timeout")), timeoutMs);
+  });
+  return Promise.race([fetch(url, options), timeoutPromise]).finally(() => clearTimeout(timer!));
 }
 
 function executeWithTimeout<T>(
   fn: () => Promise<T>,
   timeoutMs: number,
 ): Promise<T> {
-  return Promise.race([
-    fn(),
-    new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error("Tool execution timeout")),
-        timeoutMs,
-      ),
-    ),
-  ]);
+  let timer: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("Tool execution timeout")), timeoutMs);
+  });
+  return Promise.race([fn(), timeoutPromise]).finally(() => clearTimeout(timer!));
 }
 
 function truncateToolResult(_toolName: string, result: unknown): unknown {

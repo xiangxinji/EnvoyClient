@@ -199,7 +199,7 @@ async function loadSkillCatalog(username: string): Promise<string | undefined> {
       const lines = skills.map((s) => `- ${s.name}: ${s.description}`);
       return `你可以使用以下技能：\n${lines.join("\n")}\n需要使用某个技能时，调用 read_skill 工具读取完整内容。`;
     }
-  } catch {
-    // skills unavailable
+  } catch (e) {
+    console.warn("[agent] loadSkillCatalog failed, proceeding without skills:", e);
   }
 }

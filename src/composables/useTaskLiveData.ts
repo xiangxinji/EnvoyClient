@@ -14,7 +14,7 @@ export function useTaskLiveData(initialTask: TaskMessage) {
     try {
       const t = await taskService.fetchDetail(liveTask.value.taskId);
       liveTask.value = apiTaskToTaskMessage(t);
-    } catch { /* ignore */ }
+    } catch (e) { console.warn("[taskLiveData] fetchTask failed:", e); }
   }
 
   function onTaskUpdate(task: Task) {

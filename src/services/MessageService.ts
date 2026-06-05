@@ -33,7 +33,8 @@ export class MessageService {
         { team: teamName },
       );
       return true;
-    } catch {
+    } catch (e) {
+      console.warn("[messageService] revoke failed:", e);
       return false;
     }
   }

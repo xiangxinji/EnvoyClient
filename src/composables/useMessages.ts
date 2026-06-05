@@ -61,8 +61,8 @@ export function useMessages(
     // Refresh task statuses — sync API may return stale status for tasks
     // that changed state before this session
     await refreshTaskStatuses();
-    } catch {
-      // no history or server unreachable
+    } catch (e) {
+      console.error("[messages] loadHistory failed:", e);
     }
   }
 
@@ -80,8 +80,8 @@ export function useMessages(
           }
         }
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn("[messages] refreshTaskStatuses failed:", e);
     }
   }
 
@@ -224,7 +224,8 @@ export function useMessages(
         cloudRefs,
       });
       addToConversation(isChannel ? "__team__" : targetId, chatMsg);
-    } catch {
+    } catch (e) {
+      console.error("[messages] sendChat server send failed, using local fallback:", e);
       const chatMsg = buildChatMessage({
         id: `${Date.now()}-local`,
         seq: 0,
