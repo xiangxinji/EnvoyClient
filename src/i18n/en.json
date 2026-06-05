@@ -89,7 +89,24 @@
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar",
     "executionPanel": "Execution",
-    "executionPanelDesc": "Monitor AI Agent task execution in real-time, including reasoning, tool calls, and progress."
+    "executionPanelDesc": "Monitor AI Agent task execution in real-time, including reasoning, tool calls, and progress.",
+    "agents": "Agents",
+    "agentsDesc": "View and manage AI Agent team members including Planner, Executor, Reviewer, and Scorer."
+  },
+  "agent": {
+    "title": "Agents",
+    "subtitle": "AI agent team working together on complex tasks",
+    "running": "Running",
+    "idle": "Idle",
+    "basicInfo": "Basic Info",
+    "maxSteps": "Max Steps",
+    "tools": "Available Tools",
+    "instructions": "System Prompt",
+    "noSelection": "Select an agent to view details",
+    "rolePlanner": "Decompose tasks into structured execution plans",
+    "roleExecutor": "Execute operations using available tools",
+    "roleReviewer": "Review execution results against standards",
+    "roleScorer": "Evaluate task quality across multiple dimensions"
   },
   "chat": {
     "selectPeer": "Select a member to start chatting",

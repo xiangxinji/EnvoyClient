@@ -1,0 +1,14 @@
+scp C:\Users\Administrator\Desktop\EnvoyClient\envoy-manager.tar root@117.72.39.69:~
+ docker stop envoy-manager && docker rm envoy-manager
+  docker load -i envoy-manager.tar
+  docker run -d \
+    --name envoy-manager \
+    -p 443:443 \
+    -p 8080:8080 \
+    -p 3001-3020:3001-3020 \
+    -v envoy-data:/root/.envoy \
+    -e MANAGER_PORT=8080 \
+    -e ENVOY_TEAM_HOST=0.0.0.0 \
+    -e NODE_ENV=production \
+    --restart unless-stopped \
+    envoy-manager

@@ -89,7 +89,24 @@
     "collapse": "收起侧边栏",
     "expand": "展开侧边栏",
     "executionPanel": "执行面板",
-    "executionPanelDesc": "实时查看 AI Agent 任务执行过程，包括推理、工具调用和执行进度。"
+    "executionPanelDesc": "实时查看 AI Agent 任务执行过程，包括推理、工具调用和执行进度。",
+    "agents": "智能体",
+    "agentsDesc": "查看和管理 AI Agent 团队成员，包括规划师、执行者、审查员和评分员。"
+  },
+  "agent": {
+    "title": "智能体",
+    "subtitle": "AI 智能体团队，协同完成复杂任务",
+    "running": "运行中",
+    "idle": "空闲",
+    "basicInfo": "基本信息",
+    "maxSteps": "步骤上限",
+    "tools": "可用工具",
+    "instructions": "系统提示词",
+    "noSelection": "选择一个智能体查看详情",
+    "rolePlanner": "将任务分解为结构化执行计划",
+    "roleExecutor": "使用工具执行具体操作",
+    "roleReviewer": "审查执行结果是否符合标准",
+    "roleScorer": "多维度评估任务质量"
   },
   "chat": {
     "selectPeer": "选择一位成员开始聊天",

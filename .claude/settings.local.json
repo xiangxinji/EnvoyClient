@@ -156,7 +156,17 @@
       "Bash(schtasks //Run //TN \"LaunchApp\")",
       "Bash(schtasks //Delete //TN \"LaunchApp\" //F)",
       "Bash(shutdown *)",
-      "Bash(node C:/Users/Administrator/Desktop/EnvoyClient/shutdown.js)"
+      "Bash(node C:/Users/Administrator/Desktop/EnvoyClient/shutdown.js)",
+      "Bash(docker build *)",
+      "Bash(docker run *)",
+      "Bash(docker save *)",
+      "Bash(ssh *)",
+      "Bash(where ssh *)",
+      "Bash(where sshpass *)",
+      "Bash(pip install *)",
+      "Bash(docker builder prune *)",
+      "Bash(scp *)",
+      "Bash(npx --yes playwright --version)"
     ]
   },
   "enabledPlugins": {
