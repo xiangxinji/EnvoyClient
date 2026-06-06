@@ -36,6 +36,8 @@ interface UseChatSendDeps {
   clearMentions: () => void;
   /** 清空云引用 */
   clearCloudRefs: () => void;
+  /** 清空引用消息 */
+  clearQuotingMsg: () => void;
   /** 生成引用快照文本 */
   generateSnapshotText: (msg: ChatMessage) => string;
 }
