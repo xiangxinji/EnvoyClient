@@ -13,9 +13,9 @@
 
 ---
 
-## P0 — 立即修复
+## P0 — 立即修复 ✅
 
-### P0-1: 路由懒加载
+### P0-1: 路由懒加载 ✅
 
 **文件**: `src/router.ts`
 
@@ -28,7 +28,7 @@ import ChatView from "./views/ChatView";
 { path: "/chat", component: () => import("./views/ChatView") }
 ```
 
-### P0-2: 关键静默错误修复
+### P0-2: 关键静默错误修复 ✅
 
 用户操作失败但无任何反馈的场景：
 
@@ -39,7 +39,7 @@ import ChatView from "./views/ChatView";
 | 历史消息加载失败 | `useMessages.ts` | 仅 `console.error` | 加 toast 提示 |
 | 任务结果提交失败 | `useTaskExecution.ts` | 仅 `console.error` | 加 toast 提示 |
 
-### P0-3: TaskCenterView loading 状态不可见
+### P0-3: TaskCenterView loading 状态不可见 ✅
 
 **文件**: `src/views/TaskCenterView/main.vue`
 
@@ -47,15 +47,15 @@ import ChatView from "./views/ChatView";
 
 ---
 
-## P1 — 近期修复
+## P1 — 近期修复 ✅
 
-### P1-1: QuickSettingsPanel 大量重复模板
+### P1-1: QuickSettingsPanel 大量重复模板 ✅
 
 **文件**: `src/components/QuickSettingsPanel/main.vue` (311 行)
 
 模板中 5 个完全相同的快捷键卡片（约 150 行重复代码）。提取 `ShortcutRow` 子组件，用 `v-for` 渲染。
 
-### P1-2: 组件直接调用 managerFetch（违反架构规范）
+### P1-2: 组件直接调用 managerFetch（违反架构规范） ✅
 
 | 组件 | 应改为 |
 |---|---|
@@ -63,7 +63,7 @@ import ChatView from "./views/ChatView";
 | `LockScreen/main.vue` | 新建 `AuthService.verify()` |
 | `MemberProfilePanel/main.vue` | 补到 `TaskService` 或 `UserProfileService` |
 
-### P1-3: 重复代码提取
+### P1-3: 重复代码提取 ✅
 
 | 重复项 | 出现位置 | 提取目标 |
 |---|---|---|
@@ -71,7 +71,7 @@ import ChatView from "./views/ChatView";
 | `updateIndicator()` | `ActivityBar` + `MemberSidebar` | `useNavIndicator` composable |
 | RSA+public-key fetch | `RoleSelect` + `LockScreen` | `src/utils/auth.ts` |
 
-### P1-4: 移除冗余任务轮询
+### P1-4: 移除冗余任务轮询 ✅
 
 **文件**: `src/views/TaskCenterView/main.vue`
 
