@@ -1,8 +1,4 @@
-import { i18n } from "../i18n";
 import { watch } from "vue";
-import type { MemberInfo } from "../types";
-import type { Message } from "@envoy/core";
-import type { Task } from "../../envoy/packages/core/task.js";
 import { useConnection } from "./useConnection";
 import type { ConnectionStatus, ConnectionClientOptions } from "./useConnection";
 import { useMessages } from "./useMessages";
@@ -12,8 +8,10 @@ import { getMemberSettings, setTeamClientInstance, getTaskService, getBrainsSync
 import { clearCredentials } from "../api";
 import { syncGlossary } from "./useGlossarySync";
 import { useUserProfile } from "./useUserProfile";
-import { sendDesktopNotification, requestTaskbarAttention, updateDockBadge, cancelTaskbarAttention, resetNotificationState } from "../utils/notification";
+import { updateDockBadge, cancelTaskbarAttention, resetNotificationState } from "../utils/notification";
 import { scanOutbox, submitWithRetry, deleteOutbox } from "../utils/outbox";
+import { useTeamClientMessageRouter } from "./useTeamClientMessageRouter";
+import { useTeamClientNotifications } from "./useTeamClientNotifications";
 
 export type { ConnectionStatus };
 export type { ConnectionClientOptions as TeamClientOptions };
@@ -22,8 +20,6 @@ export function useTeamClient(
   role: "leader" | "member",
   options: ConnectionClientOptions,
 ) {
-
-
   // 1. Connection layer
   const conn = useConnection(role, options);
 
@@ -49,13 +45,35 @@ export function useTeamClient(
   const { settings: memberSettings, loadSettings: loadMemberSettings } = getMemberSettings();
   const userProfile = useUserProfile();
 
-  // ─── Glue: bridge connection events to message layer ───
+  // ─── Extracted event handlers ───
+
+  const { routeMessage } = useTeamClientMessageRouter({
+    myId: conn.myId,
+    onMemberUpdate: (members, onlineIds) => {
+      conn.onlineIds.value = onlineIds;
+      if (conn.configuredMembers.value.length === 0) {
+        conn.configuredMembers.value = members.map((m) => ({ ...m, status: "online" as const }));
+      }
+    },
+    onIncomingMessage: msg.handleIncomingMessage,
+    onAutoReply: (from, count) => autoReply.trigger(from, count),
+    aiAutoReplyEnabled: () => memberSettings.value.ai_auto_reply,
+    aiHistoryCount: () => memberSettings.value.ai_suggestion_history_count,
+  });
+
+  const brainsSync = getBrainsSync();
+  const { handleTaskNotification } = useTeamClientNotifications({
+    myId: conn.myId,
+    memberSettings,
+    onBrainsSyncTask: (task) => brainsSync.getTaskListener()?.(task),
+  });
+
+  // ─── Glue: bridge connection events ───
 
   let isFirstConnect = true;
 
   conn.client.on("connected", () => {
     const joinRole = role === "leader" ? "leader" : "member";
-
     if (isFirstConnect) {
       isFirstConnect = false;
     } else {
@@ -64,121 +82,22 @@ export function useTeamClient(
 
     msg.loadHistory();
     loadMemberSettings(conn.myId);
-
-    // Flush outbox: resend any unsent task results
     flushOutbox();
 
-    // Setup brains sync triggers after settings are loaded
-    const brainsSync = getBrainsSync();
     brainsSync.setTeamName(conn.teamName);
     brainsSync.setupTriggers(conn.myId);
     brainsSync.registerTaskListener();
 
-    // Sync glossary to local knowledge base
     syncGlossary(conn.teamName, conn.myId);
 
-    // Load configured members (now includes profile data: nickname, avatar_url)
     conn.loadConfiguredMembers().then(() => {
       userProfile.syncFromMembers(conn.configuredMembers.value);
     });
   });
 
-  conn.client.on("message", (msgObj: Message) => {
-    // team:members handled by connection layer
-    if (msgObj.type === "notify" && msgObj.subtype === "team:members") {
-      const payload = msgObj.payload as { members: MemberInfo[] };
-      conn.onlineIds.value = new Set(payload.members.map((m) => m.id));
-      if (conn.configuredMembers.value.length === 0) {
-        conn.configuredMembers.value = payload.members.map((m) => ({
-          ...m,
-          status: "online" as const,
-        }));
-      }
-      return;
-    }
-
-    // channel-mention notification
-    if (msgObj.type === "notify" && msgObj.subtype === "channel-mention") {
-      const payload = msgObj.payload as { from: string; channel: string; text: string };
-      sendDesktopNotification(
-        `${payload.from} ${i18n.global.t('notification.channelMention', 'mentioned you in #General')}`,
-        payload.text,
-      );
-      requestTaskbarAttention();
-      return;
-    }
-
-    msg.handleIncomingMessage(msgObj);
-
-    // Flash taskbar if message is from someone else (window likely unfocused)
-    if (msgObj.type === "message" && msgObj.from !== conn.myId) {
-      requestTaskbarAttention();
-    }
-
-    // Trigger auto-reply if enabled and message is from someone else (exclude channel messages)
-    if (msgObj.type === "message" && msgObj.subtype === "chat" && msgObj.from !== conn.myId) {
-      const payload = msgObj.payload as { channel?: string };
-      if (payload.channel) return; // Skip auto-reply for channel messages
-      if (memberSettings.value.ai_auto_reply) {
-        autoReply.trigger(msgObj.from, memberSettings.value.ai_suggestion_history_count);
-      }
-    }
-  });
-
+  conn.client.on("message", routeMessage);
   conn.client.on("task", msg.handleTaskUpdate);
-
-  // Track previous task statuses for notification dedup
-  const prevTaskStatus = new Map<string, string>();
-
-  conn.client.on("task", (task: Task) => {
-    const prev = prevTaskStatus.get(task.id);
-    prevTaskStatus.set(task.id, task.status);
-
-    // Skip notification if no previous status (first load) or status unchanged
-    if (!prev || prev === task.status) return;
-
-    const content = task.content.length > 30 ? task.content.slice(0, 30) + "..." : task.content;
-    const myId = conn.myId;
-
-    switch (task.status) {
-      case "running": {
-        // Dispatched to members — notify assigned members (not self if Leader)
-        const isSubscriber = task.subscribe.includes(myId);
-        if (isSubscriber && prev === "pending") {
-          sendDesktopNotification(i18n.global.t('notification.newTask'), content);
-        }
-        break;
-      }
-      case "completed": {
-        // Notify creator + all subscribers, but skip if I triggered it
-        // (Leader approved → skip notifying self)
-        const isRelevant = task.createBy === myId || task.subscribe.includes(myId);
-        if (isRelevant) {
-          sendDesktopNotification(i18n.global.t('notification.taskCompleted'), content);
-        }
-        // Trigger brains sync if after_task is enabled and user is a subscriber
-        if (task.subscribe.includes(myId) && memberSettings.value.brains_sync_triggers.includes("after_task")) {
-          const listener = getBrainsSync().getTaskListener();
-          listener?.(task);
-        }
-        break;
-      }
-      case "failed": {
-        const isRelevant = task.createBy === myId || task.subscribe.includes(myId);
-        if (isRelevant) {
-          sendDesktopNotification(i18n.global.t('notification.taskFailed'), content);
-        }
-        break;
-      }
-      case "reviewing": {
-        // Notify creator (Leader), but skip if I'm the one who just completed
-        if (task.createBy === myId) {
-          sendDesktopNotification(i18n.global.t('notification.taskReviewing'), content);
-        }
-        break;
-      }
-    }
-  });
+  conn.client.on("task", handleTaskNotification);
 
   // Register task execution handler
   taskExec.registerHandler(conn.client);
@@ -198,12 +117,10 @@ export function useTeamClient(
     }
   }
 
-  // Sync unread counts to dock/taskbar badge (macOS Dock, Windows 10+)
+  // Sync unread counts to dock/taskbar badge
   watch(msg.unreadCounts, (counts) => {
     let total = 0;
-    for (const count of counts.values()) {
-      total += count;
-    }
+    for (const count of counts.values()) total += count;
     updateDockBadge(total);
   });
 
@@ -216,7 +133,7 @@ export function useTeamClient(
   function logout() {
     conn.disconnect();
     autoReply.dispose();
-    getBrainsSync().cleanupTriggers();
+    brainsSync.cleanupTriggers();
     updateDockBadge(0);
     cancelTaskbarAttention();
     resetNotificationState();

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { getMemberSettings, getTeamClientInstance } from "../../composables/teamClientContext";
 import BackButton from "../BackButton";
@@ -14,40 +14,41 @@ const ctx = getTeamClientInstance()!;
 const username = ctx.myId;
 const saving = ref(false);
 
-const aiAutoReply = ref(false);
-const aiHistoryCount = ref(5);
+onMounted(() => loadSettings(username));
 
-onMounted(async () => {
-  await loadSettings(username);
-  aiHistoryCount.value = settings.value.ai_suggestion_history_count;
-  aiAutoReply.value = settings.value.ai_auto_reply;
-});
-
-watch(aiAutoReply, async (val) => {
-  if (val === settings.value.ai_auto_reply) return;
-  saving.value = true;
-  try {
-    await saveSettings(username, { ai_auto_reply: val });
-    if (!val) {
-      ctx.autoReplyDispose?.();
+const aiAutoReply = computed({
+  get: () => settings.value.ai_auto_reply,
+  set: async (val: boolean) => {
+    if (val === settings.value.ai_auto_reply) return;
+    saving.value = true;
+    try {
+      await saveSettings(username, { ai_auto_reply: val });
+      if (!val) ctx.autoReplyDispose?.();
+    } catch {
+      // Rollback: getter will re-read settings.value
     }
-  } catch {
-    aiAutoReply.value = settings.value.ai_auto_reply;
-  }
-  saving.value = false;
+    saving.value = false;
+  },
 });
 
-async function saveAiHistoryCount() {
-  const val = Math.max(1, Math.min(50, Math.floor(aiHistoryCount.value) || 5));
-  aiHistoryCount.value = val;
-  if (val === settings.value.ai_suggestion_history_count) return;
-  saving.value = true;
-  try {
-    await saveSettings(username, { ai_suggestion_history_count: val });
-  } catch {
-    aiHistoryCount.value = settings.value.ai_suggestion_history_count;
-  }
-  saving.value = false;
+const aiHistoryCount = computed({
+  get: () => settings.value.ai_suggestion_history_count,
+  set: async (val: number) => {
+    const clamped = Math.max(1, Math.min(50, Math.floor(val) || 5));
+    if (clamped === settings.value.ai_suggestion_history_count) return;
+    saving.value = true;
+    try {
+      await saveSettings(username, { ai_suggestion_history_count: clamped });
+    } catch {
+      // Rollback: getter will re-read settings.value
+    }
+    saving.value = false;
+  },
+});
+
+function commitHistoryCount() {
+  const clamped = Math.max(1, Math.min(50, Math.floor(aiHistoryCount.value) || 5));
+  aiHistoryCount.value = clamped;
 }
 </script>
 
@@ -74,8 +75,8 @@ async function saveAiHistoryCount() {
               type="number"
               min="1"
               max="50"
-              @blur="saveAiHistoryCount"
-              @keydown.enter="saveAiHistoryCount"
+              @blur="commitHistoryCount"
+              @keydown.enter="commitHistoryCount"
             />
             <p class="setting-hint">{{ t('settings.aiHistoryCountHint') }}</p>
           </div>

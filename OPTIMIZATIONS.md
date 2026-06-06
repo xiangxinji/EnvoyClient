@@ -79,30 +79,32 @@ import ChatView from "./views/ChatView";
 
 ---
 
-## P2 — 排期修复
+## P2 — 排期修复 ✅
 
-### P2-1: MessageBubble 加 v-memo
+### P2-1: MessageBubble 加 v-memo ✅
 
 **文件**: `src/components/MessageBubble/main.vue`
 
 50 条消息 = 50 个实例，每次新消息导致全量重渲染。加 `v-memo="[message.id, message.text, selected]"` 阻断不必要的更新。
 
-### P2-2: 大文件拆分（超过 250 行阈值）
+### P2-2: 大文件拆分（超过 250 行阈值） ✅
 
-| 文件 | 行数 | 拆分建议 |
-|---|---|---|
-| `SettingsKnowledge/main.vue` | 313 | 同步逻辑 → composable |
-| `ChatPanel/main.vue` | 304 | → `useChatPanel` composable |
-| `useMessages.ts` | 292 | `sendChat` → `useChatSend` |
-| `CloudResourcesPanel/main.vue` | 283 | → `useCloudFiles` composable |
-| `TaskCenterView/main.vue` | 277 | → composable |
-| `RoleSelect/main.vue` | 269 | → composable |
+| 文件 | 改前行数 | 改后行数 | 拆分方案 |
+|---|---|---|---|
+| `SettingsKnowledge/main.vue` | 313 | 200 | → `useKnowledgeSettings` composable |
+| `ChatPanel/main.vue` | 304 | 274 | → `useChatNewMessageTracker` composable |
+| `RoleSelect/main.vue` | 269 | 103 | → `useAuth` composable |
+| `useTeamClient.ts` | 260 | 177 | → `useTeamClientNotifications` + `useTeamClientMessageRouter` |
+| `TaskCenterView/main.vue` | 277 | 124 | → `useTaskCenterData` composable |
+| `CloudResourcesPanel/main.vue` | 283 | 155 | → `useCloudFiles` composable |
+| `useMessages.ts` | 292 | 244 | `sendChat` → `useChatSend` |
+| `reflectionMemory.ts` | 332 | 103 | → `reflection/` 子模块 (paths/sanitize/textUtils/summarize/markdown) |
 
-### P2-3: taskCount 优化
+### P2-3: taskCount 优化 ✅
 
 **文件**: `src/components/ActivityBar/main.vue`
 
-`taskCount` computed 遍历所有会话所有消息数任务 ID。应改为专用计数器。
+`taskCount` computed 遍历所有会话所有消息数任务 ID。改为专用计数器。
 
 ---
 

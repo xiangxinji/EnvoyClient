@@ -10,6 +10,7 @@ import { useCloudMention } from "../../composables/useCloudMention";
 import { useMultiSelect } from "../../composables/useMultiSelect";
 import { useMessageContextMenu } from "../../composables/useMessageContextMenu";
 import { useChatSend } from "../../composables/useChatSend";
+import { useChatNewMessageTracker } from "../../composables/useChatNewMessageTracker";
 import MessageBubble from "../MessageBubble";
 import { useUserProfile } from "../../composables/useUserProfile";
 import TaskCard from "../TaskCard";
@@ -56,6 +57,7 @@ const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm
 
 const conversation = computed<TimelineItem[]>(() => props.peerId ? getConversation(props.peerId) : []);
 const { visibleMessages, hasMoreHistory, loadingMore, handleScroll, resetDisplayCount, loadAll } = useMessagePagination(conversation, messageList);
+const { newMessageIds, resetDisplayCountWithConv } = useChatNewMessageTracker({ conversation, messageList, resetDisplayCount });
 const { pendingFiles, uploading, attachmentError, handlePickAttachment, removeFile, uploadImages } = useFileUpload(myId, teamName);
 const { currentMentions, mentionPopupVisible, mentionQuery, mentionPopupRef, handleEditorInput, handleMentionSelect, handleMentionClose, handleEditorKeydown, clearMentions } = useMentionSystem(() => isChannel.value, () => members.value, richEditorRef);
 const { cloudPopupVisible, cloudQuery, cloudPopupRef, handleEditorInput: handleCloudEditorInput, handleCloudSelect, handleCloudClose, handleCloudKeydown, clearCloudRefs, pendingCloudRefs, removeCloudRef } = useCloudMention();
@@ -103,38 +105,6 @@ onMounted(() => {
     });
   });
 });
-
-// Track new messages for animation
-const newMessageIds = ref<Set<string>>(new Set());
-let prevConvLength = 0;
-
-watch(
-  () => conversation.value.length,
-  async (newLen) => {
-    await nextTick();
-    if (newLen > prevConvLength) {
-      const added = newLen - prevConvLength;
-      const ids = new Set<string>();
-      for (let i = newLen - added; i < newLen; i++) {
-        ids.add(conversation.value[i].id);
-      }
-      newMessageIds.value = ids;
-      setTimeout(() => { newMessageIds.value = new Set(); }, 700);
-    }
-    prevConvLength = newLen;
-    // Scroll to bottom on new message
-    if (messageList.value) {
-      messageList.value.scrollTop = messageList.value.scrollHeight;
-    }
-  },
-  { flush: 'post' }
-);
-
-function resetDisplayCountWithConv() {
-  resetDisplayCount();
-  prevConvLength = conversation.value.length;
-  newMessageIds.value = new Set();
-}
 
 function handleClearChat() { const peerDisplay = isChannel.value ? t('sidebar.channelGeneral') : getDisplayName(props.peerId); menuOpen.value = false; showConfirm(t('chat.confirmClearTitle'), t('chat.confirmClearMsg', { peer: peerDisplay }), () => { if (!props.peerId) return; clearConversation(props.peerId); showToast(t('chat.cleared', { peer: peerDisplay }), "success"); }, true); }
 function handleDispatchTask() { const c = taskContent.value.trim(); if (!c) return; dispatchTask([props.peerId], c); taskContent.value = ""; taskInputVisible.value = false; }
