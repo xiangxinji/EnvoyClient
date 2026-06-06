@@ -3,6 +3,7 @@ import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { useTaskCenterExecution } from "../../composables/useTaskCenterExecution";
+import { useToast } from "../../composables/useToast";
 import { managerFetch } from "../../api";
 import TaskCard from "../../components/TaskCard";
 import SvgIcon from "../../components/SvgIcon";
@@ -12,6 +13,7 @@ import type { ClientTask } from "../../../envoy/packages/client/client.js";
 import { apiTaskToTaskMessage, type ApiTask } from "../../utils/taskFormatters";
 
 const { t } = useI18n();
+const { showToast } = useToast();
 
 const ctx = getTeamClientInstance()!;
 const { teamName, myId, role, currentClientTask, currentReviewTask, clientTaskQueue, isReviewing, resolveCurrentTask, resolveCurrentReview, setAutoExecutor } = ctx;
@@ -26,19 +28,19 @@ const taskExec = role === "member"
   : null;
 
 const tasks = ref<TaskMessage[]>([]);
-let loading = false;
+const loading = ref(false);
 
 async function fetchTasks() {
-  if (loading) return;
-  loading = true;
+  if (loading.value) return;
+  loading.value = true;
   try {
     const res = await managerFetch(`/api/teams/${encodeURIComponent(teamName)}/tasks`);
     const data = await res.json() as ApiTask[];
     tasks.value = data.map(apiTaskToTaskMessage);
-  } catch {
-    // server unreachable, keep existing data
+  } catch (e: unknown) {
+    showToast(t('common.operationFailed'), "error");
   } finally {
-    loading = false;
+    loading.value = false;
   }
 }
 
@@ -165,17 +167,13 @@ const statusGroups = computed(() => [
   { key: "failed", label: t('task.status.failed'), tasks: groupedTasks.value.failed },
 ]);
 
-let refreshTimer: ReturnType<typeof setInterval> | undefined;
-
 onMounted(async () => {
   await fetchTasks();
   ctx.client?.on("task", onTaskUpdate);
-  refreshTimer = setInterval(fetchTasks, 30000);
 });
 
 onUnmounted(() => {
   ctx.client?.off("task", onTaskUpdate);
-  if (refreshTimer) clearInterval(refreshTimer);
 });
 </script>
 

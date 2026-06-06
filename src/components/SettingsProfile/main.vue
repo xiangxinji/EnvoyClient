@@ -97,7 +97,7 @@ async function triggerAvatarUpload() {
     await ctx.loadConfiguredMembers();
     syncFromMembers(ctx.configuredMembers.value);
   } catch {
-    // silently fail
+    showToast(t('common.operationFailed'), "error");
   }
   avatarUploading.value = false;
 }
