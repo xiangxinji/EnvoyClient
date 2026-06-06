@@ -35,8 +35,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { getManagerUrl, managerFetch } from "../../api";
-import { rsaEncrypt } from "../../utils/rsa";
+import { verifyPassword } from "../../services/AuthService";
 import { useLockScreen } from "../../composables/useLockScreen";
 import { useMouseGradient } from "../../composables/useMouseGradient";
 import GlassInput from "../GlassInput";
@@ -80,18 +79,7 @@ async function handleUnlock() {
   error.value = "";
 
   try {
-    const base = getManagerUrl();
-    const keyRes = await fetch(`${base}/api/public-key`);
-    if (!keyRes.ok) throw new Error(t("role.fetchKeyFailed"));
-    const { key: pubKey } = await keyRes.json();
-    const encrypted = await rsaEncrypt(pubKey, password.value);
-
-    await managerFetch("/api/auth/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: props.username, password: encrypted }),
-    });
-
+    await verifyPassword(props.username, password.value);
     emit("unlock");
   } catch (e: unknown) {
     error.value = t("lock.invalidPassword");

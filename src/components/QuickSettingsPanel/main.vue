@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, type Ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { getMemberSettings, getTeamClientInstance } from "../../composables/teamClientContext";
 import { isRecordingShortcut, buildCombo } from "../../composables/useGlobalShortcuts";
 import BackButton from "../BackButton";
-import SvgIcon from "../SvgIcon";
+import ShortcutRow from "../ShortcutRow/main.vue";
 
 useI18n();
 
@@ -19,19 +19,37 @@ const { settings, loadSettings, saveSettings } = getMemberSettings();
 const username = ctx.myId;
 
 const recording = ref<ShortcutType | null>(null);
-const shortcutAutoReply = ref("");
-const shortcutExecutionMode = ref("");
-const shortcutLockScreen = ref("");
-const shortcutSyncNow = ref("");
-const shortcutRestoreBrains = ref("");
+
+// Shared field/ref mapping (defined once, used by both handleRecordingKey and clearShortcut)
+const shortcutDefs: { type: ShortcutType; field: string }[] = [
+  { type: "auto_reply", field: "shortcut_auto_reply" },
+  { type: "execution_mode", field: "shortcut_execution_mode" },
+  { type: "lock_screen", field: "shortcut_lock_screen" },
+  { type: "sync_now", field: "shortcut_sync_now" },
+  { type: "restore_brains", field: "shortcut_restore_brains" },
+];
+
+const shortcutRefs = Object.fromEntries(shortcutDefs.map((d) => [d.type, ref("")])) as Record<ShortcutType, Ref<string>>;
+
+const shortcutItems: { type: ShortcutType; labelKey: string; descKey: string; section?: string }[] = [
+  { type: "execution_mode", labelKey: "shortcut.aiTaskMode", descKey: "shortcut.aiTaskModeDesc" },
+  { type: "auto_reply", labelKey: "shortcut.aiAutoReply", descKey: "shortcut.aiAutoReplyDesc" },
+  { type: "sync_now", labelKey: "shortcut.syncNow", descKey: "shortcut.syncNowDesc" },
+  { type: "restore_brains", labelKey: "shortcut.restoreBrains", descKey: "shortcut.restoreBrainsDesc" },
+  { type: "lock_screen", labelKey: "shortcut.lockScreen", descKey: "shortcut.lockScreenDesc" },
+];
+
+const sections = [
+  { labelKey: "shortcut.sectionAI", types: ["execution_mode", "auto_reply"] as ShortcutType[] },
+  { labelKey: "shortcut.sectionKnowledge", types: ["sync_now", "restore_brains"] as ShortcutType[] },
+  { labelKey: "shortcut.sectionSystem", types: ["lock_screen"] as ShortcutType[] },
+];
 
 onMounted(async () => {
   await loadSettings(username);
-  shortcutAutoReply.value = settings.value.shortcut_auto_reply;
-  shortcutExecutionMode.value = settings.value.shortcut_execution_mode;
-  shortcutLockScreen.value = settings.value.shortcut_lock_screen;
-  shortcutSyncNow.value = settings.value.shortcut_sync_now;
-  shortcutRestoreBrains.value = settings.value.shortcut_restore_brains;
+  for (const d of shortcutDefs) {
+    shortcutRefs[d.type].value = (settings.value as unknown as Record<string, string>)[d.field] ?? "";
+  }
   window.addEventListener("keydown", handleRecordingKey, true);
 });
 
@@ -65,43 +83,17 @@ function handleRecordingKey(e: KeyboardEvent) {
   if (!combo) return;
 
   const type = recording.value;
-  const fieldMap: Record<ShortcutType, string> = {
-    auto_reply: "shortcut_auto_reply",
-    execution_mode: "shortcut_execution_mode",
-    lock_screen: "shortcut_lock_screen",
-    sync_now: "shortcut_sync_now",
-    restore_brains: "shortcut_restore_brains",
-  };
-  const refMap: Record<ShortcutType, typeof shortcutAutoReply> = {
-    auto_reply: shortcutAutoReply,
-    execution_mode: shortcutExecutionMode,
-    lock_screen: shortcutLockScreen,
-    sync_now: shortcutSyncNow,
-    restore_brains: shortcutRestoreBrains,
-  };
-  saveSettings(username, { [fieldMap[type]]: combo });
-  refMap[type].value = combo;
+  const def = shortcutDefs.find((d) => d.type === type)!;
+  saveSettings(username, { [def.field]: combo });
+  shortcutRefs[type].value = combo;
 
   cancelRecording();
 }
 
 function clearShortcut(type: ShortcutType) {
-  const fieldMap: Record<ShortcutType, string> = {
-    auto_reply: "shortcut_auto_reply",
-    execution_mode: "shortcut_execution_mode",
-    lock_screen: "shortcut_lock_screen",
-    sync_now: "shortcut_sync_now",
-    restore_brains: "shortcut_restore_brains",
-  };
-  const refMap: Record<ShortcutType, typeof shortcutAutoReply> = {
-    auto_reply: shortcutAutoReply,
-    execution_mode: shortcutExecutionMode,
-    lock_screen: shortcutLockScreen,
-    sync_now: shortcutSyncNow,
-    restore_brains: shortcutRestoreBrains,
-  };
-  saveSettings(username, { [fieldMap[type]]: "" });
-  refMap[type].value = "";
+  const def = shortcutDefs.find((d) => d.type === type)!;
+  saveSettings(username, { [def.field]: "" });
+  shortcutRefs[type].value = "";
 }
 </script>
 
@@ -113,179 +105,19 @@ function clearShortcut(type: ShortcutType) {
     </div>
 
     <div class="quick-panel-body">
-      <!-- AI Section -->
-      <div class="shortcut-section-label">{{ $t('shortcut.sectionAI') }}</div>
-
-      <div class="shortcut-card">
-        <div class="shortcut-info">
-          <span class="shortcut-label">{{ $t('shortcut.aiTaskMode') }}</span>
-          <span class="shortcut-desc">{{ $t('shortcut.aiTaskModeDesc') }}</span>
-        </div>
-        <div class="shortcut-actions">
-          <button
-            class="key-badge"
-            :class="{ recording: recording === 'execution_mode' }"
-            @click="startRecording('execution_mode')"
-          >
-            <template v-if="recording === 'execution_mode'">
-              <span class="recording-dot" />
-              {{ $t('shortcut.pressing') }}
-            </template>
-            <template v-else-if="shortcutExecutionMode">
-              {{ shortcutExecutionMode }}
-            </template>
-            <template v-else>
-              {{ $t('shortcut.clickToRecord') }}
-            </template>
-          </button>
-          <button
-            v-if="shortcutExecutionMode && recording !== 'execution_mode'"
-            class="clear-btn"
-            :title="$t('shortcut.clearShortcut')"
-            @click="clearShortcut('execution_mode')"
-          >
-            <SvgIcon name="close" :size="12" />
-          </button>
-        </div>
-      </div>
-
-      <div class="shortcut-card">
-        <div class="shortcut-info">
-          <span class="shortcut-label">{{ $t('shortcut.aiAutoReply') }}</span>
-          <span class="shortcut-desc">{{ $t('shortcut.aiAutoReplyDesc') }}</span>
-        </div>
-        <div class="shortcut-actions">
-          <button
-            class="key-badge"
-            :class="{ recording: recording === 'auto_reply' }"
-            @click="startRecording('auto_reply')"
-          >
-            <template v-if="recording === 'auto_reply'">
-              <span class="recording-dot" />
-              {{ $t('shortcut.pressing') }}
-            </template>
-            <template v-else-if="shortcutAutoReply">
-              {{ shortcutAutoReply }}
-            </template>
-            <template v-else>
-              {{ $t('shortcut.clickToRecord') }}
-            </template>
-          </button>
-          <button
-            v-if="shortcutAutoReply && recording !== 'auto_reply'"
-            class="clear-btn"
-            :title="$t('shortcut.clearShortcut')"
-            @click="clearShortcut('auto_reply')"
-          >
-            <SvgIcon name="close" :size="12" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Knowledge Base Section -->
-      <div class="shortcut-section-label">{{ $t('shortcut.sectionKnowledge') }}</div>
-
-      <div class="shortcut-card">
-        <div class="shortcut-info">
-          <span class="shortcut-label">{{ $t('shortcut.syncNow') }}</span>
-          <span class="shortcut-desc">{{ $t('shortcut.syncNowDesc') }}</span>
-        </div>
-        <div class="shortcut-actions">
-          <button
-            class="key-badge"
-            :class="{ recording: recording === 'sync_now' }"
-            @click="startRecording('sync_now')"
-          >
-            <template v-if="recording === 'sync_now'">
-              <span class="recording-dot" />
-              {{ $t('shortcut.pressing') }}
-            </template>
-            <template v-else-if="shortcutSyncNow">
-              {{ shortcutSyncNow }}
-            </template>
-            <template v-else>
-              {{ $t('shortcut.clickToRecord') }}
-            </template>
-          </button>
-          <button
-            v-if="shortcutSyncNow && recording !== 'sync_now'"
-            class="clear-btn"
-            :title="$t('shortcut.clearShortcut')"
-            @click="clearShortcut('sync_now')"
-          >
-            <SvgIcon name="close" :size="12" />
-          </button>
-        </div>
-      </div>
-
-      <div class="shortcut-card">
-        <div class="shortcut-info">
-          <span class="shortcut-label">{{ $t('shortcut.restoreBrains') }}</span>
-          <span class="shortcut-desc">{{ $t('shortcut.restoreBrainsDesc') }}</span>
-        </div>
-        <div class="shortcut-actions">
-          <button
-            class="key-badge"
-            :class="{ recording: recording === 'restore_brains' }"
-            @click="startRecording('restore_brains')"
-          >
-            <template v-if="recording === 'restore_brains'">
-              <span class="recording-dot" />
-              {{ $t('shortcut.pressing') }}
-            </template>
-            <template v-else-if="shortcutRestoreBrains">
-              {{ shortcutRestoreBrains }}
-            </template>
-            <template v-else>
-              {{ $t('shortcut.clickToRecord') }}
-            </template>
-          </button>
-          <button
-            v-if="shortcutRestoreBrains && recording !== 'restore_brains'"
-            class="clear-btn"
-            :title="$t('shortcut.clearShortcut')"
-            @click="clearShortcut('restore_brains')"
-          >
-            <SvgIcon name="close" :size="12" />
-          </button>
-        </div>
-      </div>
-
-      <!-- System Section -->
-      <div class="shortcut-section-label">{{ $t('shortcut.sectionSystem') }}</div>
-
-      <div class="shortcut-card">
-        <div class="shortcut-info">
-          <span class="shortcut-label">{{ $t('shortcut.lockScreen') }}</span>
-          <span class="shortcut-desc">{{ $t('shortcut.lockScreenDesc') }}</span>
-        </div>
-        <div class="shortcut-actions">
-          <button
-            class="key-badge"
-            :class="{ recording: recording === 'lock_screen' }"
-            @click="startRecording('lock_screen')"
-          >
-            <template v-if="recording === 'lock_screen'">
-              <span class="recording-dot" />
-              {{ $t('shortcut.pressing') }}
-            </template>
-            <template v-else-if="shortcutLockScreen">
-              {{ shortcutLockScreen }}
-            </template>
-            <template v-else>
-              {{ $t('shortcut.clickToRecord') }}
-            </template>
-          </button>
-          <button
-            v-if="shortcutLockScreen && recording !== 'lock_screen'"
-            class="clear-btn"
-            :title="$t('shortcut.clearShortcut')"
-            @click="clearShortcut('lock_screen')"
-          >
-            <SvgIcon name="close" :size="12" />
-          </button>
-        </div>
-      </div>
+      <template v-for="(section, si) in sections" :key="si">
+        <div class="shortcut-section-label">{{ $t(section.labelKey) }}</div>
+        <ShortcutRow
+          v-for="item in section.types"
+          :key="item"
+          :label="$t(shortcutItems.find(s => s.type === item)!.labelKey)"
+          :desc="$t(shortcutItems.find(s => s.type === item)!.descKey)"
+          :shortcut="shortcutRefs[item].value"
+          :is-recording="recording === item"
+          @record="startRecording(item)"
+          @clear="clearShortcut(item)"
+        />
+      </template>
 
       <p class="shortcut-hint">
         {{ $t('shortcut.recordHint') }}

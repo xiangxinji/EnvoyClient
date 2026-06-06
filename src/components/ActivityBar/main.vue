@@ -2,6 +2,7 @@
 import { computed, ref, watch, nextTick, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { getTeamClientInstance, getMemberSettings } from "../../composables/teamClientContext";
+import { formatBadge } from "../../utils/formatting";
 import ToolHoverCard from "../ToolHoverCard";
 import { useHoverCard } from "../../composables/useHoverCard";
 import SvgIcon from "../SvgIcon";
@@ -87,10 +88,7 @@ const taskCount = computed(() => {
   return count;
 });
 
-function formatBadge(count: number): string {
-  if (count > 99) return "99+";
-  return String(count);
-}
+
 
 async function handleToggleExecutionMode() {
   await toggleExecutionMode(myId);

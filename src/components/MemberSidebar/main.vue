@@ -3,6 +3,7 @@ import { computed, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { apiUrl } from "../../api";
+import { formatBadge } from "../../utils/formatting";
 import GlassInput from "../GlassInput";
 import MemberHoverCard from "../MemberHoverCard";
 import { useSidebarSearch } from "../../composables/useSidebarSearch";
@@ -119,10 +120,7 @@ function handleClick(peerId: string) {
   emit("select", peerId);
 }
 
-function formatBadge(count: number): string {
-  if (count > 99) return "99+";
-  return String(count);
-}
+
 
 const sidebarNavRef = ref<HTMLElement | null>(null);
 const indicatorRef = ref<HTMLElement | null>(null);

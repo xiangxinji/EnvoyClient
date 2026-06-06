@@ -4,19 +4,20 @@ import { useI18n } from "vue-i18n";
 import { getTeamClientInstance } from "../../composables/teamClientContext";
 import { useTaskCenterExecution } from "../../composables/useTaskCenterExecution";
 import { useToast } from "../../composables/useToast";
-import { managerFetch } from "../../api";
+import { TaskService } from "../../services/TaskService";
 import TaskCard from "../../components/TaskCard";
 import SvgIcon from "../../components/SvgIcon";
 import type { TaskMessage } from "../../types";
 import type { Task } from "../../../envoy/packages/core/task.js";
 import type { ClientTask } from "../../../envoy/packages/client/client.js";
-import { apiTaskToTaskMessage, type ApiTask } from "../../utils/taskFormatters";
+import { apiTaskToTaskMessage } from "../../utils/taskFormatters";
 
 const { t } = useI18n();
 const { showToast } = useToast();
 
 const ctx = getTeamClientInstance()!;
 const { teamName, myId, role, currentClientTask, currentReviewTask, clientTaskQueue, isReviewing, resolveCurrentTask, resolveCurrentReview, setAutoExecutor } = ctx;
+const taskService = new TaskService(() => ({ myId, teamName }));
 
 const emit = defineEmits<{
   selectTask: [task: TaskMessage];
@@ -34,8 +35,7 @@ async function fetchTasks() {
   if (loading.value) return;
   loading.value = true;
   try {
-    const res = await managerFetch(`/api/teams/${encodeURIComponent(teamName)}/tasks`);
-    const data = await res.json() as ApiTask[];
+    const data = await taskService.listTasks();
     tasks.value = data.map(apiTaskToTaskMessage);
   } catch (e: unknown) {
     showToast(t('common.operationFailed'), "error");

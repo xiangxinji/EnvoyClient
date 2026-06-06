@@ -3,13 +3,14 @@ import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useUserProfile } from "../../composables/useUserProfile";
 import { getTeamClientInstance } from "../../composables/teamClientContext";
-import { managerFetch } from "../../api";
+import { TaskService } from "../../services/TaskService";
 import SvgIcon from "../SvgIcon";
 import BackButton from "../BackButton";
 
 const { t } = useI18n();
 const { getDisplayName, getAvatarUrl, getInitial, loadProfiles, getProfile } = useUserProfile();
 const ctx = getTeamClientInstance()!;
+const taskService = new TaskService(() => ({ myId: ctx.myId, teamName: ctx.teamName }));
 
 const props = defineProps<{ username: string }>();
 const emit = defineEmits<{
@@ -41,8 +42,8 @@ const statsLoading = ref(false);
 async function loadTaskStats() {
   statsLoading.value = true;
   try {
-    const res = await managerFetch(`/api/teams/${ctx.teamName}/members/${props.username}/task-stats`);
-    taskStats.value = await res.json();
+    const data = await taskService.getTaskStats(props.username);
+    taskStats.value = { pending: data.pending ?? 0, running: data.running ?? 0, reviewing: data.reviewing ?? 0, completed: data.completed ?? 0, failed: data.failed ?? 0 };
   } catch (e) {
     console.error("[MemberProfilePanel] loadTaskStats failed:", e);
     taskStats.value = { pending: 0, running: 0, reviewing: 0, completed: 0, failed: 0 };

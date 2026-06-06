@@ -41,6 +41,18 @@ export class TaskService {
     return res.json() as Promise<ApiTask>;
   }
 
+  async listTasks(): Promise<ApiTask[]> {
+    const { teamName } = this.getConfig();
+    const res = await managerFetch(`/api/teams/${encodeURIComponent(teamName)}/tasks`);
+    return res.json() as Promise<ApiTask[]>;
+  }
+
+  async getTaskStats(memberId: string): Promise<Record<string, number>> {
+    const { teamName } = this.getConfig();
+    const res = await managerFetch(`/api/teams/${encodeURIComponent(teamName)}/members/${memberId}/task-stats`);
+    return res.json() as Promise<Record<string, number>>;
+  }
+
   downloadResourceUrl(taskId: string, filename: string): string {
     return apiUrl(`/api/tasks/${taskId}/resources/${encodeURIComponent(filename)}`);
   }
