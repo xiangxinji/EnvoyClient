@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import type { Message } from "@envoy/core";
 import type { TimelineItem, TaskMessage, TaskResource, MessageAttachment, RevokedNotice, ForwardedRecord, QuoteInfo, StickerInfo, CloudRef } from "../types";
 import { managerFetch, apiUrl } from "../api";
@@ -275,9 +275,23 @@ export function useMessages(
     return true;
   }
 
+  /** Count unique task IDs across all conversations (for badge display) */
+  const uniqueTaskCount = computed(() => {
+    const seen = new Set<string>();
+    for (const items of messages.value.values()) {
+      for (const item of items) {
+        if (item.type === "task" && !seen.has(item.taskId)) {
+          seen.add(item.taskId);
+        }
+      }
+    }
+    return seen.size;
+  });
+
   return {
     messages,
     unreadCounts,
+    uniqueTaskCount,
     getConversation,
     addToConversation,
     incrementUnread,

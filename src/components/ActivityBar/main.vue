@@ -20,7 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const ctx = getTeamClientInstance()!;
-const { messages, myId, userProfile } = ctx;
+const { uniqueTaskCount, myId, userProfile } = ctx;
 const { settings: memberSettings, toggleAutoReply, toggleExecutionMode } = getMemberSettings();
 
 const myAvatarUrl = computed(() => userProfile.getAvatarUrl(myId));
@@ -74,19 +74,8 @@ const menuItems = [
   { id: "__settings_profile__", icon: "user" as const, labelKey: "sidebar.profile" },
 ];
 
-const taskCount = computed(() => {
-  let count = 0;
-  const seen = new Set<string>();
-  for (const items of messages.value.values()) {
-    for (const item of items) {
-      if (item.type === "task" && !seen.has(item.taskId)) {
-        seen.add(item.taskId);
-        count++;
-      }
-    }
-  }
-  return count;
-});
+// uniqueTaskCount is maintained by useMessages (no full-scan needed)
+const taskCount = uniqueTaskCount;
 
 
 

@@ -125,7 +125,7 @@ function bubbleClick(e: MouseEvent) {
 
 <template>
   <!-- Channel: other's message -->
-  <div v-if="isChannel && !message.mine" class="bubble-row channel-row" :class="{ 'msg-pop-in': isNew }" :data-id="message.id">
+  <div v-if="isChannel && !message.mine" v-memo="[message.text, message.sticker?.url, message.attachments, selected, selectMode]" class="bubble-row channel-row" :class="{ 'msg-pop-in': isNew }" :data-id="message.id">
     <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
       <SvgIcon v-if="selected" name="check" :size="14" />
     </div>
@@ -157,7 +157,7 @@ function bubbleClick(e: MouseEvent) {
   </div>
 
   <!-- Channel: my message -->
-  <div v-else-if="isChannel && message.mine" class="bubble-row channel-row mine" :class="{ 'msg-pop-in': isNew }" :data-id="message.id">
+  <div v-else-if="isChannel && message.mine" v-memo="[message.text, message.sticker?.url, message.attachments, selected, selectMode]" class="bubble-row channel-row mine" :class="{ 'msg-pop-in': isNew }" :data-id="message.id">
     <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
       <SvgIcon v-if="selected" name="check" :size="14" />
     </div>
@@ -191,7 +191,7 @@ function bubbleClick(e: MouseEvent) {
 
   <!-- DM -->
   <template v-else>
-  <div class="bubble-row" :class="{ mine: message.mine, 'msg-pop-in': isNew }" :data-id="message.id">
+  <div class="bubble-row" :class="{ mine: message.mine, 'msg-pop-in': isNew }" :data-id="message.id" v-memo="[message.text, message.sticker?.url, message.attachments, message.mine, selected, selectMode]">
     <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
       <SvgIcon v-if="selected" name="check" :size="14" />
     </div>

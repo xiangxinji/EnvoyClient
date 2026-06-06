@@ -240,6 +240,7 @@ export function useTeamClient(
     resolveCurrentReview: taskExec.resolveCurrentReview,
     setAutoExecutor: taskExec.setAutoExecutor,
     messages: msg.messages,
+    uniqueTaskCount: msg.uniqueTaskCount,
     unreadCounts: msg.unreadCounts,
     connect: conn.connect,
     disconnect: conn.disconnect,
