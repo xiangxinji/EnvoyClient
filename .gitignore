@@ -40,3 +40,4 @@ src-tauri/gen
 *.njsproj
 *.sln
 *.sw?
+envoy-manager.tar
