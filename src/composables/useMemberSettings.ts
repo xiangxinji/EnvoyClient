@@ -13,6 +13,7 @@ export interface MemberSettings {
   shortcut_lock_screen: string;
   shortcut_sync_now: string;
   shortcut_restore_brains: string;
+  shortcut_screenshot: string;
   brains_sync_triggers: ("interval" | "after_task")[];
   brains_sync_interval_hours: number;
   brains_sync_interval_minutes: number;
@@ -32,6 +33,7 @@ const DEFAULT_SETTINGS: MemberSettings = {
   shortcut_lock_screen: "",
   shortcut_sync_now: "",
   shortcut_restore_brains: "",
+  shortcut_screenshot: "Alt+A",
   brains_sync_triggers: [],
   brains_sync_interval_hours: 1,
   brains_sync_interval_minutes: 30,
@@ -48,6 +50,7 @@ const FIELD_TYPES: Record<SettingKey, FieldType> = {
   shortcut_lock_screen: "string",
   shortcut_sync_now: "string",
   shortcut_restore_brains: "string",
+  shortcut_screenshot: "string",
   brains_sync_triggers: "array",
   brains_sync_interval_hours: "number",
   brains_sync_interval_minutes: "number",

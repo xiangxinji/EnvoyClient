@@ -8,9 +8,11 @@ import Text from "@tiptap/extension-text";
 import HardBreak from "@tiptap/extension-hard-break";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
+import { useFullscreenViewer } from "../../composables/useFullscreenViewer";
 import type { ContentSegment } from "../../types";
 
 const { t } = useI18n();
+const viewer = useFullscreenViewer();
 
 export interface PendingImage {
   blob: Blob;
@@ -175,6 +177,17 @@ function focus() {
   editor.value?.commands.focus();
 }
 
+function handleEditorClick(e: MouseEvent) {
+  const img = (e.target as HTMLElement).closest("img") as HTMLImageElement | null;
+  if (img?.src) {
+    e.preventDefault();
+    e.stopPropagation();
+    viewer.openFullscreen(img.src);
+    return;
+  }
+  focus();
+}
+
 function isEmpty(): boolean {
   if (!editor.value) return true;
   return editor.value.isEmpty && pendingImages.value.length === 0;
@@ -195,7 +208,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="rich-editor" :class="{ disabled }" @click="focus">
+  <div class="rich-editor" :class="{ disabled }" @click="handleEditorClick">
     <EditorContent :editor="editor" class="editor-content" />
   </div>
 </template>

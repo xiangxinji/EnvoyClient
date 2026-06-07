@@ -161,7 +161,9 @@
     "quotePlaceholderFile": "[File]",
     "quotePlaceholderForwarded": "[Chat History]",
     "quotePlaceholderSticker": "[Sticker]",
-    "quotePlaceholderCloudRef": "[Cloud Resource]"
+    "quotePlaceholderCloudRef": "[Cloud Resource]",
+    "screenshot": "Screenshot",
+    "screenshotHint": "Drag to select area, press Esc to cancel"
   },
   "sticker": {
     "empty": "No stickers yet",
@@ -361,6 +363,8 @@
     "restoreBrainsDesc": "Immediately restore knowledge base from cloud to local",
     "lockScreen": "Lock Screen",
     "lockScreenDesc": "Lock the screen with one click, requires password to unlock",
+    "screenshot": "Screenshot",
+    "screenshotDesc": "Capture screen area and insert into chat editor",
     "recordHint": "At least one modifier key (Ctrl / Alt / Meta) is required. Press Esc to cancel recording"
   },
   "cloud": {

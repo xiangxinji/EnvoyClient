@@ -83,6 +83,7 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
     if (s.shortcut_lock_screen) desired.add(s.shortcut_lock_screen);
     if (s.shortcut_sync_now) desired.add(s.shortcut_sync_now);
     if (s.shortcut_restore_brains) desired.add(s.shortcut_restore_brains);
+    if (s.shortcut_screenshot) desired.add(s.shortcut_screenshot);
 
     // Unregister removed shortcuts
     for (const combo of registeredShortcuts) {
@@ -111,6 +112,8 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
   }
 
   async function handleShortcutFired(combo: string) {
+    if (isRecordingShortcut.value) return;
+
     const s = settings.value;
 
     if (s.shortcut_auto_reply && combo === s.shortcut_auto_reply) {
@@ -158,6 +161,13 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
         sendDesktopNotification(i18n.global.t('notification.shortcutTitle'), i18n.global.t('common.operationFailed'));
       }
     }
+
+    if (s.shortcut_screenshot && combo === s.shortcut_screenshot) {
+      try {
+        const { useScreenshot } = await import("./useScreenshot");
+        await useScreenshot().triggerScreenshot();
+      } catch { /* ignore */ }
+    }
   }
 
   // Watch settings changes and re-register
@@ -168,7 +178,7 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
     await updateRegistrations();
 
     stopWatch = watch(
-      () => [settings.value.shortcut_auto_reply, settings.value.shortcut_execution_mode, settings.value.shortcut_lock_screen, settings.value.shortcut_sync_now, settings.value.shortcut_restore_brains],
+      () => [settings.value.shortcut_auto_reply, settings.value.shortcut_execution_mode, settings.value.shortcut_lock_screen, settings.value.shortcut_sync_now, settings.value.shortcut_restore_brains, settings.value.shortcut_screenshot],
       () => updateRegistrations(),
     );
   });

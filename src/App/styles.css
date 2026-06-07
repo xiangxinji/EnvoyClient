@@ -30,6 +30,18 @@ html, body {
   z-index: 1;
 }
 
+#app:has(.screenshot-shell) {
+  border-radius: 0;
+  background: #000;
+}
+
+.screenshot-shell {
+  background: #000;
+  -webkit-app-region: no-drag;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 input, button, textarea {
   font-family: inherit;
   font-size: inherit;

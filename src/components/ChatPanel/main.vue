@@ -21,10 +21,13 @@ import ForwardDialog from "../ForwardDialog";
 import MentionPopup from "../MentionPopup";
 import CloudMentionPopup from "../CloudMentionPopup";
 import StickerPanel from "../StickerPanel";
+import ImageViewerOverlay from "../ImageViewerOverlay";
 import { useToast } from "../../composables/useToast";
 import { useConfirm } from "../../composables/useConfirm";
 import SvgIcon from "../SvgIcon";
 import GlassInput from "../GlassInput";
+import { useScreenshot } from "../../composables/useScreenshot";
+import { isTauri } from "../../utils/platform";
 import type { TimelineItem, ChatMessage, TaskMessage } from "../../types";
 import { formatFileSize } from "../../utils/taskFormatters";
 
@@ -85,6 +88,7 @@ const { handleSegmentedSend } = useChatSend({
 // AI
 const { suggestion, isStreaming, aiError, aiAvailable, suggestReply, acceptSuggestion, clearSuggestion } = useAI();
 const { settings: memberSettings } = getMemberSettings();
+const { triggerScreenshot, setScreenshotTarget } = useScreenshot();
 
 watch(() => props.peerId, (newPeer) => {
   if (newPeer) markRead(newPeer);
@@ -97,6 +101,7 @@ onMounted(() => {
   document.addEventListener("click", closeMenuOnClickOutside);
   document.addEventListener("click", closeContextMenu);
   document.addEventListener("keydown", handleSelectModeKeydown);
+  setScreenshotTarget((file) => richEditorRef.value?.insertImage(file));
   // Scroll to bottom on mount — the :key on ChatPanel forces re-mount on peer switch,
   // so watchers with immediate:true run during setup when messageList ref is still null.
   nextTick(() => {
@@ -109,6 +114,7 @@ onMounted(() => {
 function handleClearChat() { const peerDisplay = isChannel.value ? t('sidebar.channelGeneral') : getDisplayName(props.peerId); menuOpen.value = false; showConfirm(t('chat.confirmClearTitle'), t('chat.confirmClearMsg', { peer: peerDisplay }), () => { if (!props.peerId) return; clearConversation(props.peerId); showToast(t('chat.cleared', { peer: peerDisplay }), "success"); }, true); }
 function handleDispatchTask() { const c = taskContent.value.trim(); if (!c) return; dispatchTask([props.peerId], c); taskContent.value = ""; taskInputVisible.value = false; }
 function handleAISuggest() { const chatMsgs = conversation.value.filter((m): m is ChatMessage => m.type === "chat"); suggestReply(chatMsgs.slice(-memberSettings.value.ai_suggestion_history_count), `当前团队：${teamName}；你的角色：${role}`); }
+function startScreenshot() { triggerScreenshot((file) => richEditorRef.value?.insertImage(file)); }
 async function handleAcceptSuggestion() { const text = acceptSuggestion(); if (text) { await sendChat(props.peerId, text); await nextTick(); if (messageList.value) messageList.value.scrollTop = messageList.value.scrollHeight; } }
 function handleForwardConfirmWrapper(targetId: string) { handleForwardConfirm(targetId, t('chat.chatHistory')); }
 
@@ -120,7 +126,7 @@ function handleStickerSend(stickerId: string, stickerUrl: string, stickerName: s
 function closeMenuOnClickOutside(e: MouseEvent) { if (!(e.target as HTMLElement).closest(".header-actions")) menuOpen.value = false; if (stickerPanelVisible.value && !(e.target as HTMLElement).closest(".input-area")) stickerPanelVisible.value = false; }
 function handleSelectModeKeydown(e: KeyboardEvent) { if (e.key === "Escape") { if (menuOpen.value) menuOpen.value = false; else if (selectMode.value) exitSelectMode(); else if (quotingMsg.value) quotingMsg.value = null; } }
 
-onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOutside); document.removeEventListener("click", closeContextMenu); document.removeEventListener("keydown", handleSelectModeKeydown); });
+onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOutside); document.removeEventListener("click", closeContextMenu); document.removeEventListener("keydown", handleSelectModeKeydown); setScreenshotTarget(null); });
 </script>
 
 <template>
@@ -226,6 +232,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
             <button class="btn-tool" @click="handlePickAttachment((f: File) => richEditorRef?.insertImage(f))" :title="$t('chat.addAttachment')"><SvgIcon name="paperclip" :size="18" /></button>
             <button class="btn-tool" :class="{ active: stickerPanelVisible }" @click="stickerPanelVisible = !stickerPanelVisible" :title="$t('chat.sticker')"><SvgIcon name="smile" :size="18" /></button>
             <button class="btn-tool" @click="handleAISuggest" :title="$t('chat.aiSuggestReply')" :disabled="!aiAvailable || isStreaming"><SvgIcon name="lightning" :size="18" /></button>
+            <button v-if="isTauri" class="btn-tool" @click="startScreenshot" :title="$t('chat.screenshot')"><SvgIcon name="camera" :size="18" /></button>
           </div>
           <button class="btn-send-toolbar" @click="richEditorRef?.send()" :title="$t('common.send')" :disabled="uploading">{{ $t('common.send') }}</button>
         </div>
@@ -241,7 +248,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
     <ConfirmDialog :visible="confirmVisible" :title="confirmTitle" :message="confirmMessage" :danger="confirmDanger" @confirm="handleConfirm" @cancel="handleCancel" />
     <Toast :visible="toastVisible" :message="toastMessage" :type="toastType" @done="hideToast" />
     <ForwardDialog :visible="forwardDialogVisible" :members="members" :current-peer-id="peerId" @confirm="handleForwardConfirmWrapper" @cancel="forwardDialogVisible = false" />
-
+    <ImageViewerOverlay />
     <Teleport to="body">
       <div v-if="contextMenuVisible" class="context-menu" :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }" @click.stop>
         <button class="context-menu-item" @click="handleQuoteReply(() => richEditorRef?.focus())">

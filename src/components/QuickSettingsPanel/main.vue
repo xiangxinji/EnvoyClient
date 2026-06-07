@@ -12,7 +12,7 @@ const emit = defineEmits<{
   back: [];
 }>();
 
-type ShortcutType = "auto_reply" | "execution_mode" | "lock_screen" | "sync_now" | "restore_brains";
+type ShortcutType = "auto_reply" | "execution_mode" | "lock_screen" | "sync_now" | "restore_brains" | "screenshot";
 
 const ctx = getTeamClientInstance()!;
 const { settings, loadSettings, saveSettings } = getMemberSettings();
@@ -27,6 +27,7 @@ const shortcutDefs: { type: ShortcutType; field: string }[] = [
   { type: "lock_screen", field: "shortcut_lock_screen" },
   { type: "sync_now", field: "shortcut_sync_now" },
   { type: "restore_brains", field: "shortcut_restore_brains" },
+  { type: "screenshot", field: "shortcut_screenshot" },
 ];
 
 const shortcutRefs = Object.fromEntries(shortcutDefs.map((d) => [d.type, ref("")])) as Record<ShortcutType, Ref<string>>;
@@ -37,12 +38,13 @@ const shortcutItems: { type: ShortcutType; labelKey: string; descKey: string; se
   { type: "sync_now", labelKey: "shortcut.syncNow", descKey: "shortcut.syncNowDesc" },
   { type: "restore_brains", labelKey: "shortcut.restoreBrains", descKey: "shortcut.restoreBrainsDesc" },
   { type: "lock_screen", labelKey: "shortcut.lockScreen", descKey: "shortcut.lockScreenDesc" },
+  { type: "screenshot", labelKey: "shortcut.screenshot", descKey: "shortcut.screenshotDesc" },
 ];
 
 const sections = [
   { labelKey: "shortcut.sectionAI", types: ["execution_mode", "auto_reply"] as ShortcutType[] },
   { labelKey: "shortcut.sectionKnowledge", types: ["sync_now", "restore_brains"] as ShortcutType[] },
-  { labelKey: "shortcut.sectionSystem", types: ["lock_screen"] as ShortcutType[] },
+  { labelKey: "shortcut.sectionSystem", types: ["lock_screen", "screenshot"] as ShortcutType[] },
 ];
 
 onMounted(async () => {

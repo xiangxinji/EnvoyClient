@@ -1,24 +1,31 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
+import { useRoute } from "vue-router";
 import TitleBar from "./components/TitleBar";
 import CloseConfirmDialog from "./components/CloseConfirmDialog";
 import SyncIndicator from "./components/SyncIndicator";
 import { useTheme } from "./composables/useTheme";
 import { useTeamClientInstance } from "./composables/teamClientContext";
 import { useLockScreen } from "./composables/useLockScreen";
+import { useScreenshot } from "./composables/useScreenshot";
 import { cancelTaskbarAttention } from "./utils/notification";
 import { isTauri } from "./utils/platform";
 
 useTheme();
 
+const route = useRoute();
 const instance = useTeamClientInstance();
 const username = computed(() => instance.value?.myId ?? undefined);
 const { locked, notifyQuitAttempt } = useLockScreen();
+const { triggerScreenshot, prewarmScreenshotOverlay } = useScreenshot();
+const isScreenshotWindowByUrl = window.location.hash.startsWith("#/screenshot");
+const isScreenshotWindow = computed(() => isScreenshotWindowByUrl || route.path === "/screenshot");
 
 const showDialog = ref(false);
 
 let unlisten: (() => void) | null = null;
 let unlistenQuit: (() => void) | null = null;
+let unlistenScreenshot: (() => void) | null = null;
 
 async function getCloseAction(): Promise<string> {
   if (!isTauri) return "ask";
@@ -104,9 +111,13 @@ onMounted(async () => {
     try {
       const { getCurrentWindow } = await import("@tauri-apps/api/window");
       const currentWindow = getCurrentWindow();
+      const isScreenshotRuntimeWindow = currentWindow.label === "screenshot" || isScreenshotWindow.value;
 
       // Show window after content is ready (avoids white flash)
-      await currentWindow.show();
+      if (!isScreenshotRuntimeWindow) await currentWindow.show();
+      if (!isScreenshotRuntimeWindow) void prewarmScreenshotOverlay();
+
+      if (isScreenshotRuntimeWindow) return;
 
       const unlistenFn = await currentWindow.listen(
         "close-requested",
@@ -127,6 +138,14 @@ onMounted(async () => {
         }
       );
       unlistenQuit = unlistenQuitFn;
+
+      const unlistenScreenshotFn = await currentWindow.listen(
+        "screenshot-requested",
+        () => {
+          triggerScreenshot();
+        }
+      );
+      unlistenScreenshot = unlistenScreenshotFn;
     } catch (e) {
       console.error("Failed to setup window listeners:", e);
     }
@@ -136,6 +155,7 @@ onMounted(async () => {
 onUnmounted(() => {
   unlisten?.();
   unlistenQuit?.();
+  unlistenScreenshot?.();
   window.removeEventListener("focus", cancelTaskbarAttention);
   if (isTauri) {
     window.removeEventListener("keydown", preventRefresh);
@@ -144,19 +164,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="app-container">
-    <TitleBar :username="username" @close-requested="handleCloseRequested" />
+  <div class="app-container" :class="{ 'screenshot-shell': isScreenshotWindow }">
+    <TitleBar v-if="!isScreenshotWindow" :username="username" @close-requested="handleCloseRequested" />
     <router-view v-slot="{ Component }">
-      <transition name="page" mode="out-in">
+      <transition :name="isScreenshotWindow ? '' : 'page'" mode="out-in">
         <component :is="Component" />
       </transition>
     </router-view>
     <CloseConfirmDialog
+      v-if="!isScreenshotWindow"
       v-model="showDialog"
       @hide="onDialogHide"
       @exit="onDialogExit"
     />
-    <SyncIndicator />
+    <SyncIndicator v-if="!isScreenshotWindow" />
   </div>
 </template>
 

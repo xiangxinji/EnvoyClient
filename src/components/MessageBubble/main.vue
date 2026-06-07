@@ -5,6 +5,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ChatMessage, MemberInfo, TimelineItem } from "../../types";
 import { useUserProfile } from "../../composables/useUserProfile";
 import { useHoverCard } from "../../composables/useHoverCard";
+import { useFullscreenViewer } from "../../composables/useFullscreenViewer";
 import { formatTime } from "../../utils/taskFormatters";
 import BubbleContent from "../BubbleContent";
 import AttachmentList from "../AttachmentList";
@@ -40,6 +41,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { getDisplayName, getAvatarUrl, getInitial } = useUserProfile();
 const { hoveredItem: hoverMember, hoverRect, visible: hoverVisible, show: showHoverCard, scheduleHide: hideHoverCard, cancelHide: cancelHoverHide } = useHoverCard<MemberInfo>();
+const viewer = useFullscreenViewer();
 
 const isSticker = computed(() => !!props.message.sticker);
 const stickerUrl = computed(() => props.message.sticker?.url ?? "");
@@ -79,6 +81,14 @@ function handleQuoteClick() {
 const bubbleRef = ref<HTMLElement | null>(null);
 
 function onBubbleClick(e: MouseEvent) {
+  const img = (e.target as HTMLElement).closest("img") as HTMLImageElement | null;
+  if (img?.src) {
+    e.preventDefault();
+    e.stopPropagation();
+    viewer.openFullscreen(img.src);
+    return;
+  }
+
   const anchor = (e.target as HTMLElement).closest("a[href]");
   if (anchor) {
     const href = anchor.getAttribute("href");
@@ -125,7 +135,7 @@ function bubbleClick(e: MouseEvent) {
 
 <template>
   <!-- Channel: other's message -->
-  <div v-if="isChannel && !message.mine" v-memo="[message.text, message.sticker?.url, message.attachments, selected, selectMode]" class="bubble-row channel-row" :class="{ 'msg-pop-in': isNew }" :data-id="message.id">
+  <div v-if="isChannel && !message.mine" class="bubble-row channel-row" :class="{ 'msg-pop-in': isNew }" :data-id="message.id">
     <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
       <SvgIcon v-if="selected" name="check" :size="14" />
     </div>
@@ -157,7 +167,7 @@ function bubbleClick(e: MouseEvent) {
   </div>
 
   <!-- Channel: my message -->
-  <div v-else-if="isChannel && message.mine" v-memo="[message.text, message.sticker?.url, message.attachments, selected, selectMode]" class="bubble-row channel-row mine" :class="{ 'msg-pop-in': isNew }" :data-id="message.id">
+  <div v-else-if="isChannel && message.mine" class="bubble-row channel-row mine" :class="{ 'msg-pop-in': isNew }" :data-id="message.id">
     <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
       <SvgIcon v-if="selected" name="check" :size="14" />
     </div>
@@ -191,7 +201,7 @@ function bubbleClick(e: MouseEvent) {
 
   <!-- DM -->
   <template v-else>
-  <div class="bubble-row" :class="{ mine: message.mine, 'msg-pop-in': isNew }" :data-id="message.id" v-memo="[message.text, message.sticker?.url, message.attachments, message.mine, selected, selectMode]">
+  <div class="bubble-row" :class="{ mine: message.mine, 'msg-pop-in': isNew }" :data-id="message.id">
     <div v-if="selectMode" class="checkbox" :class="{ checked: selected }" @click.stop="emit('toggleSelect', message.id)">
       <SvgIcon v-if="selected" name="check" :size="14" />
     </div>

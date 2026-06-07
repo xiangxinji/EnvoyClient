@@ -16,5 +16,7 @@
 .content :deep(li) { margin: 0.15em 0; }
 .content :deep(blockquote) { margin: 0.5em 0; padding: 4px 12px; border-left: 3px solid var(--md-blockquote-border); color: var(--md-blockquote-text); }
 .content :deep(blockquote p) { margin: 0; }
+.content :deep(img) { display: block; max-width: 280px; max-height: 220px; width: auto; height: auto; object-fit: contain; border-radius: var(--radius-md); cursor: zoom-in; margin: 4px 0; }
+.content :deep(img:hover) { opacity: 0.92; }
 
 :deep(.mention-highlight) { color: var(--accent); font-weight: 600; background: var(--accent-light); padding: 0 3px; border-radius: 3px; }

@@ -1,0 +1,118 @@
+.fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--image-overlay-bg);
+  backdrop-filter: blur(var(--glass-blur-screen));
+  -webkit-backdrop-filter: blur(var(--glass-blur-screen));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.fullscreen-image {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  box-shadow: var(--glass-shadow-heavy);
+  transition: transform 0.2s ease;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.fullscreen-image.dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.fullscreen-toolbar {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--image-toolbar-bg);
+  backdrop-filter: blur(var(--glass-toolbar-blur));
+  -webkit-backdrop-filter: blur(var(--glass-toolbar-blur));
+  border: 1px solid var(--image-toolbar-border);
+  border-radius: 12px;
+  box-shadow: var(--image-toolbar-shadow);
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--image-toolbar-btn);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toolbar-btn:hover {
+  background: var(--image-toolbar-btn-hover);
+  color: var(--image-toolbar-btn-active);
+}
+
+.toolbar-scale {
+  min-width: 42px;
+  text-align: center;
+  font-size: 0.8em;
+  font-weight: 500;
+  color: var(--image-toolbar-text);
+  user-select: none;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--image-toolbar-divider);
+  margin: 0 4px;
+}
+
+.viewer-enter-active .fullscreen-image {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.viewer-enter-active .fullscreen-toolbar {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.05s, opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.05s;
+}
+
+.viewer-leave-active .fullscreen-image {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 1, 1), opacity 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.viewer-leave-active .fullscreen-toolbar {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 1, 1), opacity 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.viewer-enter-from .fullscreen-image {
+  transform: scale(0.92);
+  opacity: 0;
+}
+
+.viewer-enter-from .fullscreen-toolbar {
+  transform: translateX(-50%) translateY(10px);
+  opacity: 0;
+}
+
+.viewer-leave-to .fullscreen-image {
+  transform: scale(0.96);
+  opacity: 0;
+}
+
+.viewer-leave-to .fullscreen-toolbar {
+  transform: translateX(-50%) translateY(6px);
+  opacity: 0;
+}

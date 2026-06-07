@@ -454,6 +454,272 @@ fn shell_exec(command: String, working_dir: Option<String>) -> Result<serde_json
 
 use base64::Engine;
 
+static LAST_SCREENSHOT_CAPTURE: std::sync::OnceLock<std::sync::Mutex<Option<CachedScreenshot>>> = std::sync::OnceLock::new();
+
+struct CachedScreenshot {
+    id: String,
+    img: image::RgbaImage,
+}
+
+fn next_screenshot_id() -> String {
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or_default();
+    format!("{}-{}", std::process::id(), ts)
+}
+
+fn cache_screenshot(id: String, img: image::RgbaImage) {
+    let cache = LAST_SCREENSHOT_CAPTURE.get_or_init(|| std::sync::Mutex::new(None));
+    if let Ok(mut entry) = cache.lock() {
+        *entry = Some(CachedScreenshot { id, img });
+    }
+}
+
+fn cached_screenshot(id: &str) -> Option<image::RgbaImage> {
+    let cache = LAST_SCREENSHOT_CAPTURE.get_or_init(|| std::sync::Mutex::new(None));
+    cache
+        .lock()
+        .ok()
+        .and_then(|entry| entry.as_ref().filter(|cached| cached.id == id).map(|cached| cached.img.clone()))
+}
+
+fn encode_png_data_url(img: &image::RgbaImage) -> Result<String, String> {
+    let mut png_data = Vec::new();
+    use image::ImageEncoder;
+    image::codecs::png::PngEncoder::new_with_quality(
+        &mut png_data,
+        image::codecs::png::CompressionType::Fast,
+        image::codecs::png::FilterType::NoFilter,
+    )
+    .write_image(img.as_raw(), img.width(), img.height(), image::ExtendedColorType::Rgba8)
+    .map_err(|e| format!("Failed to encode cropped PNG: {}", e))?;
+
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&png_data);
+    Ok(format!("data:image/png;base64,{}", b64))
+}
+
+#[cfg(target_os = "windows")]
+fn capture_monitor_native_windows(x: i32, y: i32, width: u32, height: u32) -> Result<image::RgbaImage, String> {
+    use windows::Win32::Graphics::Gdi::{
+        BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC,
+        GetDIBits, ReleaseDC, SelectObject, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, CAPTUREBLT,
+        DIB_RGB_COLORS, SRCCOPY,
+    };
+    use windows::Win32::UI::WindowsAndMessaging::GetDesktopWindow;
+
+    let width_i32 = i32::try_from(width).map_err(|_| "Invalid screenshot width".to_string())?;
+    let height_i32 = i32::try_from(height).map_err(|_| "Invalid screenshot height".to_string())?;
+    if width_i32 <= 0 || height_i32 <= 0 {
+        return Err("Invalid screenshot size".to_string());
+    }
+
+    unsafe {
+        let desktop = GetDesktopWindow();
+        let desktop_dc = GetDC(desktop);
+        if desktop_dc.is_invalid() {
+            return Err("GetDC failed".to_string());
+        }
+
+        let mem_dc = CreateCompatibleDC(desktop_dc);
+        if mem_dc.is_invalid() {
+            ReleaseDC(desktop, desktop_dc);
+            return Err("CreateCompatibleDC failed".to_string());
+        }
+
+        let bitmap = CreateCompatibleBitmap(desktop_dc, width_i32, height_i32);
+        if bitmap.is_invalid() {
+            let _ = DeleteDC(mem_dc);
+            ReleaseDC(desktop, desktop_dc);
+            return Err("CreateCompatibleBitmap failed".to_string());
+        }
+
+        let previous = SelectObject(mem_dc, bitmap);
+        let blt_result = BitBlt(
+            mem_dc,
+            0,
+            0,
+            width_i32,
+            height_i32,
+            desktop_dc,
+            x,
+            y,
+            SRCCOPY | CAPTUREBLT,
+        );
+
+        if let Err(e) = blt_result {
+            SelectObject(mem_dc, previous);
+            let _ = DeleteObject(bitmap);
+            let _ = DeleteDC(mem_dc);
+            ReleaseDC(desktop, desktop_dc);
+            return Err(format!("BitBlt failed: {}", e));
+        }
+
+        let buffer_size = width as usize * height as usize * 4;
+        let mut bitmap_info = BITMAPINFO {
+            bmiHeader: BITMAPINFOHEADER {
+                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+                biWidth: width_i32,
+                biHeight: -height_i32,
+                biPlanes: 1,
+                biBitCount: 32,
+                biCompression: BI_RGB.0,
+                biSizeImage: buffer_size as u32,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let mut buffer = vec![0u8; buffer_size];
+
+        let rows = GetDIBits(
+            mem_dc,
+            bitmap,
+            0,
+            height,
+            Some(buffer.as_mut_ptr().cast()),
+            &mut bitmap_info,
+            DIB_RGB_COLORS,
+        );
+
+        SelectObject(mem_dc, previous);
+        let _ = DeleteObject(bitmap);
+        let _ = DeleteDC(mem_dc);
+        ReleaseDC(desktop, desktop_dc);
+
+        if rows == 0 {
+            return Err("GetDIBits failed".to_string());
+        }
+
+        for pixel in buffer.chunks_exact_mut(4) {
+            pixel.swap(0, 2);
+            pixel[3] = 255;
+        }
+
+        image::RgbaImage::from_raw(width, height, buffer)
+            .ok_or_else(|| "RgbaImage::from_raw failed".to_string())
+    }
+}
+
+fn capture_monitor_image(monitor: &xcap::Monitor) -> Result<image::RgbaImage, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let native_result = std::panic::catch_unwind(|| {
+            capture_monitor_native_windows(monitor.x(), monitor.y(), monitor.width(), monitor.height())
+        })
+        .unwrap_or_else(|_| Err("Native Windows screenshot panicked".to_string()));
+
+        native_result.or_else(|e| {
+                eprintln!("Native Windows screenshot failed, falling back to xcap: {}", e);
+                monitor.capture_image().map_err(|err| format!("Failed to capture screen: {}", err))
+            })
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        monitor.capture_image().map_err(|e| format!("Failed to capture screen: {}", e))
+    }
+}
+
+#[tauri::command]
+fn screenshot_file_data_url(image_path: String) -> Result<String, String> {
+    let img = image::open(&image_path)
+        .map_err(|e| format!("Failed to open screenshot file: {}", e))?
+        .to_rgba8();
+    encode_png_data_url(&img)
+}
+
+#[tauri::command]
+fn capture_screens(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let cursor = app.cursor_position().ok();
+    let monitor = cursor
+        .and_then(|p| xcap::Monitor::from_point(p.x.round() as i32, p.y.round() as i32).ok())
+        .or_else(|| {
+            xcap::Monitor::all().ok().and_then(|monitors| {
+                monitors
+                    .iter()
+                    .find(|m| m.is_primary())
+                    .cloned()
+                    .or_else(|| monitors.into_iter().next())
+            })
+        })
+        .ok_or("No monitor found")?;
+
+    let img = capture_monitor_image(&monitor)?;
+    let width = img.width();
+    let height = img.height();
+    let rgba = base64::engine::general_purpose::STANDARD.encode(img.as_raw());
+    let capture_id = next_screenshot_id();
+    cache_screenshot(capture_id.clone(), img);
+
+    Ok(serde_json::json!({
+        "captureId": capture_id,
+        "rgba": rgba,
+        "width": width,
+        "height": height,
+        "monitor": {
+            "id": monitor.id(),
+            "name": monitor.name(),
+            "x": monitor.x(),
+            "y": monitor.y(),
+            "width": monitor.width(),
+            "height": monitor.height(),
+            "scaleFactor": monitor.scale_factor(),
+            "isPrimary": monitor.is_primary(),
+        },
+        "windows": [],
+    }))
+}
+
+#[tauri::command]
+fn crop_cached_screenshot(capture_id: String, x: u32, y: u32, width: u32, height: u32) -> Result<serde_json::Value, String> {
+    if width == 0 || height == 0 {
+        return Err("Invalid crop size".to_string());
+    }
+
+    let img = cached_screenshot(&capture_id).ok_or("Screenshot cache expired")?;
+    let x = x.min(img.width().saturating_sub(1));
+    let y = y.min(img.height().saturating_sub(1));
+    let width = width.min(img.width().saturating_sub(x));
+    let height = height.min(img.height().saturating_sub(y));
+    if width == 0 || height == 0 {
+        return Err("Invalid crop bounds".to_string());
+    }
+
+    let cropped = image::imageops::crop_imm(&img, x, y, width, height).to_image();
+    Ok(serde_json::json!({
+        "data": encode_png_data_url(&cropped)?,
+        "name": format!("screenshot_{}", next_screenshot_id()),
+    }))
+}
+
+#[tauri::command]
+fn crop_screenshot(image_path: String, x: u32, y: u32, width: u32, height: u32) -> Result<serde_json::Value, String> {
+    if width == 0 || height == 0 {
+        return Err("Invalid crop size".to_string());
+    }
+
+    let img = image::open(&image_path)
+        .map_err(|e| format!("Failed to open screenshot file: {}", e))?
+        .to_rgba8();
+
+    let x = x.min(img.width().saturating_sub(1));
+    let y = y.min(img.height().saturating_sub(1));
+    let width = width.min(img.width().saturating_sub(x));
+    let height = height.min(img.height().saturating_sub(y));
+    if width == 0 || height == 0 {
+        return Err("Invalid crop bounds".to_string());
+    }
+
+    let cropped = image::imageops::crop_imm(&img, x, y, width, height).to_image();
+    Ok(serde_json::json!({
+        "data": encode_png_data_url(&cropped)?,
+        "name": format!("screenshot_{}.png", std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or_default()),
+    }))
+}
+
 #[tauri::command]
 fn save_binary_file(path: String, data_b64: String) -> Result<(), String> {
     let decoded = base64::engine::general_purpose::STANDARD
@@ -590,6 +856,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_settings,
             save_settings,
+            capture_screens,
+            crop_screenshot,
+            crop_cached_screenshot,
+            screenshot_file_data_url,
             shell_exec,
             file_read,
             file_write,
