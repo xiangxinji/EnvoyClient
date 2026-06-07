@@ -64,6 +64,7 @@
     "taskCenter": "Task Center",
     "taskDispatch": "Task Dispatch",
     "noMembers": "No members",
+    "guide": "Usage Guide",
     "shortcuts": "Shortcuts",
     "profile": "Profile",
     "taskSettings": "Task & Agent",
@@ -72,7 +73,7 @@
     "general": "General",
     "aiAutoReply": "AI Auto Reply",
     "aiTaskMode": "AI Task Mode",
-    "searchPlaceholder": "Search tools or members...",
+    "searchPlaceholder": "Search members...",
     "noResults": "No results",
     "searchClear": "Clear search",
     "channel": "Channel",
@@ -424,5 +425,10 @@
     "empty": "No task is currently executing",
     "completed": "Execution completed",
     "notifierRunning": "Task running"
+  },
+  "guide": {
+    "title": "Usage Guide",
+    "searchPlaceholder": "Search features...",
+    "noResults": "No matching features found"
   }
 }

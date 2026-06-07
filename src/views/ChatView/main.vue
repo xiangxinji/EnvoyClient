@@ -12,6 +12,7 @@ import SettingsKnowledge from "../../components/SettingsKnowledge";
 import SettingsAI from "../../components/SettingsAI";
 import SettingsGeneral from "../../components/SettingsGeneral";
 import QuickSettingsPanel from "../../components/QuickSettingsPanel";
+import GuidePanel from "../../components/GuidePanel";
 import TaskDetailPanel from "../../components/TaskDetailPanel";
 import MemberProfilePanel from "../../components/MemberProfilePanel";
 import CloudResourcesPanel from "../../components/CloudResourcesPanel";
@@ -36,7 +37,6 @@ const selectedPeer = ref("__tasks__");
 const previousPeer = ref("__tasks__");
 
 const selectedTask = ref<TaskMessage | null>(null);
-// When opening detail from chat, remember which peer to return to
 const detailReturnPeer = ref<string | null>(null);
 const sidebarCollapsed = ref(false);
 
@@ -66,7 +66,7 @@ function handleSelectPeer(peerId: string) {
   // Switching sidebar tab clears the detail view
   selectedTask.value = null;
   detailReturnPeer.value = null;
-  if (selectedPeer.value !== "__quick__" && !selectedPeer.value.startsWith("__settings_") && !selectedPeer.value.startsWith("__profile__")) {
+  if (selectedPeer.value !== "__quick__" && selectedPeer.value !== "__guide__" && !selectedPeer.value.startsWith("__settings_") && !selectedPeer.value.startsWith("__profile__")) {
     previousPeer.value = selectedPeer.value;
   }
   selectedPeer.value = peerId;
@@ -77,21 +77,20 @@ function handleSettingsBack() {
 }
 
 function handleSelectTask(task: TaskMessage) {
-  // Remember where we came from (could be a chat peer or __tasks__)
-  if (selectedPeer.value !== "__tasks__") {
-    detailReturnPeer.value = selectedPeer.value;
-  }
   selectedTask.value = task;
 }
 
-function handleCloseDetail() {
+function handleCloseTaskDetail() {
+  selectedTask.value = null;
+}
+
+function handleCloseProfile() {
   if (detailReturnPeer.value) {
     selectedPeer.value = detailReturnPeer.value;
     detailReturnPeer.value = null;
   } else {
     selectedPeer.value = "__tasks__";
   }
-  selectedTask.value = null;
 }
 
 if (ctx) {
@@ -110,29 +109,28 @@ function handleLogout() {
   router.replace("/");
 }
 
-function getPanelCategory(peer: string, task: TaskMessage | null): string {
-  if (task) return "detail";
-  if (peer.startsWith("__settings_") || peer === "__quick__") return "settings";
-  if (peer.startsWith("__profile__")) return "detail";
+function getPanelCategory(peer: string): string {
+  if (peer.startsWith("__settings_") || peer === "__quick__" || peer === "__guide__") return "settings";
+  if (peer.startsWith("__profile__")) return "profile-detail";
   return "list";
 }
 
 const panelTransition = ref("panel-fade");
 
 watch(
-  [() => selectedPeer.value, selectedTask],
-  ([newPeer, newTask], [oldPeer, oldTask]) => {
+  () => selectedPeer.value,
+  (newPeer, oldPeer) => {
     if (!oldPeer) {
       panelTransition.value = "panel-fade";
       return;
     }
-    const oldCat = getPanelCategory(oldPeer, oldTask ?? null);
-    const newCat = getPanelCategory(newPeer, newTask ?? null);
+    const oldCat = getPanelCategory(oldPeer);
+    const newCat = getPanelCategory(newPeer);
     if (oldCat === newCat) {
       panelTransition.value = "panel-fade";
-    } else if (newCat === "detail" || newCat === "settings") {
+    } else if (newCat === "settings" || newCat === "profile-detail") {
       panelTransition.value = "panel-slide-left";
-    } else if (oldCat === "detail" || oldCat === "settings") {
+    } else if (oldCat === "settings" || oldCat === "profile-detail") {
       panelTransition.value = "panel-slide-right";
     } else {
       panelTransition.value = "panel-fade";
@@ -156,27 +154,31 @@ watch(
       @update:collapsed="sidebarCollapsed = $event"
     />
     <Transition :name="panelTransition" mode="out-in">
-      <TaskDetailPanel
-        v-if="selectedTask"
-        key="task-detail"
-        :task="selectedTask"
-        :team-name="ctx.teamName"
-        :my-id="ctx.myId"
-        @close="handleCloseDetail"
-      />
-      <SettingsProfile v-else-if="selectedPeer === '__settings_profile__'" key="settings-profile" @back="handleSettingsBack" />
+      <SettingsProfile v-if="selectedPeer === '__settings_profile__'" key="settings-profile" @back="handleSettingsBack" />
       <SettingsTask v-else-if="selectedPeer === '__settings_task__'" key="settings-task" @back="handleSettingsBack" />
       <SettingsKnowledge v-else-if="selectedPeer === '__settings_knowledge__'" key="settings-knowledge" @back="handleSettingsBack" />
       <SettingsAI v-else-if="selectedPeer === '__settings_ai__'" key="settings-ai" @back="handleSettingsBack" />
       <SettingsGeneral v-else-if="selectedPeer === '__settings_general__'" key="settings-general" @back="handleSettingsBack" />
+      <GuidePanel v-else-if="selectedPeer === '__guide__'" key="guide" @back="handleSettingsBack" />
       <QuickSettingsPanel v-else-if="selectedPeer === '__quick__'" key="quick-settings" @back="handleSettingsBack" />
       <CloudResourcesPanel v-else-if="selectedPeer === '__cloud__'" key="cloud" />
       <ExecutionPanel v-else-if="selectedPeer === '__execution__'" key="execution" />
       <AgentPanel v-else-if="selectedPeer === '__agents__'" key="agents" />
-      <MemberProfilePanel v-else-if="isProfilePanel" key="profile" :username="profileUsername" @back="handleCloseDetail" @chat="(id: string) => handleSelectPeer(id)" />
+      <MemberProfilePanel v-else-if="isProfilePanel" key="profile" :username="profileUsername" @back="handleCloseProfile" @chat="(id: string) => handleSelectPeer(id)" />
       <TaskDispatchPanel v-else-if="selectedPeer === '__dispatch__'" key="dispatch" />
       <TaskCenterView v-else-if="selectedPeer === '__tasks__'" key="tasks" @select-task="handleSelectTask" />
       <ChatPanel v-else :key="'chat-' + selectedPeer" :peer-id="selectedPeer" @select-task="handleSelectTask" @view-profile="handleViewProfile" />
+    </Transition>
+    <Transition name="task-detail-drawer">
+      <div v-if="selectedTask" class="task-detail-drawer-layer" @click.self="handleCloseTaskDetail">
+        <TaskDetailPanel
+          class="task-detail-drawer-panel"
+          :task="selectedTask"
+          :team-name="ctx.teamName"
+          :my-id="ctx.myId"
+          @close="handleCloseTaskDetail"
+        />
+      </div>
     </Transition>
     <ExecutionNotifier :selected-peer="selectedPeer" @navigate="handleSelectPeer" />
     <ReconnectOverlay

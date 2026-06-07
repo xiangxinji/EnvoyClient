@@ -1,0 +1,201 @@
+/* ── Guide Panel Layout ─────────────────────────────────────────── */
+
+.guide-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+
+.guide-header {
+  position: relative;
+  z-index: 10;
+  height: 52px;
+  box-sizing: border-box;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.guide-header .header-title {
+  flex: 1;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ── Search Bar ────────────────────────────────────────────────── */
+
+.guide-search {
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+/* ── Body: TOC + Content ───────────────────────────────────────── */
+
+.guide-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Left TOC Sidebar ──────────────────────────────────────────── */
+
+.guide-toc {
+  width: 200px;
+  min-width: 200px;
+  border-right: 1px solid var(--glass-border);
+  padding: var(--space-md);
+  overflow-y: auto;
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.toc-module {
+  font-size: 0.72em;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-xs);
+  padding: 0 var(--space-xs);
+}
+
+.toc-module:first-child {
+  margin-top: 0;
+}
+
+.toc-item {
+  display: block;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+  text-decoration: none;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toc-item:hover {
+  background: var(--sidebar-hover);
+  color: var(--text-primary);
+}
+
+.toc-item.active {
+  background: var(--sidebar-active);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.toc-empty {
+  padding: var(--space-md) var(--space-sm);
+  font-size: 0.82em;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── Right Content Area ────────────────────────────────────────── */
+
+.guide-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg) var(--space-xl);
+}
+
+.guide-section {
+  margin-bottom: var(--space-xl);
+}
+
+.guide-section:last-child {
+  margin-bottom: 0;
+}
+
+.guide-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+/* ── Markdown Content Styling ──────────────────────────────────── */
+
+.guide-content :deep(.markdown-body h1) {
+  font-size: 1.15em;
+  font-weight: 700;
+  margin: 0 0 var(--space-md);
+  color: var(--text-primary);
+}
+
+.guide-content :deep(.markdown-body h2) {
+  font-size: 0.98em;
+  font-weight: 600;
+  margin: var(--space-lg) 0 var(--space-sm);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-primary);
+}
+
+.guide-content :deep(.markdown-body h2:first-child) {
+  margin-top: 0;
+}
+
+.guide-content :deep(.markdown-body p) {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.88em;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.guide-content :deep(.markdown-body ul),
+.guide-content :deep(.markdown-body ol) {
+  margin: 0 0 var(--space-sm);
+  padding-left: var(--space-lg);
+  font-size: 0.88em;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.guide-content :deep(.markdown-body li) {
+  margin-bottom: 2px;
+}
+
+.guide-content :deep(.markdown-body code) {
+  background: var(--md-code-bg);
+  color: var(--md-code-text);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.86em;
+  font-family: var(--font-mono, monospace);
+}
+
+.guide-content :deep(.markdown-body strong) {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.guide-content :deep(.markdown-body a) {
+  color: var(--md-link-color);
+  text-decoration: none;
+}
+
+.guide-content :deep(.markdown-body a:hover) {
+  text-decoration: underline;
+}

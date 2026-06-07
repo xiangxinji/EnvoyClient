@@ -64,6 +64,7 @@
     "taskCenter": "任务中心",
     "taskDispatch": "任务分派",
     "noMembers": "暂无成员",
+    "guide": "使用指南",
     "shortcuts": "快捷键",
     "profile": "个人资料",
     "taskSettings": "任务与 Agent",
@@ -72,7 +73,7 @@
     "general": "通用",
     "aiAutoReply": "AI 自动回复",
     "aiTaskMode": "AI 托管任务",
-    "searchPlaceholder": "搜索工具或成员...",
+    "searchPlaceholder": "搜索成员...",
     "noResults": "无匹配结果",
     "searchClear": "清除搜索",
     "channel": "频道",
@@ -424,5 +425,10 @@
     "empty": "当前没有正在执行的任务",
     "completed": "执行完成",
     "notifierRunning": "任务执行中"
+  },
+  "guide": {
+    "title": "使用指南",
+    "searchPlaceholder": "搜索功能...",
+    "noResults": "未找到匹配的功能"
   }
 }

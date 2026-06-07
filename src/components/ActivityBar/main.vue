@@ -66,6 +66,7 @@ const toolIconMap: Record<string, "cloud" | "tasks" | "dispatch" | "terminal" | 
 };
 
 const menuItems = [
+  { id: "__guide__", icon: "book-open" as const, labelKey: "sidebar.guide" },
   { id: "__quick__", icon: "keyboard" as const, labelKey: "sidebar.shortcuts" },
   { id: "__settings_task__", icon: "tasks" as const, labelKey: "sidebar.taskSettings" },
   { id: "__settings_knowledge__", icon: "book" as const, labelKey: "sidebar.knowledgeSettings" },
