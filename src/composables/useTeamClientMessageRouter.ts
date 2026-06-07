@@ -8,6 +8,7 @@ export function useTeamClientMessageRouter(deps: {
   onMemberUpdate: (members: MemberInfo[], onlineIds: Set<string>) => void;
   onIncomingMessage: (msg: Message) => void;
   onAutoReply: (from: string, historyCount: number) => void;
+  onChannelMentionAutoReply: (from: string, text: string, historyCount: number) => void;
   aiAutoReplyEnabled: () => boolean;
   aiHistoryCount: () => number;
 }) {
@@ -28,6 +29,10 @@ export function useTeamClientMessageRouter(deps: {
         payload.text,
       );
       requestTaskbarAttention();
+      // Trigger auto-reply for channel @mention (replies via private DM)
+      if (deps.aiAutoReplyEnabled()) {
+        deps.onChannelMentionAutoReply(payload.from, payload.text, deps.aiHistoryCount());
+      }
       return;
     }
 

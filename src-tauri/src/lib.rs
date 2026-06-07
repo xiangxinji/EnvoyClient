@@ -601,6 +601,8 @@ pub fn run() {
             brains::read_brains_file,
             brains::restore_brains,
             brains::upload_brains_file,
+            brains::write_brains_file,
+            brains::delete_brains_file,
             init_workspace,
             load_skill_catalog,
             credentials::get_credential,

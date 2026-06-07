@@ -33,7 +33,7 @@ const {
   matchHints,
   filteredNavItems,
   isEmpty,
-} = useSidebarSearch(members, ctx.role, t);
+} = useSidebarSearch(members, t);
 
 const searchInputRef = ref<InstanceType<typeof GlassInput> | null>(null);
 

@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::Path;
 use std::time::SystemTime;
 use base64::Engine;
@@ -253,4 +253,69 @@ fn restore_brains_impl(username: String, files: Vec<serde_json::Value>) -> Resul
     }
 
     Ok(serde_json::json!({ "restored": restored }))
+}
+
+/// Write (create or overwrite) a single file in the brains directory.
+#[tauri::command]
+pub async fn write_brains_file(username: String, path: String, content: String) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || write_brains_file_impl(&username, &path, &content)).await.map_err(|e| e.to_string())?
+}
+
+fn write_brains_file_impl(username: &str, path: &str, content: &str) -> Result<serde_json::Value, String> {
+    let base = brains_dir(username)?;
+    if path.contains("..") {
+        return Err("invalid path".to_string());
+    }
+
+    let full_path = base.join(path);
+
+    // Validate path stays within brains directory
+    let canonical_base = base.canonicalize().unwrap_or_else(|_| base.clone());
+    if let Some(parent) = full_path.parent() {
+        // Ensure parent dir exists before canonicalizing
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        let canonical_parent = parent.canonicalize().unwrap_or_else(|_| parent.to_path_buf());
+        if !canonical_parent.starts_with(&canonical_base) {
+            return Err("invalid path".to_string());
+        }
+        // Write to canonical path to avoid TOCTOU issues
+        let file_name = full_path.file_name().ok_or("invalid file name")?;
+        let safe_path = canonical_parent.join(file_name);
+        let mut file = fs::File::create(&safe_path).map_err(|e| e.to_string())?;
+        file.write_all(content.as_bytes()).map_err(|e| e.to_string())?;
+    } else {
+        let mut file = fs::File::create(&full_path).map_err(|e| e.to_string())?;
+        file.write_all(content.as_bytes()).map_err(|e| e.to_string())?;
+    }
+
+    Ok(serde_json::json!({ "success": true }))
+}
+
+/// Delete a single file from the brains directory.
+#[tauri::command]
+pub async fn delete_brains_file(username: String, path: String) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || delete_brains_file_impl(&username, &path)).await.map_err(|e| e.to_string())?
+}
+
+fn delete_brains_file_impl(username: &str, path: &str) -> Result<serde_json::Value, String> {
+    let base = brains_dir(username)?;
+    if path.contains("..") {
+        return Err("invalid path".to_string());
+    }
+
+    let full_path = base.join(path);
+
+    let canonical_base = base.canonicalize().unwrap_or_else(|_| base.clone());
+    let canonical_full = full_path.canonicalize().unwrap_or_else(|_| full_path.clone());
+    if !canonical_full.starts_with(&canonical_base) {
+        return Err("invalid path".to_string());
+    }
+
+    if canonical_full.exists() {
+        fs::remove_file(&canonical_full).map_err(|e| e.to_string())?;
+    } else {
+        return Err("file not found".to_string());
+    }
+
+    Ok(serde_json::json!({ "success": true }))
 }

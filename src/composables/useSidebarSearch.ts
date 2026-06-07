@@ -11,7 +11,6 @@ export interface SidebarSearchResult {
 
 export function useSidebarSearch(
   members: Ref<MemberInfo[]>,
-  _role: "leader" | "member",
   t: (key: string, params?: Record<string, unknown>) => string,
 ): SidebarSearchResult {
   const searchQuery = ref("");

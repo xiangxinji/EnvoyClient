@@ -28,7 +28,21 @@
 .messages::-webkit-scrollbar-track { background: transparent; }
 .messages::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; opacity: 0.5; }
 .messages::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
-.messages :deep(.task-card) { max-width: 75%; align-self: flex-start; }
+.messages :deep(.chat-task-card.task-card) {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  width: min(75%, 720px);
+  max-width: calc(100% - 32px);
+  min-height: 96px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 720px) {
+  .messages :deep(.chat-task-card.task-card) {
+    width: 100%;
+    max-width: 100%;
+  }
+}
 .loading-more, .load-hint { text-align: center; color: var(--text-muted); font-size: 0.8em; padding: var(--space-xs) 0; display: flex; align-items: center; justify-content: center; gap: var(--space-xs); }
 
 .ai-suggestion { margin-top: var(--space-sm); padding: var(--space-md); background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px dashed var(--border); border-radius: var(--radius-md); }

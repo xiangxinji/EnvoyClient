@@ -160,7 +160,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOu
         <template v-for="item in visibleMessages" :key="item.id">
           <div v-if="item.type === 'revoked'" class="revoked-notice">{{ $t('chat.revokedNotice', { from: item.from }) }}</div>
           <MessageBubble v-else-if="item.type === 'chat'" :message="item" :my-id="myId" :show-sender="isChannel" :member-ids="isChannel ? memberIds : undefined" :is-channel="isChannel" :members="isChannel ? members : undefined" :select-mode="selectMode" :selected="selectedIds.has(item.id)" :timeline="conversation" :team-name="teamName" :is-new="newMessageIds.has(item.id)" @contextmenu="handleMessageContextmenu" @toggle-select="toggleMessageSelect" @scroll-to-quote="handleScrollToQuote" @view-profile="(id: string) => emit('view-profile', id)" />
-          <TaskCard v-else :task="item" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
+          <TaskCard v-else class="chat-task-card" :task="item" :team-name="teamName" :my-id="myId" @select-task="emit('selectTask', $event)" />
         </template>
 
         <div v-if="suggestion || isStreaming || aiError" class="ai-suggestion">

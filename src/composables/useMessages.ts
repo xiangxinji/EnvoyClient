@@ -58,48 +58,33 @@ export function useMessages(
         hasMore = data.has_more;
         afterSeq = data.last_seq;
       }
-    // Refresh task statuses — sync API may return stale status for tasks
-    // that changed state before this session
-    await refreshTaskStatuses();
+      // Refresh task statuses — sync API may return stale status for tasks
+      // that changed state before this session
+      try {
+        const res = await managerFetch(`/api/teams/${encodeURIComponent(teamName)}/tasks`);
+        const tasks = await res.json() as ApiTask[];
+        for (const task of tasks) {
+          const updated = apiTaskToTaskMessage(task);
+          for (const [peerId, items] of messages.value) {
+            const idx = items.findIndex((t) => t.type === "task" && t.taskId === task.id);
+            if (idx >= 0) {
+              items[idx] = updated;
+              messages.value.set(peerId, [...items]);
+            }
+          }
+        }
+      } catch { /* non-critical */ }
     } catch (e) {
       console.error("[messages] loadHistory failed:", e);
     }
   }
 
-  async function refreshTaskStatuses() {
-    try {
-      const res = await managerFetch(`/api/teams/${encodeURIComponent(teamName)}/tasks`);
-      const tasks = await res.json() as ApiTask[];
-      for (const task of tasks) {
-        const updated = apiTaskToTaskMessage(task);
-        for (const [peerId, items] of messages.value) {
-          const idx = items.findIndex((t) => t.type === "task" && t.taskId === task.id);
-          if (idx >= 0) {
-            items[idx] = updated;
-            messages.value.set(peerId, [...items]);
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("[messages] refreshTaskStatuses failed:", e);
-    }
-  }
-
   function handleIncomingMessage(msg: Message): boolean {
     if (msg.type === "message" && msg.subtype === "chat-revoke") {
-      const payload = msg.payload as { msgId: string };
-      const revokedFrom = msg.from;
-      const notice: RevokedNotice = {
-        type: "revoked",
-        id: payload.msgId,
-        seq: 0,
-        from: revokedFrom,
-        timestamp: Date.now(),
-      };
+      const { msgId } = msg.payload as { msgId: string };
+      const notice: RevokedNotice = { type: "revoked", id: msgId, seq: 0, from: msg.from, timestamp: Date.now() };
       for (const [peerId, items] of messages.value) {
-        const idx = items.findIndex(
-          (t) => t.type === "chat" && t.id === payload.msgId,
-        );
+        const idx = items.findIndex((t) => t.type === "chat" && t.id === msgId);
         if (idx >= 0) {
           const updated = [...items];
           updated[idx] = notice;
@@ -116,31 +101,17 @@ export function useMessages(
           if (att.url.startsWith("/")) att.url = apiUrl(att.url);
         }
       }
-      if (payload.sticker?.url?.startsWith("/")) {
-        payload.sticker.url = apiUrl(payload.sticker.url);
-      }
+      if (payload.sticker?.url?.startsWith("/")) payload.sticker.url = apiUrl(payload.sticker.url);
       const chatMsg = buildChatMessage({
-        id: payload.id ?? msg.id,
-        seq: payload.seq ?? 0,
-        from: msg.from,
-        to: msg.to,
-        text: payload.text,
-        timestamp: msg.timestamp,
-        mine: msg.from === myId,
+        id: payload.id ?? msg.id, seq: payload.seq ?? 0, from: msg.from, to: msg.to,
+        text: payload.text, timestamp: msg.timestamp, mine: msg.from === myId,
         source: payload.source === "ai-auto" ? "ai-auto" : undefined,
-        attachments: payload.attachments,
-        forwarded: payload.forwarded,
-        quote: payload.quote,
-        sticker: payload.sticker,
-        channel: payload.channel,
-        mentions: payload.mentions,
-        cloudRefs: payload.cloudRefs,
+        attachments: payload.attachments, forwarded: payload.forwarded, quote: payload.quote,
+        sticker: payload.sticker, channel: payload.channel, mentions: payload.mentions, cloudRefs: payload.cloudRefs,
       });
       const peerId = resolvePeerId(payload.channel, msg.from, msg.to, myId);
       addToConversation(peerId, chatMsg);
-      if (msg.from !== myId) {
-        incrementUnread(peerId);
-      }
+      if (msg.from !== myId) incrementUnread(peerId);
       return true;
     }
     return false;
@@ -191,60 +162,27 @@ export function useMessages(
   }
 
   async function sendChat(targetId: string, text: string, options?: { attachments?: MessageAttachment[]; source?: "human" | "ai-auto"; forwarded?: ForwardedRecord[]; quote?: QuoteInfo; sticker?: StickerInfo; channel?: string; mentions?: string[]; cloudRefs?: CloudRef[] }) {
-    const attachments = options?.attachments;
-    const source = options?.source;
-    const forwarded = options?.forwarded;
-    const quote = options?.quote;
-    const sticker = options?.sticker;
-    const channel = options?.channel;
-    const mentions = options?.mentions;
-    const cloudRefs = options?.cloudRefs;
+    const { attachments, source, forwarded, quote, sticker, channel, mentions, cloudRefs } = options ?? {};
     const isChannel = !!channel;
+    const peerId = isChannel ? "__team__" : targetId;
+    let id = `${Date.now()}-local`;
+    let seq = 0;
 
     try {
       const data = await getMessageService().send(targetId, text, {
         attachments, source, forwarded, quote, sticker, channel, mentions, cloudRefs,
       });
-
-      const chatMsg = buildChatMessage({
-        id: data.id,
-        seq: data.seq,
-        from: myId,
-        to: isChannel ? "__team__" : targetId,
-        text,
-        timestamp: Date.now(),
-        mine: true,
-        source,
-        attachments,
-        forwarded,
-        quote,
-        sticker,
-        channel,
-        mentions,
-        cloudRefs,
-      });
-      addToConversation(isChannel ? "__team__" : targetId, chatMsg);
+      id = data.id;
+      seq = data.seq;
     } catch (e) {
       console.error("[messages] sendChat server send failed, using local fallback:", e);
-      const chatMsg = buildChatMessage({
-        id: `${Date.now()}-local`,
-        seq: 0,
-        from: myId,
-        to: isChannel ? "__team__" : targetId,
-        text,
-        timestamp: Date.now(),
-        mine: true,
-        source,
-        attachments,
-        forwarded,
-        quote,
-        sticker,
-        channel,
-        mentions,
-        cloudRefs,
-      });
-      addToConversation(isChannel ? "__team__" : targetId, chatMsg);
     }
+
+    const chatMsg = buildChatMessage({
+      id, seq, from: myId, to: peerId, text, timestamp: Date.now(), mine: true,
+      source, attachments, forwarded, quote, sticker, channel, mentions, cloudRefs,
+    });
+    addToConversation(peerId, chatMsg);
   }
 
   function clearConversation(peerId: string) {

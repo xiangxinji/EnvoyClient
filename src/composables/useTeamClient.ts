@@ -57,6 +57,7 @@ export function useTeamClient(
     },
     onIncomingMessage: msg.handleIncomingMessage,
     onAutoReply: (from, count) => autoReply.trigger(from, count),
+    onChannelMentionAutoReply: (from, text, count) => autoReply.triggerFromChannel(from, text, count),
     aiAutoReplyEnabled: () => memberSettings.value.ai_auto_reply,
     aiHistoryCount: () => memberSettings.value.ai_suggestion_history_count,
   });

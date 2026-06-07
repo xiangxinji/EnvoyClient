@@ -1,17 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, nextTick } from "vue";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { useEventListener } from "@vueuse/core";
-import { getTeamClientInstance, getCloudResourceService } from "../../composables/teamClientContext";
-import { useToast } from "../../composables/useToast";
-import { useConfirm } from "../../composables/useConfirm";
 import { motionPresets } from "../../styles/motion-presets";
 import { useReducedMotion } from "../../composables/useReducedMotion";
-import type { CloudFileItem } from "../../services/types";
-import { downloadFileWithDialog } from "../../utils/notification";
-import { getErrorMessage } from "../../utils/error";
+import { useCloudFiles } from "../../composables/useCloudFiles";
 import { formatFileSize } from "../../utils/taskFormatters";
-import { pickFiles } from "../../utils/filePicker";
 import { getFileCategory } from "../../utils/fileCategories";
 import FileIcon from "../FileIcon";
 import ConfirmDialog from "../ConfirmDialog";
@@ -21,8 +14,6 @@ import GlassInput from "../GlassInput";
 import GlassButton from "../GlassButton";
 
 const { t } = useI18n();
-const ctx = getTeamClientInstance()!;
-const cloudService = getCloudResourceService();
 const isReduced = useReducedMotion();
 
 const dialogMotion = computed(() =>
@@ -31,134 +22,15 @@ const dialogMotion = computed(() =>
     : motionPresets.scaleIn
 );
 
-const { toastVisible, toastMessage, toastType, showToast, hideToast } = useToast();
-const { confirmVisible, confirmTitle, confirmMessage, confirmDanger, showConfirm, handleConfirm, handleCancel } = useConfirm();
-
-const currentDirId = ref<string | null>(null);
-const items = ref<CloudFileItem[]>([]);
-const loading = ref(false);
-const uploadProgress = ref<number | null>(null);
-const showNewDirDialog = ref(false);
-const newDirName = ref("");
-const newDirInputRef = ref<InstanceType<typeof GlassInput> | null>(null);
-
-watch(showNewDirDialog, (val) => {
-  if (val) nextTick(() => { newDirInputRef.value?.focus(); });
-});
-
-useEventListener("keydown", (e) => {
-  if (e.key === "Escape" && showNewDirDialog.value) closeDirDialog();
-});
-
-const selectMode = ref(false);
-const selectedIds = ref<Set<string>>(new Set());
-
-const isLeader = computed(() => ctx.role === "leader");
-const selectedItems = computed(() => items.value.filter(i => selectedIds.value.has(i.id)));
-
-function toggleSelect(item: CloudFileItem) {
-  const s = new Set(selectedIds.value);
-  if (s.has(item.id)) s.delete(item.id); else s.add(item.id);
-  selectedIds.value = s;
-}
-
-function exitSelectMode() {
-  selectMode.value = false;
-  selectedIds.value = new Set();
-}
-
-interface Breadcrumb { id: string | null; label: string }
-
-const breadcrumbs = ref<Breadcrumb[]>([]);
-
-// ─── Core actions ──────────────────────────────────────────────
-
-async function loadFiles() {
-  loading.value = true;
-  try {
-    const result = await cloudService.listFiles(currentDirId.value);
-    items.value = result.items;
-    // Update breadcrumb from listing metadata
-    if (currentDirId.value === null) {
-      breadcrumbs.value = [];
-    } else {
-      // Build breadcrumb by querying the server
-      const chain = await cloudService.getBreadcrumb(currentDirId.value);
-      breadcrumbs.value = chain.map(b => ({ id: b.id, label: b.name }));
-    }
-  } catch { items.value = []; }
-  finally { loading.value = false; }
-}
-
-function navigateTo(dirId: string | null) {
-  currentDirId.value = dirId;
-  exitSelectMode();
-  loadFiles();
-}
-
-function enterDir(item: CloudFileItem) {
-  if (item.type !== "directory") return;
-  currentDirId.value = item.id;
-  exitSelectMode();
-  loadFiles();
-}
-
-async function handleUpload() {
-  const files = await pickFiles();
-  const file = files[0];
-  if (!file) return;
-  uploadProgress.value = 0;
-  try {
-    await cloudService.uploadFile(file, currentDirId.value, pct => { uploadProgress.value = pct; });
-    await loadFiles();
-  } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.uploadFailed"), "error"); }
-  finally { uploadProgress.value = null; }
-}
-
-async function confirmNewDir() {
-  const name = newDirName.value.trim();
-  if (!name) return;
-  showNewDirDialog.value = false;
-  try {
-    await cloudService.createDirectory(name, currentDirId.value);
-    await loadFiles();
-  } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.operationFailed"), "error"); }
-}
-
-function closeDirDialog() {
-  showNewDirDialog.value = false;
-}
-
-function requestDeleteSingle(item: CloudFileItem) {
-  const msg = item.type === "directory"
-    ? t("cloud.confirmDeleteDir", { name: item.name })
-    : t("cloud.confirmDeleteFile", { name: item.name });
-  showConfirm(t("common.delete"), msg, () => performDelete([item]), true);
-}
-
-function requestBatchDelete() {
-  const count = selectedItems.value.length;
-  const msg = t("cloud.confirmBatchDelete", { count });
-  showConfirm(t("common.delete"), msg, () => performDelete([...selectedItems.value]), true);
-}
-
-async function performDelete(targets: CloudFileItem[]) {
-  for (const item of targets) {
-    try { await cloudService.deleteFile(item.id); }
-    catch (e: unknown) { showToast(getErrorMessage(e) || t("common.operationFailed"), "error"); break; }
-  }
-  exitSelectMode();
-  await loadFiles();
-}
-
-async function handleDownload(item: CloudFileItem) {
-  try {
-    const url = cloudService.downloadUrl(item.id);
-    await downloadFileWithDialog(url, item.name, { team: ctx.teamName });
-  } catch (e: unknown) { showToast(getErrorMessage(e) || t("common.fileDownloadFailed"), "error"); }
-}
-
-onMounted(loadFiles);
+const {
+  currentDirId, items, loading, uploadProgress, breadcrumbs,
+  selectMode, selectedIds, selectedItems, isLeader,
+  showNewDirDialog, newDirName, newDirInputRef,
+  navigateTo, enterDir, toggleSelect, exitSelectMode,
+  handleUpload, confirmNewDir, requestDeleteSingle, requestBatchDelete, handleDownload,
+  confirmVisible, confirmTitle, confirmMessage, confirmDanger, handleConfirm, handleCancel,
+  toastVisible, toastMessage, toastType, hideToast,
+} = useCloudFiles();
 </script>
 
 <template>
@@ -201,7 +73,7 @@ onMounted(loadFiles);
     <!-- Batch action bar -->
     <div v-if="selectMode && selectedItems.length > 0" class="batch-bar">
       <span class="batch-count">{{ t('cloud.selectedCount', { count: selectedItems.length }) }}</span>
-      <button class="batch-delete-btn" @click="requestBatchDelete">{{ t('common.delete') }}</button>
+      <button class="batch-delete-btn" @click="requestBatchDelete(t)">{{ t('common.delete') }}</button>
     </div>
 
     <div class="cloud-content">
@@ -233,10 +105,10 @@ onMounted(loadFiles);
             <td class="col-uploader">{{ item.uploadedBy }}</td>
             <td class="col-time">{{ new Date(item.createdAt).toLocaleString() }}</td>
             <td v-if="!selectMode" class="col-actions">
-              <button v-if="item.type === 'file'" class="icon-btn" :title="t('cloud.download')" @click="handleDownload(item)">
+              <button v-if="item.type === 'file'" class="icon-btn" :title="t('cloud.download')" @click="handleDownload(item, t)">
                 <SvgIcon name="download" :size="14" />
               </button>
-              <button v-if="isLeader" class="icon-btn danger" :title="t('common.delete')" @click="requestDeleteSingle(item)">
+              <button v-if="isLeader" class="icon-btn danger" :title="t('common.delete')" @click="requestDeleteSingle(item, t)">
                 <SvgIcon name="trash" :size="14" />
               </button>
             </td>
@@ -257,7 +129,7 @@ onMounted(loadFiles);
             <h3>{{ t('cloud.createDir') }}</h3>
             <GlassInput ref="newDirInputRef" v-model="newDirName" :placeholder="t('cloud.createDirPrompt')" bordered @keydown.enter="confirmNewDir" />
             <div class="dir-actions">
-              <GlassButton variant="default" @click="closeDirDialog">{{ t('common.cancel') }}</GlassButton>
+              <GlassButton variant="default" @click="showNewDirDialog = false">{{ t('common.cancel') }}</GlassButton>
               <GlassButton variant="primary" :disabled="!newDirName.trim()" @click="confirmNewDir">{{ t('common.confirm') }}</GlassButton>
             </div>
           </div>

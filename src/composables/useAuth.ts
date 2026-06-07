@@ -3,7 +3,7 @@ import type { Router } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useTeamClient } from "./useTeamClient";
 import { setTeamClientInstance } from "./teamClientContext";
-import { setManagerUrl, setClientToken, setCredentials } from "../api";
+import { managerFetch, setManagerUrl, setClientToken, setCredentials } from "../api";
 import { rsaEncrypt } from "../utils/rsa";
 import { isTauri } from "../utils/platform";
 import { getErrorMessage } from "../utils/error";
@@ -55,6 +55,7 @@ export function useAuth(deps: { router: Router }) {
 
     try {
       const base = managerUrl.value.trim();
+      setManagerUrl(base);
 
       // Determine if password is already encrypted (from settings) or plaintext
       let encrypted: string;
@@ -98,8 +99,11 @@ export function useAuth(deps: { router: Router }) {
         }
       }
 
-      const teamsRes = await fetch(`${base}/api/teams?username=${encodeURIComponent(user)}`);
+      const teamsRes = await managerFetch(`/api/teams?username=${encodeURIComponent(user)}`);
       const teamsData = await teamsRes.json();
+      if (!Array.isArray(teamsData)) {
+        throw new Error(teamsData?.error || t("role.authFailed"));
+      }
       teams.value = teamsData.map((t: { name: string; port: number }) => ({ name: t.name, port: t.port }));
 
       if (teams.value.length === 0) {
