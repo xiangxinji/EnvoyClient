@@ -21,11 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http: https: ws: wss:; img-src 'self' asset: http://asset.localhost https://asset.localhost data: http: https:; media-src 'self' asset: http://asset.localhost https://asset.localhost blob: http: https:",
-      "assetProtocol": {
-        "enable": true,
-        "scope": ["$TEMP/envoy-screenshot-*.png"]
-      }
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http: https: ws: wss:; img-src 'self' blob: data: http: https:; media-src 'self' blob: http: https:"
     }
   },
   "bundle": {

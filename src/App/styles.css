@@ -30,16 +30,31 @@ html, body {
   z-index: 1;
 }
 
+html.screenshot-window,
+body.screenshot-window,
+html.screenshot-window #app,
+body.screenshot-window #app,
+html:has(.screenshot-shell),
+body:has(.screenshot-shell),
 #app:has(.screenshot-shell) {
   border-radius: 0;
-  background: #000;
-}
-
-.screenshot-shell {
-  background: #000;
+  background: transparent;
   -webkit-app-region: no-drag;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.screenshot-shell {
+  background: transparent;
+  -webkit-app-region: no-drag;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.screenshot-shell,
+.screenshot-shell * {
+  -webkit-app-region: no-drag;
+  -webkit-user-drag: none;
 }
 
 input, button, textarea {

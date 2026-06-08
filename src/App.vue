@@ -17,8 +17,12 @@ const route = useRoute();
 const instance = useTeamClientInstance();
 const username = computed(() => instance.value?.myId ?? undefined);
 const { locked, notifyQuitAttempt } = useLockScreen();
-const { triggerScreenshot, prewarmScreenshotOverlay } = useScreenshot();
+const { triggerScreenshot } = useScreenshot();
 const isScreenshotWindowByUrl = window.location.hash.startsWith("#/screenshot");
+if (isScreenshotWindowByUrl) {
+  document.documentElement.classList.add("screenshot-window");
+  document.body?.classList.add("screenshot-window");
+}
 const isScreenshotWindow = computed(() => isScreenshotWindowByUrl || route.path === "/screenshot");
 
 const showDialog = ref(false);
@@ -115,7 +119,6 @@ onMounted(async () => {
 
       // Show window after content is ready (avoids white flash)
       if (!isScreenshotRuntimeWindow) await currentWindow.show();
-      if (!isScreenshotRuntimeWindow) void prewarmScreenshotOverlay();
 
       if (isScreenshotRuntimeWindow) return;
 

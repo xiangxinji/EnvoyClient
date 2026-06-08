@@ -1,4 +1,5 @@
 mod brains;
+mod capture;
 mod credentials;
 mod settings;
 
@@ -16,9 +17,8 @@ use tauri::{
 /// Expands `~` to `~/.envoy`, canonicalizes (resolving `..` and symlinks),
 /// and verifies the result is inside the `~/.envoy/` sandbox.
 fn resolve_safe_path(path: &str) -> Result<std::path::PathBuf, serde_json::Value> {
-    let home = dirs::home_dir().ok_or_else(|| {
-        serde_json::json!({ "error": "Cannot determine home directory" })
-    })?;
+    let home = dirs::home_dir()
+        .ok_or_else(|| serde_json::json!({ "error": "Cannot determine home directory" }))?;
     let sandbox = home.join(".envoy");
 
     // Ensure sandbox directory exists, then canonicalize for accurate comparison
@@ -27,9 +27,9 @@ fn resolve_safe_path(path: &str) -> Result<std::path::PathBuf, serde_json::Value
             serde_json::json!({ "error": format!("Failed to create sandbox directory: {}", e) })
         })?;
     }
-    let sandbox = sandbox.canonicalize().map_err(|e| {
-        serde_json::json!({ "error": format!("Failed to resolve sandbox path: {}", e) })
-    })?;
+    let sandbox = sandbox.canonicalize().map_err(
+        |e| serde_json::json!({ "error": format!("Failed to resolve sandbox path: {}", e) }),
+    )?;
 
     let expanded = if path.starts_with("~/") {
         sandbox.join(&path[2..])
@@ -49,25 +49,25 @@ fn resolve_safe_path(path: &str) -> Result<std::path::PathBuf, serde_json::Value
         let file_name = expanded
             .file_name()
             .ok_or_else(|| serde_json::json!({ "error": "Invalid path" }))?;
-        let parent = expanded.parent().ok_or_else(|| {
-            serde_json::json!({ "error": "Invalid path" })
-        })?;
+        let parent = expanded
+            .parent()
+            .ok_or_else(|| serde_json::json!({ "error": "Invalid path" }))?;
 
         if parent.as_os_str().is_empty() {
             return Err(serde_json::json!({ "error": "Path outside allowed directory" }));
         }
 
         let canonical_parent = if parent.exists() {
-            parent.canonicalize().map_err(|e| {
-                serde_json::json!({ "error": format!("Failed to resolve path: {}", e) })
-            })?
+            parent.canonicalize().map_err(
+                |e| serde_json::json!({ "error": format!("Failed to resolve path: {}", e) }),
+            )?
         } else {
             std::fs::create_dir_all(parent).map_err(|e| {
                 serde_json::json!({ "error": format!("Failed to create parent directory: {}", e) })
             })?;
-            parent.canonicalize().map_err(|e| {
-                serde_json::json!({ "error": format!("Failed to resolve path: {}", e) })
-            })?
+            parent.canonicalize().map_err(
+                |e| serde_json::json!({ "error": format!("Failed to resolve path: {}", e) }),
+            )?
         };
 
         canonical_parent.join(file_name)
@@ -115,10 +115,10 @@ fn file_read(path: String, working_dir: Option<String>) -> Result<serde_json::Va
     let bytes_read = std::io::Read::read(&mut file, &mut probe).map_err(|e| e.to_string())?;
 
     if probe[..bytes_read].contains(&0) {
-        return Err(
-            serde_json::to_string(&serde_json::json!({ "error": "Cannot read binary file" }))
-                .unwrap_or_else(|_| r#"{"error":"Cannot read binary file"}"#.to_string()),
-        );
+        return Err(serde_json::to_string(
+            &serde_json::json!({ "error": "Cannot read binary file" }),
+        )
+        .unwrap_or_else(|_| r#"{"error":"Cannot read binary file"}"#.to_string()));
     }
 
     let content = std::fs::read_to_string(&safe_path).map_err(|e| e.to_string())?;
@@ -126,7 +126,11 @@ fn file_read(path: String, working_dir: Option<String>) -> Result<serde_json::Va
 }
 
 #[tauri::command]
-fn file_write(path: String, content: String, working_dir: Option<String>) -> Result<serde_json::Value, String> {
+fn file_write(
+    path: String,
+    content: String,
+    working_dir: Option<String>,
+) -> Result<serde_json::Value, String> {
     let safe_path = if working_dir.is_some() {
         // Agent workspace mode: validate against workspace
         let workspace = resolve_workspace(working_dir)?;
@@ -193,7 +197,11 @@ fn parse_frontmatter(content: &str) -> HashMap<String, String> {
 #[tauri::command]
 fn load_skill_catalog(username: String) -> Result<serde_json::Value, String> {
     let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
-    let skills_dir = home.join(".envoy").join("brains").join(&username).join("skills");
+    let skills_dir = home
+        .join(".envoy")
+        .join("brains")
+        .join(&username)
+        .join("skills");
 
     if !skills_dir.exists() {
         return Ok(serde_json::json!({ "skills": [] }));
@@ -208,7 +216,11 @@ fn load_skill_catalog(username: String) -> Result<serde_json::Value, String> {
         if path.extension().and_then(|e| e.to_str()) != Some("md") {
             continue;
         }
-        let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_string();
+        let filename = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_string();
         let content = match std::fs::read_to_string(&path) {
             Ok(c) => c,
             Err(_) => continue,
@@ -252,7 +264,10 @@ fn validate_command(command: &str) -> Result<(), String> {
     // Block direct shell invocations (bash -c "...", cmd /c "...")
     let first_word = lower.split_whitespace().next().unwrap_or("");
     if BLOCKED_SHELLS.contains(&first_word) {
-        return Err(format!("Command blocked: direct shell invocation '{}'", first_word));
+        return Err(format!(
+            "Command blocked: direct shell invocation '{}'",
+            first_word
+        ));
     }
 
     // Block pipe to shell (with or without spaces)
@@ -271,7 +286,12 @@ fn resolve_workspace(working_dir: Option<String>) -> Result<std::path::PathBuf, 
     let raw = working_dir
         .or_else(|| std::env::var("ENVOY_WORKSPACE").ok())
         .or_else(|| {
-            dirs::home_dir().map(|h| h.join(".envoy").join("workspace").to_string_lossy().to_string())
+            dirs::home_dir().map(|h| {
+                h.join(".envoy")
+                    .join("workspace")
+                    .to_string_lossy()
+                    .to_string()
+            })
         })
         .ok_or_else(|| "Cannot determine workspace directory".to_string())?;
 
@@ -311,7 +331,10 @@ fn validate_cd_paths(command: &str, workspace: &std::path::Path) -> Result<(), S
         let rest = if let Some(s) = seg.strip_prefix("cd ") {
             let s = s.trim();
             // Skip CMD /d or /D flag (change drive and directory)
-            let s = s.strip_prefix("/d ").or_else(|| s.strip_prefix("/D ")).unwrap_or(s);
+            let s = s
+                .strip_prefix("/d ")
+                .or_else(|| s.strip_prefix("/D "))
+                .unwrap_or(s);
             s.trim()
         } else {
             continue;
@@ -337,8 +360,7 @@ fn validate_cd_paths(command: &str, workspace: &std::path::Path) -> Result<(), S
                 .map(|h| h.join(&target_str[2..]))
                 .ok_or_else(|| "Cannot resolve home directory".to_string())?
         } else if target_str == "~" {
-            dirs::home_dir()
-                .ok_or_else(|| "Cannot resolve home directory".to_string())?
+            dirs::home_dir().ok_or_else(|| "Cannot resolve home directory".to_string())?
         } else if std::path::Path::new(target_str).is_absolute() {
             std::path::PathBuf::from(target_str)
         } else {
@@ -376,7 +398,10 @@ fn validate_cd_paths(command: &str, workspace: &std::path::Path) -> Result<(), S
 }
 
 /// Validate that a file path is within the workspace.
-fn validate_workspace_path(path: &str, workspace: &std::path::Path) -> Result<std::path::PathBuf, String> {
+fn validate_workspace_path(
+    path: &str,
+    workspace: &std::path::Path,
+) -> Result<std::path::PathBuf, String> {
     let ws_clean = clean_path(workspace);
 
     let expanded = if path.starts_with("~/") {
@@ -384,8 +409,7 @@ fn validate_workspace_path(path: &str, workspace: &std::path::Path) -> Result<st
             .map(|h| h.join(&path[2..]))
             .ok_or_else(|| "Cannot determine home directory".to_string())?
     } else if path == "~" {
-        dirs::home_dir()
-            .ok_or_else(|| "Cannot determine home directory".to_string())?
+        dirs::home_dir().ok_or_else(|| "Cannot determine home directory".to_string())?
     } else {
         std::path::PathBuf::from(path)
     };
@@ -397,7 +421,9 @@ fn validate_workspace_path(path: &str, workspace: &std::path::Path) -> Result<st
         let file_name = expanded
             .file_name()
             .ok_or_else(|| "Invalid path".to_string())?;
-        let parent = expanded.parent().ok_or_else(|| "Invalid path".to_string())?;
+        let parent = expanded
+            .parent()
+            .ok_or_else(|| "Invalid path".to_string())?;
         if parent.as_os_str().is_empty() {
             return Err("Path outside workspace".to_string());
         }
@@ -411,7 +437,10 @@ fn validate_workspace_path(path: &str, workspace: &std::path::Path) -> Result<st
 
     let canonical_clean = clean_path(&canonical);
     if !canonical_clean.starts_with(&ws_clean) {
-        return Err(format!("Path outside workspace: {}", canonical_clean.display()));
+        return Err(format!(
+            "Path outside workspace: {}",
+            canonical_clean.display()
+        ));
     }
 
     Ok(canonical)
@@ -438,9 +467,7 @@ fn shell_exec(command: String, working_dir: Option<String>) -> Result<serde_json
         cmd.output()
     } else {
         let mut cmd = Command::new("sh");
-        cmd.current_dir(&ws_clean)
-            .arg("-c")
-            .arg(&command);
+        cmd.current_dir(&ws_clean).arg("-c").arg(&command);
         cmd.output()
     }
     .map_err(|e| e.to_string())?;
@@ -453,253 +480,104 @@ fn shell_exec(command: String, working_dir: Option<String>) -> Result<serde_json
 }
 
 use base64::Engine;
+use windows::Win32::Graphics::Gdi::BI_RGB;
+use windows::Win32::System::DataExchange::{
+    CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData,
+};
+use windows::Win32::System::Memory::{
+    GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE, GMEM_ZEROINIT,
+};
 
-static LAST_SCREENSHOT_CAPTURE: std::sync::OnceLock<std::sync::Mutex<Option<CachedScreenshot>>> = std::sync::OnceLock::new();
+fn rgba_to_clipboard_dib(img: &image::RgbaImage) -> Vec<u8> {
+    let width = img.width();
+    let height = img.height();
+    let pixel_bytes = width as usize * height as usize * 4;
+    let mut dib = Vec::with_capacity(40 + pixel_bytes);
 
-struct CachedScreenshot {
-    id: String,
-    img: image::RgbaImage,
-}
+    dib.extend_from_slice(&40u32.to_le_bytes());
+    dib.extend_from_slice(&(width as i32).to_le_bytes());
+    dib.extend_from_slice(&(height as i32).to_le_bytes());
+    dib.extend_from_slice(&1u16.to_le_bytes());
+    dib.extend_from_slice(&32u16.to_le_bytes());
+    dib.extend_from_slice(&(BI_RGB.0).to_le_bytes());
+    dib.extend_from_slice(&(pixel_bytes as u32).to_le_bytes());
+    dib.extend_from_slice(&0i32.to_le_bytes());
+    dib.extend_from_slice(&0i32.to_le_bytes());
+    dib.extend_from_slice(&0u32.to_le_bytes());
+    dib.extend_from_slice(&0u32.to_le_bytes());
 
-fn next_screenshot_id() -> String {
-    let ts = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis())
-        .unwrap_or_default();
-    format!("{}-{}", std::process::id(), ts)
-}
-
-fn cache_screenshot(id: String, img: image::RgbaImage) {
-    let cache = LAST_SCREENSHOT_CAPTURE.get_or_init(|| std::sync::Mutex::new(None));
-    if let Ok(mut entry) = cache.lock() {
-        *entry = Some(CachedScreenshot { id, img });
+    let raw = img.as_raw();
+    let row_len = width as usize * 4;
+    for y in (0..height as usize).rev() {
+        let row = &raw[y * row_len..(y + 1) * row_len];
+        for px in row.chunks_exact(4) {
+            dib.extend_from_slice(&[px[2], px[1], px[0], px[3]]);
+        }
     }
+
+    dib
 }
 
-fn cached_screenshot(id: &str) -> Option<image::RgbaImage> {
-    let cache = LAST_SCREENSHOT_CAPTURE.get_or_init(|| std::sync::Mutex::new(None));
-    cache
-        .lock()
-        .ok()
-        .and_then(|entry| entry.as_ref().filter(|cached| cached.id == id).map(|cached| cached.img.clone()))
+fn open_clipboard_with_retry() -> Result<(), String> {
+    let mut last_error = None;
+    for _ in 0..20 {
+        match unsafe { OpenClipboard(None) } {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                last_error = Some(e.to_string());
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+        }
+    }
+
+    Err(format!(
+        "Failed to open clipboard{}",
+        last_error.map(|e| format!(": {}", e)).unwrap_or_default()
+    ))
 }
 
-fn encode_png_data_url(img: &image::RgbaImage) -> Result<String, String> {
-    let mut png_data = Vec::new();
-    use image::ImageEncoder;
-    image::codecs::png::PngEncoder::new_with_quality(
-        &mut png_data,
-        image::codecs::png::CompressionType::Fast,
-        image::codecs::png::FilterType::NoFilter,
-    )
-    .write_image(img.as_raw(), img.width(), img.height(), image::ExtendedColorType::Rgba8)
-    .map_err(|e| format!("Failed to encode cropped PNG: {}", e))?;
-
-    let b64 = base64::engine::general_purpose::STANDARD.encode(&png_data);
-    Ok(format!("data:image/png;base64,{}", b64))
-}
-
-#[cfg(target_os = "windows")]
-fn capture_monitor_native_windows(x: i32, y: i32, width: u32, height: u32) -> Result<image::RgbaImage, String> {
-    use windows::Win32::Graphics::Gdi::{
-        BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC,
-        GetDIBits, ReleaseDC, SelectObject, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, CAPTUREBLT,
-        DIB_RGB_COLORS, SRCCOPY,
-    };
-    use windows::Win32::UI::WindowsAndMessaging::GetDesktopWindow;
-
-    let width_i32 = i32::try_from(width).map_err(|_| "Invalid screenshot width".to_string())?;
-    let height_i32 = i32::try_from(height).map_err(|_| "Invalid screenshot height".to_string())?;
-    if width_i32 <= 0 || height_i32 <= 0 {
-        return Err("Invalid screenshot size".to_string());
+pub(crate) fn copy_rgba_to_clipboard(img: &image::RgbaImage) -> Result<(), String> {
+    let dib = rgba_to_clipboard_dib(img);
+    let handle = unsafe { GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, dib.len()) }
+        .map_err(|e| format!("Failed to allocate clipboard memory: {}", e))?;
+    let ptr = unsafe { GlobalLock(handle) };
+    if ptr.is_null() {
+        return Err("Failed to lock clipboard memory".to_string());
     }
 
     unsafe {
-        let desktop = GetDesktopWindow();
-        let desktop_dc = GetDC(desktop);
-        if desktop_dc.is_invalid() {
-            return Err("GetDC failed".to_string());
-        }
-
-        let mem_dc = CreateCompatibleDC(desktop_dc);
-        if mem_dc.is_invalid() {
-            ReleaseDC(desktop, desktop_dc);
-            return Err("CreateCompatibleDC failed".to_string());
-        }
-
-        let bitmap = CreateCompatibleBitmap(desktop_dc, width_i32, height_i32);
-        if bitmap.is_invalid() {
-            let _ = DeleteDC(mem_dc);
-            ReleaseDC(desktop, desktop_dc);
-            return Err("CreateCompatibleBitmap failed".to_string());
-        }
-
-        let previous = SelectObject(mem_dc, bitmap);
-        let blt_result = BitBlt(
-            mem_dc,
-            0,
-            0,
-            width_i32,
-            height_i32,
-            desktop_dc,
-            x,
-            y,
-            SRCCOPY | CAPTUREBLT,
-        );
-
-        if let Err(e) = blt_result {
-            SelectObject(mem_dc, previous);
-            let _ = DeleteObject(bitmap);
-            let _ = DeleteDC(mem_dc);
-            ReleaseDC(desktop, desktop_dc);
-            return Err(format!("BitBlt failed: {}", e));
-        }
-
-        let buffer_size = width as usize * height as usize * 4;
-        let mut bitmap_info = BITMAPINFO {
-            bmiHeader: BITMAPINFOHEADER {
-                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
-                biWidth: width_i32,
-                biHeight: -height_i32,
-                biPlanes: 1,
-                biBitCount: 32,
-                biCompression: BI_RGB.0,
-                biSizeImage: buffer_size as u32,
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-        let mut buffer = vec![0u8; buffer_size];
-
-        let rows = GetDIBits(
-            mem_dc,
-            bitmap,
-            0,
-            height,
-            Some(buffer.as_mut_ptr().cast()),
-            &mut bitmap_info,
-            DIB_RGB_COLORS,
-        );
-
-        SelectObject(mem_dc, previous);
-        let _ = DeleteObject(bitmap);
-        let _ = DeleteDC(mem_dc);
-        ReleaseDC(desktop, desktop_dc);
-
-        if rows == 0 {
-            return Err("GetDIBits failed".to_string());
-        }
-
-        for pixel in buffer.chunks_exact_mut(4) {
-            pixel.swap(0, 2);
-            pixel[3] = 255;
-        }
-
-        image::RgbaImage::from_raw(width, height, buffer)
-            .ok_or_else(|| "RgbaImage::from_raw failed".to_string())
-    }
-}
-
-fn capture_monitor_image(monitor: &xcap::Monitor) -> Result<image::RgbaImage, String> {
-    #[cfg(target_os = "windows")]
-    {
-        let native_result = std::panic::catch_unwind(|| {
-            capture_monitor_native_windows(monitor.x(), monitor.y(), monitor.width(), monitor.height())
-        })
-        .unwrap_or_else(|_| Err("Native Windows screenshot panicked".to_string()));
-
-        native_result.or_else(|e| {
-                eprintln!("Native Windows screenshot failed, falling back to xcap: {}", e);
-                monitor.capture_image().map_err(|err| format!("Failed to capture screen: {}", err))
-            })
+        std::ptr::copy_nonoverlapping(dib.as_ptr(), ptr.cast::<u8>(), dib.len());
+        let _ = GlobalUnlock(handle);
     }
 
-    #[cfg(not(target_os = "windows"))]
-    {
-        monitor.capture_image().map_err(|e| format!("Failed to capture screen: {}", e))
-    }
+    open_clipboard_with_retry()?;
+    let clipboard_result = (|| {
+        unsafe { EmptyClipboard() }.map_err(|e| format!("Failed to clear clipboard: {}", e))?;
+        unsafe { SetClipboardData(8, Some(windows::Win32::Foundation::HANDLE(handle.0))) }
+            .map_err(|e| format!("Failed to set clipboard image: {}", e))?;
+        Ok::<(), String>(())
+    })();
+    let close_result =
+        unsafe { CloseClipboard() }.map_err(|e| format!("Failed to close clipboard: {}", e));
+
+    clipboard_result?;
+    close_result
 }
 
 #[tauri::command]
-fn screenshot_file_data_url(image_path: String) -> Result<String, String> {
-    let img = image::open(&image_path)
-        .map_err(|e| format!("Failed to open screenshot file: {}", e))?
-        .to_rgba8();
-    encode_png_data_url(&img)
-}
-
-#[tauri::command]
-fn capture_screens(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    let cursor = app.cursor_position().ok();
-    let monitor = cursor
-        .and_then(|p| xcap::Monitor::from_point(p.x.round() as i32, p.y.round() as i32).ok())
-        .or_else(|| {
-            xcap::Monitor::all().ok().and_then(|monitors| {
-                monitors
-                    .iter()
-                    .find(|m| m.is_primary())
-                    .cloned()
-                    .or_else(|| monitors.into_iter().next())
-            })
-        })
-        .ok_or("No monitor found")?;
-
-    let img = capture_monitor_image(&monitor)?;
-    let width = img.width();
-    let height = img.height();
-    let rgba = base64::engine::general_purpose::STANDARD.encode(img.as_raw());
-    let capture_id = next_screenshot_id();
-    cache_screenshot(capture_id.clone(), img);
-
-    Ok(serde_json::json!({
-        "captureId": capture_id,
-        "rgba": rgba,
-        "width": width,
-        "height": height,
-        "monitor": {
-            "id": monitor.id(),
-            "name": monitor.name(),
-            "x": monitor.x(),
-            "y": monitor.y(),
-            "width": monitor.width(),
-            "height": monitor.height(),
-            "scaleFactor": monitor.scale_factor(),
-            "isPrimary": monitor.is_primary(),
-        },
-        "windows": [],
-    }))
-}
-
-#[tauri::command]
-fn crop_cached_screenshot(capture_id: String, x: u32, y: u32, width: u32, height: u32) -> Result<serde_json::Value, String> {
-    if width == 0 || height == 0 {
-        return Err("Invalid crop size".to_string());
-    }
-
-    let img = cached_screenshot(&capture_id).ok_or("Screenshot cache expired")?;
-    let x = x.min(img.width().saturating_sub(1));
-    let y = y.min(img.height().saturating_sub(1));
-    let width = width.min(img.width().saturating_sub(x));
-    let height = height.min(img.height().saturating_sub(y));
-    if width == 0 || height == 0 {
-        return Err("Invalid crop bounds".to_string());
-    }
-
-    let cropped = image::imageops::crop_imm(&img, x, y, width, height).to_image();
-    Ok(serde_json::json!({
-        "data": encode_png_data_url(&cropped)?,
-        "name": format!("screenshot_{}", next_screenshot_id()),
-    }))
-}
-
-#[tauri::command]
-fn crop_screenshot(image_path: String, x: u32, y: u32, width: u32, height: u32) -> Result<serde_json::Value, String> {
+fn crop_and_copy_to_clipboard(
+    image_path: String,
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+) -> Result<(), String> {
     if width == 0 || height == 0 {
         return Err("Invalid crop size".to_string());
     }
 
     let img = image::open(&image_path)
-        .map_err(|e| format!("Failed to open screenshot file: {}", e))?
+        .map_err(|e| format!("Failed to open screenshot: {}", e))?
         .to_rgba8();
 
     let x = x.min(img.width().saturating_sub(1));
@@ -711,13 +589,7 @@ fn crop_screenshot(image_path: String, x: u32, y: u32, width: u32, height: u32) 
     }
 
     let cropped = image::imageops::crop_imm(&img, x, y, width, height).to_image();
-    Ok(serde_json::json!({
-        "data": encode_png_data_url(&cropped)?,
-        "name": format!("screenshot_{}.png", std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_millis())
-            .unwrap_or_default()),
-    }))
+    copy_rgba_to_clipboard(&cropped)
 }
 
 #[tauri::command]
@@ -775,6 +647,44 @@ fn app_exit(app: tauri::AppHandle) {
     app.exit(0);
 }
 
+#[cfg(target_os = "windows")]
+#[tauri::command]
+fn show_screenshot_overlay_instant(app: tauri::AppHandle) -> Result<(), String> {
+    let overlay = app
+        .get_webview_window("screenshot")
+        .ok_or_else(|| "Screenshot overlay window not found".to_string())?;
+    let hwnd = overlay
+        .hwnd()
+        .map_err(|e| format!("Failed to get screenshot overlay hwnd: {}", e))?;
+
+    use windows::Win32::UI::WindowsAndMessaging::{
+        SetWindowPos, HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_SHOWWINDOW,
+    };
+
+    unsafe {
+        SetWindowPos(
+            windows::Win32::Foundation::HWND(hwnd.0 as *mut _),
+            Some(HWND_TOPMOST),
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
+        )
+    }
+    .map_err(|e| format!("Failed to show screenshot overlay: {}", e))
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+fn show_screenshot_overlay_instant(app: tauri::AppHandle) -> Result<(), String> {
+    let overlay = app
+        .get_webview_window("screenshot")
+        .ok_or_else(|| "Screenshot overlay window not found".to_string())?;
+    overlay
+        .show()
+        .map_err(|e| format!("Failed to show screenshot overlay: {}", e))
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -787,7 +697,14 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
+        .manage(capture::screenshot_service::ScreenshotState::new())
         .setup(|app| {
+            let screenshot_state = app.state::<capture::screenshot_service::ScreenshotState>();
+            if let Err(error) = screenshot_state.warm_up() {
+                eprintln!("Failed to warm up screenshot service: {}", error);
+            }
+            screenshot_state.start_background_capture();
+
             if let Some(window) = app.get_webview_window("main") {
                 let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))
                     .expect("failed to load icon");
@@ -818,23 +735,21 @@ pub fn run() {
                 .tooltip("Envoy - 团队协作")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| {
-                    match event.id().as_ref() {
-                        "show" => {
-                            if let Some(w) = app.get_webview_window("main") {
-                                let _ = w.show();
-                                let _ = w.set_focus();
-                            }
+                .on_menu_event(|app, event| match event.id().as_ref() {
+                    "show" => {
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
                         }
-                        "quit" => {
-                            if let Some(w) = app.get_webview_window("main") {
-                                let _ = w.show();
-                                let _ = w.set_focus();
-                                let _ = w.emit("quit-requested", ());
-                            }
-                        }
-                        _ => {}
                     }
+                    "quit" => {
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                            let _ = w.emit("quit-requested", ());
+                        }
+                    }
+                    _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let tauri::tray::TrayIconEvent::Click {
@@ -851,15 +766,65 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Patch screenshot overlay: intercept WM_NCHITTEST to disable native drag.
+            // The overlay is borderless but Windows still allows dragging from edges.
+            // Subclass the window proc to force HTCLIENT on every hit-test.
+            if let Some(overlay) = app.get_webview_window("screenshot") {
+                let hwnd = overlay.hwnd().map(|h| h.0 as isize).unwrap_or(0);
+                if hwnd != 0 {
+                    use std::sync::OnceLock;
+                    use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+                    use windows::Win32::UI::WindowsAndMessaging::{
+                        CallWindowProcW, DefWindowProcW, SetWindowLongPtrW, GWLP_WNDPROC, WNDPROC,
+                    };
+
+                    static ORIGINAL_WND_PROC: OnceLock<WNDPROC> = OnceLock::new();
+
+                    unsafe extern "system" fn screenshot_wnd_proc(
+                        hwnd: HWND,
+                        msg: u32,
+                        wparam: WPARAM,
+                        lparam: LPARAM,
+                    ) -> LRESULT {
+                        // WM_NCHITTEST = 0x0084. Return HTCLIENT (1) to prevent drag.
+                        if msg == 0x0084 {
+                            return LRESULT(1);
+                        }
+                        if let Some(original) = ORIGINAL_WND_PROC.get().copied().flatten() {
+                            CallWindowProcW(Some(original), hwnd, msg, wparam, lparam)
+                        } else {
+                            DefWindowProcW(hwnd, msg, wparam, lparam)
+                        }
+                    }
+
+                    let original = unsafe {
+                        SetWindowLongPtrW(
+                            windows::Win32::Foundation::HWND(hwnd as *mut _),
+                            GWLP_WNDPROC,
+                            screenshot_wnd_proc as *const () as isize,
+                        )
+                    };
+                    if original != 0 {
+                        let original_proc =
+                            unsafe { std::mem::transmute::<isize, WNDPROC>(original) };
+                        let _ = ORIGINAL_WND_PROC.set(original_proc);
+                    }
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
             save_settings,
-            capture_screens,
-            crop_screenshot,
-            crop_cached_screenshot,
-            screenshot_file_data_url,
+            capture::tauri_commands::start_screenshot,
+            capture::tauri_commands::cancel_screenshot,
+            capture::tauri_commands::get_screenshot_result,
+            capture::tauri_commands::get_screenshot_preview,
+            capture::tauri_commands::capture_screenshot_native,
+            capture::tauri_commands::get_screenshot_overlay_bounds,
+            show_screenshot_overlay_instant,
+            crop_and_copy_to_clipboard,
             shell_exec,
             file_read,
             file_write,

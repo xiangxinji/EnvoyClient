@@ -1,8 +1,8 @@
+use base64::Engine;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::time::SystemTime;
-use base64::Engine;
 use tauri::Manager;
 
 fn brains_dir(username: &str) -> Result<std::path::PathBuf, String> {
@@ -20,7 +20,10 @@ fn to_millis(t: SystemTime) -> Result<u64, String> {
 }
 
 #[tauri::command]
-pub fn init_brains(app_handle: tauri::AppHandle, username: &str) -> Result<serde_json::Value, String> {
+pub fn init_brains(
+    app_handle: tauri::AppHandle,
+    username: &str,
+) -> Result<serde_json::Value, String> {
     let resource_dir = app_handle
         .path()
         .resource_dir()
@@ -78,7 +81,9 @@ fn copy_dir_recursive(src: &Path, dest: &Path) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn scan_brains_files(username: String) -> Result<serde_json::Value, String> {
-    tokio::task::spawn_blocking(move || scan_brains_files_impl(&username)).await.map_err(|e| e.to_string())?
+    tokio::task::spawn_blocking(move || scan_brains_files_impl(&username))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 fn scan_brains_files_impl(username: &str) -> Result<serde_json::Value, String> {
@@ -126,7 +131,9 @@ fn scan_dir_recursive(
 
 #[tauri::command]
 pub async fn read_brains_file(username: String, path: String) -> Result<serde_json::Value, String> {
-    tokio::task::spawn_blocking(move || read_brains_file_impl(username, path)).await.map_err(|e| e.to_string())?
+    tokio::task::spawn_blocking(move || read_brains_file_impl(username, path))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 fn read_brains_file_impl(username: String, path: String) -> Result<serde_json::Value, String> {
@@ -137,7 +144,9 @@ fn read_brains_file_impl(username: String, path: String) -> Result<serde_json::V
 
     let full_path = base.join(&path);
     let canonical_base = base.canonicalize().unwrap_or_else(|_| base.clone());
-    let canonical_full = full_path.canonicalize().unwrap_or_else(|_| full_path.clone());
+    let canonical_full = full_path
+        .canonicalize()
+        .unwrap_or_else(|_| full_path.clone());
     if !canonical_full.starts_with(&canonical_base) {
         return Err("invalid path".to_string());
     }
@@ -164,7 +173,9 @@ pub async fn upload_brains_file(
 ) -> Result<serde_json::Value, String> {
     tokio::task::spawn_blocking(move || {
         upload_brains_file_impl(&username, &path, mtime_ms, size, &server_url, &token, &team)
-    }).await.map_err(|e| e.to_string())?
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 fn upload_brains_file_impl(
@@ -207,11 +218,19 @@ fn upload_brains_file_impl(
 }
 
 #[tauri::command]
-pub async fn restore_brains(username: String, files: Vec<serde_json::Value>) -> Result<serde_json::Value, String> {
-    tokio::task::spawn_blocking(move || restore_brains_impl(username, files)).await.map_err(|e| e.to_string())?
+pub async fn restore_brains(
+    username: String,
+    files: Vec<serde_json::Value>,
+) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || restore_brains_impl(username, files))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
-fn restore_brains_impl(username: String, files: Vec<serde_json::Value>) -> Result<serde_json::Value, String> {
+fn restore_brains_impl(
+    username: String,
+    files: Vec<serde_json::Value>,
+) -> Result<serde_json::Value, String> {
     let base = brains_dir(&username)?;
     fs::create_dir_all(&base).map_err(|e| e.to_string())?;
 
@@ -228,7 +247,8 @@ fn restore_brains_impl(username: String, files: Vec<serde_json::Value>) -> Resul
         }
 
         let canonical_base = base.canonicalize().unwrap_or_else(|_| base.clone());
-        let canonical_parent = full_path.parent()
+        let canonical_parent = full_path
+            .parent()
             .unwrap_or(&base)
             .canonicalize()
             .unwrap_or_else(|_| base.clone());
@@ -257,11 +277,21 @@ fn restore_brains_impl(username: String, files: Vec<serde_json::Value>) -> Resul
 
 /// Write (create or overwrite) a single file in the brains directory.
 #[tauri::command]
-pub async fn write_brains_file(username: String, path: String, content: String) -> Result<serde_json::Value, String> {
-    tokio::task::spawn_blocking(move || write_brains_file_impl(&username, &path, &content)).await.map_err(|e| e.to_string())?
+pub async fn write_brains_file(
+    username: String,
+    path: String,
+    content: String,
+) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || write_brains_file_impl(&username, &path, &content))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
-fn write_brains_file_impl(username: &str, path: &str, content: &str) -> Result<serde_json::Value, String> {
+fn write_brains_file_impl(
+    username: &str,
+    path: &str,
+    content: &str,
+) -> Result<serde_json::Value, String> {
     let base = brains_dir(username)?;
     if path.contains("..") {
         return Err("invalid path".to_string());
@@ -274,7 +304,9 @@ fn write_brains_file_impl(username: &str, path: &str, content: &str) -> Result<s
     if let Some(parent) = full_path.parent() {
         // Ensure parent dir exists before canonicalizing
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        let canonical_parent = parent.canonicalize().unwrap_or_else(|_| parent.to_path_buf());
+        let canonical_parent = parent
+            .canonicalize()
+            .unwrap_or_else(|_| parent.to_path_buf());
         if !canonical_parent.starts_with(&canonical_base) {
             return Err("invalid path".to_string());
         }
@@ -282,10 +314,12 @@ fn write_brains_file_impl(username: &str, path: &str, content: &str) -> Result<s
         let file_name = full_path.file_name().ok_or("invalid file name")?;
         let safe_path = canonical_parent.join(file_name);
         let mut file = fs::File::create(&safe_path).map_err(|e| e.to_string())?;
-        file.write_all(content.as_bytes()).map_err(|e| e.to_string())?;
+        file.write_all(content.as_bytes())
+            .map_err(|e| e.to_string())?;
     } else {
         let mut file = fs::File::create(&full_path).map_err(|e| e.to_string())?;
-        file.write_all(content.as_bytes()).map_err(|e| e.to_string())?;
+        file.write_all(content.as_bytes())
+            .map_err(|e| e.to_string())?;
     }
 
     Ok(serde_json::json!({ "success": true }))
@@ -293,8 +327,13 @@ fn write_brains_file_impl(username: &str, path: &str, content: &str) -> Result<s
 
 /// Delete a single file from the brains directory.
 #[tauri::command]
-pub async fn delete_brains_file(username: String, path: String) -> Result<serde_json::Value, String> {
-    tokio::task::spawn_blocking(move || delete_brains_file_impl(&username, &path)).await.map_err(|e| e.to_string())?
+pub async fn delete_brains_file(
+    username: String,
+    path: String,
+) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || delete_brains_file_impl(&username, &path))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 fn delete_brains_file_impl(username: &str, path: &str) -> Result<serde_json::Value, String> {
@@ -306,7 +345,9 @@ fn delete_brains_file_impl(username: &str, path: &str) -> Result<serde_json::Val
     let full_path = base.join(path);
 
     let canonical_base = base.canonicalize().unwrap_or_else(|_| base.clone());
-    let canonical_full = full_path.canonicalize().unwrap_or_else(|_| full_path.clone());
+    let canonical_full = full_path
+        .canonicalize()
+        .unwrap_or_else(|_| full_path.clone());
     if !canonical_full.starts_with(&canonical_base) {
         return Err("invalid path".to_string());
     }

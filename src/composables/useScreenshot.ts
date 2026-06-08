@@ -1,9 +1,10 @@
 import { ref } from "vue";
-import { isTauri, safeInvoke } from "../utils/platform";
+import { isTauri } from "../utils/platform";
 
 export interface ScreenshotMonitor {
   id: number;
   name: string;
+  deviceName: string;
   x: number;
   y: number;
   width: number;
@@ -12,38 +13,38 @@ export interface ScreenshotMonitor {
   isPrimary: boolean;
 }
 
-export interface ScreenshotWindow {
-  id: number;
-  title: string;
-  appName: string;
+export interface ScreenCapture {
+  id: string;
   x: number;
   y: number;
   width: number;
   height: number;
-  isMaximized: boolean;
+  mimeType: string;
+  bytes?: number[] | Uint8Array;
+  monitors: ScreenshotMonitor[];
 }
 
-export interface ScreenCapture {
-  data: string;
-  captureId?: string;
-  rgba?: string;
-  imagePath?: string;
+export interface ScreenshotResult {
+  id: string;
   width: number;
   height: number;
-  monitor: ScreenshotMonitor;
-  windows: ScreenshotWindow[];
+  mimeType: string;
+  bytes: number[] | Uint8Array;
 }
 
-type NativeScreenCapture = Omit<ScreenCapture, "data"> & {
-  data?: string;
-  rgba?: string;
-  imagePath?: string;
-};
+interface ScreenshotBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 const SCREENSHOT_LABEL = "screenshot";
+const USE_NATIVE_SCREENSHOT = true;
+type ScreenshotCompleteHandler = (result: ScreenshotResult) => void;
 
 const _capturing = ref(false);
-const _captureTarget = ref<((file: File) => void) | null>(null);
+const _completionHandlers = new Set<ScreenshotCompleteHandler>();
 let _eventsReady = false;
 let _pendingCapture: ScreenCapture | null = null;
 let _mainWindowVisibleBeforeCapture = true;
@@ -51,6 +52,28 @@ let _overlayReady = false;
 let _captureDataSent = false;
 let _captureStartedAt = 0;
 let _captureWatchdog: number | null = null;
+let _overlayPrewarm: Promise<void> | null = null;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => resolve(fallback), timeoutMs);
+    promise
+      .then((value) => resolve(value))
+      .catch((error) => reject(error))
+      .finally(() => window.clearTimeout(timeout));
+  });
+}
+
+async function waitForOverlayCreated(overlay: { once: (event: string, handler: (event: unknown) => void) => Promise<unknown> }) {
+  await withTimeout(
+    new Promise<void>((resolve, reject) => {
+      void overlay.once("tauri://created", () => resolve());
+      void overlay.once("tauri://error", (event) => reject(event));
+    }),
+    1500,
+    undefined
+  );
+}
 
 function resetCaptureState() {
   _capturing.value = false;
@@ -63,17 +86,39 @@ function resetCaptureState() {
   }
 }
 
+async function cancelNativeScreenshot(id?: string) {
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("cancel_screenshot", { id: id ?? null });
+  } catch {
+    // ignore cleanup failures
+  }
+}
+
 async function abortStaleCapture() {
   if (!_capturing.value) return;
+  const id = _pendingCapture?.id;
   resetCaptureState();
+  await cancelNativeScreenshot(id);
+  await hideOverlay();
+  await restoreMainWindow();
+}
+
+async function hideOverlay() {
   try {
     const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+    const { PhysicalPosition, PhysicalSize } = await import("@tauri-apps/api/dpi");
     const overlay = await WebviewWindow.getByLabel(SCREENSHOT_LABEL);
-    await overlay?.hide();
+    await overlay?.setIgnoreCursorEvents(true).catch(() => undefined);
+    const bounds = await getOverlayBounds();
+    if (bounds) {
+      await overlay?.setPosition(new PhysicalPosition(Math.round(bounds.x), Math.round(bounds.y))).catch(() => undefined);
+      await overlay?.setSize(new PhysicalSize(Math.round(bounds.width), Math.round(bounds.height))).catch(() => undefined);
+    }
+    await resetOverlayVisuals();
   } catch {
-    // ignore stale overlay cleanup failures
+    // ignore overlay park failures
   }
-  await restoreMainWindow();
 }
 
 async function restoreMainWindow() {
@@ -90,51 +135,101 @@ async function restoreMainWindow() {
   }
 }
 
+async function sendPendingCapture() {
+  if (!_pendingCapture || _captureDataSent) return;
+  const { emitTo } = await import("@tauri-apps/api/event");
+  _captureDataSent = true;
+  await emitTo(SCREENSHOT_LABEL, "screenshot-data", _pendingCapture);
+}
+
+function notifyScreenshotComplete(result: ScreenshotResult) {
+  for (const handler of Array.from(_completionHandlers)) {
+    handler(result);
+  }
+}
+
+async function resetOverlayVisuals() {
+  try {
+    const { emitTo } = await import("@tauri-apps/api/event");
+    await emitTo(SCREENSHOT_LABEL, "screenshot-reset");
+  } catch {
+    // ignore reset failures; screenshot-data will also reset the overlay
+  }
+}
+
+async function showOverlayInstant() {
+  const { invoke } = await import("@tauri-apps/api/core");
+  const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+  await invoke("show_screenshot_overlay_instant").catch(async () => {
+    const overlay = await WebviewWindow.getByLabel(SCREENSHOT_LABEL);
+    await overlay?.show().catch(() => undefined);
+  });
+}
+
+function handleGlobalScreenshotKeydown(e: KeyboardEvent) {
+  if (!_capturing.value || e.key !== "Escape") return;
+  e.preventDefault();
+  e.stopPropagation();
+  void abortStaleCapture();
+}
+
 async function ensureMainListeners() {
   if (!isTauri || _eventsReady) return;
-  _eventsReady = true;
 
-  const { listen, emitTo } = await import("@tauri-apps/api/event");
+  const { listen } = await import("@tauri-apps/api/event");
 
   await listen("screenshot-ready", async () => {
     _overlayReady = true;
-    if (_pendingCapture && !_captureDataSent) {
-      _captureDataSent = true;
-      await emitTo(SCREENSHOT_LABEL, "screenshot-data", _pendingCapture);
-    }
+    await sendPendingCapture();
   });
 
-  await listen("screenshot-overlay-ready", async () => {
-    if (!_capturing.value) return;
+  await listen<{ id?: string } | undefined>("screenshot-overlay-ready", async (event) => {
+    if (!_capturing.value || !_pendingCapture) return;
+    if (event.payload?.id !== _pendingCapture.id) return;
     try {
       const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
       const overlay = await WebviewWindow.getByLabel(SCREENSHOT_LABEL);
-      await overlay?.show();
+      await overlay?.setIgnoreCursorEvents(false).catch(() => undefined);
+      await showOverlayInstant();
       await overlay?.setFocus();
     } catch {
-      // ignore show/focus failures; cancellation still restores state
+      // ignore show/focus failures
     }
   });
 
-  await listen("screenshot-complete", async () => {
+  await listen<ScreenshotResult>("screenshot-complete", async (event) => {
     resetCaptureState();
+    await restoreMainWindow();
+    if (event.payload?.bytes?.length) {
+      notifyScreenshotComplete(event.payload);
+    }
+  });
+
+  await listen<{ id?: string } | undefined>("screenshot-cancelled", async (event) => {
+    const id = event.payload?.id ?? _pendingCapture?.id;
+    resetCaptureState();
+    await cancelNativeScreenshot(id);
     await restoreMainWindow();
   });
 
-  await listen("screenshot-cancelled", async () => {
-    resetCaptureState();
-    await restoreMainWindow();
-  });
+  window.addEventListener("keydown", handleGlobalScreenshotKeydown, true);
+  _eventsReady = true;
 }
 
 async function getOrCreateOverlay(bounds?: { x: number; y: number; width: number; height: number }) {
   const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
   const existing = await WebviewWindow.getByLabel(SCREENSHOT_LABEL);
   if (existing) {
+    await existing.setResizable(false).catch(() => undefined);
+    await existing.setDecorations(false).catch(() => undefined);
+    await existing.setAlwaysOnTop(true).catch(() => undefined);
+    await existing.setSkipTaskbar(true).catch(() => undefined);
+    await existing.setShadow(false).catch(() => undefined);
+    await existing.setIgnoreCursorEvents(true).catch(() => undefined);
     if (bounds) {
-      const { LogicalPosition, LogicalSize } = await import("@tauri-apps/api/dpi");
-      await existing.setPosition(new LogicalPosition(bounds.x, bounds.y));
-      await existing.setSize(new LogicalSize(bounds.width, bounds.height));
+      const { PhysicalPosition, PhysicalSize } = await import("@tauri-apps/api/dpi");
+      await existing.setPosition(new PhysicalPosition(Math.round(bounds.x), Math.round(bounds.y)));
+      await existing.setSize(new PhysicalSize(Math.round(bounds.width), Math.round(bounds.height)));
     }
     return existing;
   }
@@ -144,20 +239,36 @@ async function getOrCreateOverlay(bounds?: { x: number; y: number; width: number
     url: "index.html#/screenshot",
     x: bounds?.x ?? -32000,
     y: bounds?.y ?? -32000,
-    width: bounds?.width ?? 32,
-    height: bounds?.height ?? 32,
+    width: bounds?.width ?? 1,
+    height: bounds?.height ?? 1,
     title: "Envoy Screenshot",
     decorations: false,
-    transparent: false,
+    transparent: true,
     resizable: false,
     skipTaskbar: true,
     alwaysOnTop: true,
     focus: false,
     visible: false,
+    backgroundColor: [0, 0, 0, 0],
   });
+
+  await waitForOverlayCreated(overlay);
+
+  overlay.setResizable(false).catch(() => undefined);
+  overlay.setDecorations(false).catch(() => undefined);
+  overlay.setAlwaysOnTop(true).catch(() => undefined);
+  overlay.setSkipTaskbar(true).catch(() => undefined);
+  overlay.setShadow(false).catch(() => undefined);
+  overlay.setIgnoreCursorEvents(true).catch(() => undefined);
+  if (bounds) {
+    const { PhysicalPosition, PhysicalSize } = await import("@tauri-apps/api/dpi");
+    await overlay.setPosition(new PhysicalPosition(Math.round(bounds.x), Math.round(bounds.y))).catch(() => undefined);
+    await overlay.setSize(new PhysicalSize(Math.round(bounds.width), Math.round(bounds.height))).catch(() => undefined);
+  }
 
   overlay.once("tauri://error", async (event) => {
     console.error("Screenshot overlay failed:", event);
+    await cancelNativeScreenshot(_pendingCapture?.id);
     resetCaptureState();
     await restoreMainWindow();
   });
@@ -165,47 +276,76 @@ async function getOrCreateOverlay(bounds?: { x: number; y: number; width: number
   return overlay;
 }
 
-async function prepareOverlayNearCursor() {
-  const { cursorPosition, monitorFromPoint, primaryMonitor } = await import("@tauri-apps/api/window");
-  const cursor = await cursorPosition().catch(() => null);
-  const monitor = cursor
-    ? await monitorFromPoint(cursor.x, cursor.y).catch(() => null)
-    : await primaryMonitor().catch(() => null);
-
-  if (!monitor) {
-    await getOrCreateOverlay();
-    return;
+async function moveOverlayToBounds(bounds: ScreenshotBounds, show = false, hideBeforeMove = false) {
+  const overlay = await getOrCreateOverlay();
+  const { PhysicalPosition, PhysicalSize } = await import("@tauri-apps/api/dpi");
+  if (hideBeforeMove) await overlay.hide().catch(() => undefined);
+  await overlay.setPosition(new PhysicalPosition(Math.round(bounds.x), Math.round(bounds.y))).catch(() => undefined);
+  await overlay.setSize(new PhysicalSize(Math.round(bounds.width), Math.round(bounds.height))).catch(() => undefined);
+  await overlay.setAlwaysOnTop(true).catch(() => undefined);
+  if (show) {
+    await overlay.show().catch(() => undefined);
+    await overlay.setFocus().catch(() => undefined);
   }
+}
 
-  const scale = monitor.scaleFactor || 1;
-  await getOrCreateOverlay({
-    x: monitor.position.x / scale,
-    y: monitor.position.y / scale,
-    width: monitor.size.width / scale,
-    height: monitor.size.height / scale,
-  });
+async function getOverlayBoundsFromTauriMonitors(): Promise<ScreenshotBounds | null> {
+  const { availableMonitors } = await import("@tauri-apps/api/window");
+  const monitors = await availableMonitors().catch(() => []);
+  if (!monitors.length) return null;
+
+  const left = Math.min(...monitors.map((m) => m.position.x));
+  const top = Math.min(...monitors.map((m) => m.position.y));
+  const right = Math.max(...monitors.map((m) => m.position.x + m.size.width));
+  const bottom = Math.max(...monitors.map((m) => m.position.y + m.size.height));
+
+  return {
+    x: left,
+    y: top,
+    width: Math.max(1, right - left),
+    height: Math.max(1, bottom - top),
+  };
+}
+
+async function getOverlayBounds(): Promise<ScreenshotBounds | null> {
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const bounds = await invoke<ScreenshotBounds>("get_screenshot_overlay_bounds");
+    if (bounds?.width && bounds?.height) return bounds;
+  } catch {
+    // fall back to Tauri monitor metadata
+  }
+  return getOverlayBoundsFromTauriMonitors();
 }
 
 export function useScreenshot() {
-  function setScreenshotTarget(callback: ((file: File) => void) | null) {
-    _captureTarget.value = callback;
+  function onScreenshotComplete(handler: ScreenshotCompleteHandler) {
+    _completionHandlers.add(handler);
+    return () => _completionHandlers.delete(handler);
   }
 
   async function prewarmScreenshotOverlay() {
     if (!isTauri) return;
-    await ensureMainListeners();
-    await getOrCreateOverlay().catch((e) => console.warn("Failed to prewarm screenshot overlay:", e));
+    if (!_overlayPrewarm) {
+      _overlayPrewarm = (async () => {
+        await ensureMainListeners();
+        const bounds = await getOverlayBounds();
+        await getOrCreateOverlay(bounds ?? undefined);
+      })().catch((e) => {
+        _overlayPrewarm = null;
+        console.warn("Failed to prewarm screenshot overlay:", e);
+      });
+    }
+    await _overlayPrewarm;
   }
 
-  async function triggerScreenshot(callback?: (file: File) => void) {
+  async function triggerScreenshot() {
     if (!isTauri) return;
     if (_capturing.value) {
       const elapsed = Date.now() - _captureStartedAt;
       if (elapsed < 8000) return;
       await abortStaleCapture();
     }
-    if (callback) _captureTarget.value = callback;
-
     _capturing.value = true;
     _captureStartedAt = Date.now();
     _pendingCapture = null;
@@ -213,47 +353,49 @@ export function useScreenshot() {
     _captureWatchdog = window.setTimeout(() => {
       void abortStaleCapture();
     }, 12000);
-    await ensureMainListeners();
+
+    if (USE_NATIVE_SCREENSHOT) {
+      if (_captureWatchdog !== null) {
+        window.clearTimeout(_captureWatchdog);
+        _captureWatchdog = null;
+      }
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const result = await invoke<ScreenshotResult>("capture_screenshot_native");
+        resetCaptureState();
+        if (result.bytes?.length) {
+          notifyScreenshotComplete(result);
+        }
+      } catch (e) {
+        resetCaptureState();
+        if (!String(e).toLowerCase().includes("cancelled")) {
+          console.error("Screenshot failed:", e);
+        }
+      }
+      return;
+    }
+
+    await prewarmScreenshotOverlay();
 
     try {
       const { getCurrentWindow } = await import("@tauri-apps/api/window");
-
+      const { invoke } = await import("@tauri-apps/api/core");
       const mainWindow = getCurrentWindow();
       _mainWindowVisibleBeforeCapture = await mainWindow.isVisible().catch(() => true);
 
-      const overlayPromise = prepareOverlayNearCursor().catch((e) => {
-        console.warn("Failed to prepare screenshot overlay:", e);
-      });
-      const resultPromise = safeInvoke<NativeScreenCapture>("capture_screens", {});
-      const result = await resultPromise;
-      if (!result) throw new Error("No screenshot data returned");
+      const bounds = await getOverlayBounds();
+      await getOrCreateOverlay();
+      await resetOverlayVisuals();
 
-      let data = result.data;
-      if (!data && !result.rgba && result.imagePath) {
-        const { convertFileSrc } = await import("@tauri-apps/api/core");
-        data = convertFileSrc(result.imagePath);
-      }
-      if (!data && !result.rgba) throw new Error("No screenshot image returned");
-
-      _pendingCapture = { ...result, data: data || "" };
-      const monitor = result.monitor;
-      const scale = monitor.scaleFactor || 1;
-
-      await overlayPromise;
-      await getOrCreateOverlay({
-        x: monitor.x / scale,
-        y: monitor.y / scale,
-        width: monitor.width / scale,
-        height: monitor.height / scale,
-      });
-
-      if (_overlayReady && !_captureDataSent) {
-        const { emitTo } = await import("@tauri-apps/api/event");
-        _captureDataSent = true;
-        await emitTo(SCREENSHOT_LABEL, "screenshot-data", _pendingCapture);
-      }
+      const capture = await invoke<ScreenCapture>("start_screenshot");
+      _pendingCapture = capture;
+      if (bounds) await moveOverlayToBounds(bounds, false);
+      await showOverlayInstant();
+      if (_overlayReady) await sendPendingCapture();
     } catch (e) {
       console.error("Screenshot failed:", e);
+      await cancelNativeScreenshot(_pendingCapture?.id);
+      await hideOverlay();
       resetCaptureState();
       await restoreMainWindow();
     }
@@ -261,8 +403,8 @@ export function useScreenshot() {
 
   return {
     capturing: _capturing,
+    onScreenshotComplete,
     prewarmScreenshotOverlay,
-    setScreenshotTarget,
     triggerScreenshot,
   };
 }

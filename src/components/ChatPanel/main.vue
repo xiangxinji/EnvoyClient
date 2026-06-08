@@ -88,7 +88,8 @@ const { handleSegmentedSend } = useChatSend({
 // AI
 const { suggestion, isStreaming, aiError, aiAvailable, suggestReply, acceptSuggestion, clearSuggestion } = useAI();
 const { settings: memberSettings } = getMemberSettings();
-const { triggerScreenshot, setScreenshotTarget } = useScreenshot();
+const { triggerScreenshot, onScreenshotComplete } = useScreenshot();
+let stopScreenshotComplete: (() => void) | null = null;
 
 watch(() => props.peerId, (newPeer) => {
   if (newPeer) markRead(newPeer);
@@ -101,7 +102,7 @@ onMounted(() => {
   document.addEventListener("click", closeMenuOnClickOutside);
   document.addEventListener("click", closeContextMenu);
   document.addEventListener("keydown", handleSelectModeKeydown);
-  setScreenshotTarget((file) => richEditorRef.value?.insertImage(file));
+  stopScreenshotComplete = onScreenshotComplete(insertScreenshotResult);
   // Scroll to bottom on mount — the :key on ChatPanel forces re-mount on peer switch,
   // so watchers with immediate:true run during setup when messageList ref is still null.
   nextTick(() => {
@@ -114,7 +115,15 @@ onMounted(() => {
 function handleClearChat() { const peerDisplay = isChannel.value ? t('sidebar.channelGeneral') : getDisplayName(props.peerId); menuOpen.value = false; showConfirm(t('chat.confirmClearTitle'), t('chat.confirmClearMsg', { peer: peerDisplay }), () => { if (!props.peerId) return; clearConversation(props.peerId); showToast(t('chat.cleared', { peer: peerDisplay }), "success"); }, true); }
 function handleDispatchTask() { const c = taskContent.value.trim(); if (!c) return; dispatchTask([props.peerId], c); taskContent.value = ""; taskInputVisible.value = false; }
 function handleAISuggest() { const chatMsgs = conversation.value.filter((m): m is ChatMessage => m.type === "chat"); suggestReply(chatMsgs.slice(-memberSettings.value.ai_suggestion_history_count), `当前团队：${teamName}；你的角色：${role}`); }
-function startScreenshot() { triggerScreenshot((file) => richEditorRef.value?.insertImage(file)); }
+function startScreenshot() { triggerScreenshot(); }
+function insertScreenshotResult(result: { bytes: number[] | Uint8Array; mimeType: string }) {
+  if (!props.peerId || !richEditorRef.value || !result.bytes?.length) return;
+  const bytes = result.bytes instanceof Uint8Array ? result.bytes : new Uint8Array(result.bytes);
+  const mimeType = result.mimeType || "image/png";
+  const ext = mimeType.includes("jpeg") ? "jpg" : mimeType.includes("webp") ? "webp" : "png";
+  const file = new File([bytes], `screenshot-${Date.now()}.${ext}`, { type: mimeType });
+  richEditorRef.value.insertImage(file);
+}
 async function handleAcceptSuggestion() { const text = acceptSuggestion(); if (text) { await sendChat(props.peerId, text); await nextTick(); if (messageList.value) messageList.value.scrollTop = messageList.value.scrollHeight; } }
 function handleForwardConfirmWrapper(targetId: string) { handleForwardConfirm(targetId, t('chat.chatHistory')); }
 
@@ -126,7 +135,7 @@ function handleStickerSend(stickerId: string, stickerUrl: string, stickerName: s
 function closeMenuOnClickOutside(e: MouseEvent) { if (!(e.target as HTMLElement).closest(".header-actions")) menuOpen.value = false; if (stickerPanelVisible.value && !(e.target as HTMLElement).closest(".input-area")) stickerPanelVisible.value = false; }
 function handleSelectModeKeydown(e: KeyboardEvent) { if (e.key === "Escape") { if (menuOpen.value) menuOpen.value = false; else if (selectMode.value) exitSelectMode(); else if (quotingMsg.value) quotingMsg.value = null; } }
 
-onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOutside); document.removeEventListener("click", closeContextMenu); document.removeEventListener("keydown", handleSelectModeKeydown); setScreenshotTarget(null); });
+onBeforeUnmount(() => { document.removeEventListener("click", closeMenuOnClickOutside); document.removeEventListener("click", closeContextMenu); document.removeEventListener("keydown", handleSelectModeKeydown); stopScreenshotComplete?.(); });
 </script>
 
 <template>

@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { emitTo } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Event } from "@tauri-apps/api/event";
-import type { ScreenCapture, ScreenshotWindow } from "../composables/useScreenshot";
+import type { ScreenCapture } from "../composables/useScreenshot";
 
 interface Rect {
   x: number;
@@ -16,26 +16,23 @@ interface Rect {
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const capture = ref<ScreenCapture | null>(null);
 const selectedRect = ref<Rect | null>(null);
-const hoverRect = ref<Rect | null>(null);
 const selecting = ref(false);
 const copyError = ref("");
 
-let image: HTMLImageElement | null = null;
-let sourceCanvas: HTMLCanvasElement | null = null;
 let startPoint = { x: 0, y: 0 };
 let currentPoint = { x: 0, y: 0 };
-let pressedHoverRect: Rect | null = null;
 let unlistenData: (() => void) | null = null;
+let unlistenReset: (() => void) | null = null;
 
-const scale = computed(() => capture.value?.monitor.scaleFactor || window.devicePixelRatio || 1);
+const scaleX = computed(() => (capture.value?.width || 1) / Math.max(1, window.innerWidth));
+const scaleY = computed(() => (capture.value?.height || 1) / Math.max(1, window.innerHeight));
 const toolbarStyle = computed(() => {
   if (!selectedRect.value || !capture.value) return {};
   const rect = selectedRect.value;
-  const s = scale.value;
-  const cssX = rect.x / s;
-  const cssY = rect.y / s;
-  const cssW = rect.width / s;
-  const cssH = rect.height / s;
+  const cssX = rect.x / scaleX.value;
+  const cssY = rect.y / scaleY.value;
+  const cssW = rect.width / scaleX.value;
+  const cssH = rect.height / scaleY.value;
   const below = cssY + cssH + 44 < window.innerHeight;
   return {
     left: `${Math.min(Math.max(cssX + cssW, 92), window.innerWidth - 92)}px`,
@@ -49,10 +46,9 @@ function clamp(value: number, min: number, max: number) {
 
 function pointFromMouse(e: MouseEvent) {
   const data = capture.value;
-  const s = scale.value;
   return {
-    x: clamp(Math.round(e.clientX * s), 0, data?.width ?? 0),
-    y: clamp(Math.round(e.clientY * s), 0, data?.height ?? 0),
+    x: clamp(Math.round(e.clientX * scaleX.value), 0, data?.width ?? 0),
+    y: clamp(Math.round(e.clientY * scaleY.value), 0, data?.height ?? 0),
   };
 }
 
@@ -67,37 +63,6 @@ function normalizeRect(a: { x: number; y: number }, b: { x: number; y: number })
   };
 }
 
-function clipWindowToMonitor(win: ScreenshotWindow): Rect | null {
-  const data = capture.value;
-  if (!data) return null;
-  const monitor = data.monitor;
-  const x = Math.max(win.x, monitor.x) - monitor.x;
-  const y = Math.max(win.y, monitor.y) - monitor.y;
-  const right = Math.min(win.x + win.width, monitor.x + monitor.width) - monitor.x;
-  const bottom = Math.min(win.y + win.height, monitor.y + monitor.height) - monitor.y;
-  const width = right - x;
-  const height = bottom - y;
-  if (width < 16 || height < 16) return null;
-  return { x, y, width, height };
-}
-
-function rectContains(rect: Rect, point: { x: number; y: number }) {
-  return point.x >= rect.x
-    && point.x <= rect.x + rect.width
-    && point.y >= rect.y
-    && point.y <= rect.y + rect.height;
-}
-
-function findHoverRect(point: { x: number; y: number }) {
-  const data = capture.value;
-  if (!data) return null;
-  for (const win of data.windows) {
-    const rect = clipWindowToMonitor(win);
-    if (rect && rectContains(rect, point)) return rect;
-  }
-  return null;
-}
-
 function drawRect(ctx: CanvasRenderingContext2D, rect: Rect, color = "#16a34a") {
   ctx.save();
   ctx.strokeStyle = color;
@@ -110,25 +75,24 @@ function drawRect(ctx: CanvasRenderingContext2D, rect: Rect, color = "#16a34a") 
 function drawSizeLabel(ctx: CanvasRenderingContext2D, rect: Rect) {
   const label = `${Math.round(rect.width)} x ${Math.round(rect.height)}`;
   ctx.save();
-  ctx.font = `${Math.round(12 * scale.value)}px system-ui, sans-serif`;
+  ctx.font = `${Math.round(12 * scaleX.value)}px system-ui, sans-serif`;
   const metrics = ctx.measureText(label);
-  const paddingX = 6 * scale.value;
-  const labelH = 22 * scale.value;
+  const paddingX = 6 * scaleX.value;
+  const labelH = 22 * scaleY.value;
   const labelW = metrics.width + paddingX * 2;
   const labelX = rect.x;
   const labelY = rect.y > labelH + 6 ? rect.y - labelH - 6 : rect.y + rect.height + 6;
   ctx.fillStyle = "rgba(0, 0, 0, 0.78)";
   ctx.fillRect(labelX, labelY, labelW, labelH);
   ctx.fillStyle = "#fff";
-  ctx.fillText(label, labelX + paddingX, labelY + 15 * scale.value);
+  ctx.fillText(label, labelX + paddingX, labelY + 15 * scaleY.value);
   ctx.restore();
 }
 
 function draw() {
   const canvas = canvasRef.value;
   const data = capture.value;
-  const source = sourceCanvas || image;
-  if (!canvas || !source || !data) return;
+  if (!canvas || !data) return;
 
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
@@ -136,106 +100,65 @@ function draw() {
   canvas.width = data.width;
   canvas.height = data.height;
   ctx.clearRect(0, 0, data.width, data.height);
-  ctx.drawImage(source, 0, 0, data.width, data.height);
-  ctx.fillStyle = "rgba(0, 0, 0, 0.46)";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.32)";
   ctx.fillRect(0, 0, data.width, data.height);
 
-  const activeRect = selectedRect.value || (selecting.value ? normalizeRect(startPoint, currentPoint) : hoverRect.value);
+  const activeRect = selectedRect.value || (selecting.value ? normalizeRect(startPoint, currentPoint) : null);
   if (!activeRect || activeRect.width <= 0 || activeRect.height <= 0) return;
 
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(activeRect.x, activeRect.y, activeRect.width, activeRect.height);
-  ctx.clip();
-  ctx.drawImage(source, 0, 0, data.width, data.height);
-  ctx.restore();
-
-  drawRect(ctx, activeRect, selectedRect.value || selecting.value ? "#22c55e" : "#38bdf8");
+  ctx.clearRect(activeRect.x, activeRect.y, activeRect.width, activeRect.height);
+  drawRect(ctx, activeRect, "#22c55e");
   if (selectedRect.value || selecting.value) drawSizeLabel(ctx, activeRect);
 }
 
-function rgbaBase64ToCanvas(rgba: string, width: number, height: number) {
-  const binary = atob(rgba);
-  const bytes = new Uint8ClampedArray(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
+function resetOverlay() {
+  capture.value = null;
+  selectedRect.value = null;
+  selecting.value = false;
+  copyError.value = "";
+  const canvas = canvasRef.value;
+  if (!canvas) return;
+  canvas.width = 1;
+  canvas.height = 1;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas context unavailable");
-  ctx.putImageData(new ImageData(bytes, width, height), 0, 0);
-  return canvas;
+  ctx?.clearRect(0, 0, 1, 1);
 }
 
 function notifyOverlayReady() {
   draw();
+  const id = capture.value?.id;
+  if (!id) return;
   requestAnimationFrame(() => {
-    emitTo("main", "screenshot-overlay-ready");
+    requestAnimationFrame(() => {
+      emitTo("main", "screenshot-overlay-ready", { id });
+    });
   });
 }
 
 async function handleData(event: Event<ScreenCapture>) {
+  resetOverlay();
   capture.value = event.payload;
-  selectedRect.value = null;
-  hoverRect.value = null;
-  selecting.value = false;
-  copyError.value = "";
-  image = null;
-  sourceCanvas = null;
+  await getCurrentWindow().setIgnoreCursorEvents(false).catch(() => undefined);
 
   await nextTick();
-  if (event.payload.rgba) {
-    try {
-      sourceCanvas = rgbaBase64ToCanvas(event.payload.rgba, event.payload.width, event.payload.height);
-      notifyOverlayReady();
-      return;
-    } catch (e) {
-      console.error("Failed to render raw screenshot:", e);
-    }
-  }
-
-  image = new Image();
-  let fallbackTried = false;
-  image.onload = () => {
-    notifyOverlayReady();
-  };
-  image.onerror = async () => {
-    if (event.payload.imagePath && image && !fallbackTried) {
-      fallbackTried = true;
-      try {
-        image.src = await invoke<string>("screenshot_file_data_url", { imagePath: event.payload.imagePath });
-        return;
-      } catch (e) {
-        console.error("Failed to load screenshot fallback data:", e);
-      }
-    }
-    await emitTo("main", "screenshot-cancelled");
-    await closeOverlay();
-  };
-  image.src = event.payload.data;
+  notifyOverlayReady();
 }
 
 function onMouseMove(e: MouseEvent) {
   e.preventDefault();
-  const point = pointFromMouse(e);
-  currentPoint = point;
+  currentPoint = pointFromMouse(e);
   if (selecting.value) {
     selectedRect.value = null;
-  } else {
-    hoverRect.value = findHoverRect(point);
+    draw();
   }
-  draw();
 }
 
 function onMouseDown(e: MouseEvent) {
   if (e.button !== 0) return;
   e.preventDefault();
   e.stopPropagation();
-  const point = pointFromMouse(e);
-  startPoint = point;
-  currentPoint = point;
-  pressedHoverRect = hoverRect.value;
+  startPoint = pointFromMouse(e);
+  currentPoint = startPoint;
   selecting.value = true;
   selectedRect.value = null;
   draw();
@@ -247,12 +170,8 @@ function onMouseUp(e: MouseEvent) {
   selecting.value = false;
   currentPoint = pointFromMouse(e);
 
-  const dragRect = normalizeRect(startPoint, currentPoint);
-  const moved = Math.max(dragRect.width, dragRect.height);
-  const rect = moved < 5 * scale.value && pressedHoverRect ? pressedHoverRect : dragRect;
-  pressedHoverRect = null;
-
-  if (rect.width < 5 * scale.value || rect.height < 5 * scale.value) {
+  const rect = normalizeRect(startPoint, currentPoint);
+  if (rect.width < 5 * scaleX.value || rect.height < 5 * scaleY.value) {
     selectedRect.value = null;
     draw();
     return;
@@ -266,89 +185,42 @@ function preventNativeDrag(e: globalThis.Event) {
   e.preventDefault();
 }
 
-async function closeOverlay() {
-  await getCurrentWindow().hide();
+function blockWindowDrag(e: MouseEvent) {
+  e.stopPropagation();
 }
 
-function dataUrlToBlob(dataUrl: string): Blob {
-  const [meta, raw] = dataUrl.split(",");
-  const mime = meta.match(/data:(.*?);base64/)?.[1] || "image/png";
-  const binary = atob(raw);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], { type: mime });
-}
-
-async function copyDataUrlToClipboard(dataUrl: string) {
-  if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
-    throw new Error("Clipboard image write is not supported");
-  }
-
-  const blob = dataUrlToBlob(dataUrl);
-  await navigator.clipboard.write([
-    new ClipboardItem({ [blob.type]: blob }),
-  ]);
+async function parkOverlay() {
+  const win = getCurrentWindow();
+  await win.setIgnoreCursorEvents(true).catch(() => undefined);
+  resetOverlay();
 }
 
 async function cancel() {
-  await emitTo("main", "screenshot-cancelled");
-  await closeOverlay();
+  const id = capture.value?.id;
+  await parkOverlay();
+  await emitTo("main", "screenshot-cancelled", { id });
 }
 
 async function confirm() {
   const data = capture.value;
   const rect = selectedRect.value;
-  const source = sourceCanvas || image;
-  if (!data || !source || !rect) return;
+  if (!data || !rect) return;
 
   copyError.value = "";
 
   try {
-    let dataUrl: string;
-    if (data.captureId) {
-      const cropped = await invoke<{ data: string; name: string }>("crop_cached_screenshot", {
-        captureId: data.captureId,
-        x: Math.round(rect.x),
-        y: Math.round(rect.y),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
-      });
-      dataUrl = cropped.data;
-    } else if (data.imagePath) {
-      const cropped = await invoke<{ data: string; name: string }>("crop_screenshot", {
-        imagePath: data.imagePath,
-        x: Math.round(rect.x),
-        y: Math.round(rect.y),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
-      });
-      dataUrl = cropped.data;
-    } else {
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(rect.width);
-      canvas.height = Math.round(rect.height);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      ctx.drawImage(
-        source,
-        Math.round(rect.x),
-        Math.round(rect.y),
-        Math.round(rect.width),
-        Math.round(rect.height),
-        0,
-        0,
-        canvas.width,
-        canvas.height,
-      );
-      dataUrl = canvas.toDataURL("image/png");
-    }
-
-    await copyDataUrlToClipboard(dataUrl);
-    await emitTo("main", "screenshot-complete");
-    await closeOverlay();
+    await parkOverlay();
+    const result = await invoke("get_screenshot_result", {
+      id: data.id,
+      x: Math.round(rect.x),
+      y: Math.round(rect.y),
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+    });
+    await emitTo("main", "screenshot-complete", result);
   } catch (e) {
     console.error("Failed to copy screenshot:", e);
+    await emitTo("main", "screenshot-cancelled", { id: data.id });
     copyError.value = "复制失败，请重试";
   }
 }
@@ -364,11 +236,16 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 onMounted(async () => {
+  document.documentElement.classList.add("screenshot-window");
+  document.body.classList.add("screenshot-window");
+  resetOverlay();
   const win = getCurrentWindow();
   await win.setAlwaysOnTop(true).catch(() => undefined);
   await win.setCursorIcon("crosshair").catch(() => undefined);
   unlistenData = await win.listen<ScreenCapture>("screenshot-data", handleData);
+  unlistenReset = await win.listen("screenshot-reset", resetOverlay);
   window.addEventListener("keydown", onKeydown, true);
+  document.addEventListener("mousedown", blockWindowDrag, false);
   window.addEventListener("dragstart", preventNativeDrag, true);
   window.addEventListener("selectstart", preventNativeDrag, true);
   window.addEventListener("contextmenu", preventNativeDrag, true);
@@ -377,12 +254,14 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   unlistenData?.();
+  unlistenReset?.();
+  document.documentElement.classList.remove("screenshot-window");
+  document.body.classList.remove("screenshot-window");
   window.removeEventListener("keydown", onKeydown, true);
+  document.removeEventListener("mousedown", blockWindowDrag, false);
   window.removeEventListener("dragstart", preventNativeDrag, true);
   window.removeEventListener("selectstart", preventNativeDrag, true);
   window.removeEventListener("contextmenu", preventNativeDrag, true);
-  image = null;
-  sourceCanvas = null;
 });
 </script>
 
@@ -400,7 +279,7 @@ onBeforeUnmount(() => {
       @contextmenu.prevent
     />
     <div v-if="!selectedRect && !selecting" class="screenshot-hint">
-      拖拽选择区域，或单击高亮窗口
+      拖拽选择截图区域
     </div>
     <div v-if="selectedRect" class="screenshot-toolbar" :style="toolbarStyle">
       <button class="screenshot-action confirm" @click="confirm">完成</button>
@@ -415,7 +294,7 @@ onBeforeUnmount(() => {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #000;
+  background: transparent;
   cursor: crosshair;
   user-select: none;
   -webkit-user-select: none;
@@ -432,6 +311,7 @@ onBeforeUnmount(() => {
   -webkit-user-drag: none;
   -webkit-app-region: no-drag;
   touch-action: none;
+  background: transparent;
 }
 
 .screenshot-hint {
