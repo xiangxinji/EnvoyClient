@@ -29,6 +29,8 @@
 .messages::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; opacity: 0.5; }
 .messages::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 .messages :deep(.chat-task-card.task-card) {
+  --task-card-padding-y: var(--space-md);
+  --task-card-padding-x: var(--space-lg);
   flex: 0 0 auto;
   align-self: flex-start;
   width: min(75%, 720px);

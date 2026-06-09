@@ -1,94 +1,30 @@
-/* ── TaskCard — Frosted glass card with status wash ── */
+/* TaskCard - neutral frosted task card */
 
 .task-card {
+  --task-card-padding-y: var(--space-lg);
+  --task-card-padding-x: var(--space-xl);
   width: 100%;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--glass-border);
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--text-primary);
   box-shadow: var(--glass-shadow);
   cursor: pointer;
-  transition: box-shadow 0.3s ease-out, transform 0.25s ease-out, border-color 0.3s, background 0.3s;
+  transition: box-shadow 0.3s ease-out, transform 0.25s ease-out, background 0.3s;
   position: relative;
   overflow: hidden;
-}
-
-/* Top frosted sheen */
-.task-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    transparent 50%
-  );
-  pointer-events: none;
-}
-
-html.dark .task-card::before {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.04) 0%,
-    transparent 40%
-  );
 }
 
 .task-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--glass-shadow-heavy);
-  border-color: rgba(255, 255, 255, 0.6);
-}
-
-html.dark .task-card:hover {
-  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .task-card:active {
   transform: scale(0.98);
   transition-duration: 0.1s;
 }
-
-/* ── Status background wash ── */
-
-.task-card.pending { background: var(--glass-bg); }
-
-.task-card.running {
-  background: linear-gradient(
-    160deg,
-    var(--task-running-bg) 0%,
-    var(--glass-bg) 70%
-  );
-}
-
-.task-card.reviewing {
-  background: linear-gradient(
-    160deg,
-    var(--task-reviewing-bg) 0%,
-    var(--glass-bg) 70%
-  );
-}
-
-.task-card.completed {
-  background: linear-gradient(
-    160deg,
-    var(--task-completed-bg) 0%,
-    var(--glass-bg) 70%
-  );
-}
-
-.task-card.failed {
-  background: linear-gradient(
-    160deg,
-    var(--task-failed-bg) 0%,
-    var(--glass-bg) 70%
-  );
-}
-
-/* ── Status change flash ── */
 
 .task-card.status-flash-running {
   animation: task-flash 0.5s ease-out;
@@ -128,15 +64,11 @@ html.dark .task-card:hover {
   90% { transform: translateX(2px); }
 }
 
-/* ── Card body ── */
-
 .task-body {
-  padding: var(--space-lg) var(--space-xl);
+  padding: var(--task-card-padding-y) var(--task-card-padding-x);
   position: relative;
   z-index: 1;
 }
-
-/* ── Content row: text + pill ── */
 
 .task-content-row {
   display: flex;
@@ -155,8 +87,6 @@ html.dark .task-card:hover {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
-/* ── Status pill ── */
 
 .status-pill {
   flex-shrink: 0;
@@ -202,8 +132,6 @@ html.dark .task-card:hover {
   border-color: var(--task-failed-border);
 }
 
-/* ── Running & Reviewing tag breathing ── */
-
 .status-pill.running,
 .status-pill.reviewing {
   animation: tag-breathe 2.5s ease-in-out infinite;
@@ -213,8 +141,6 @@ html.dark .task-card:hover {
   0%, 100% { opacity: 0.8; }
   50% { opacity: 1; }
 }
-
-/* ── Footer ── */
 
 .task-footer {
   margin-top: var(--space-md);
@@ -239,8 +165,6 @@ html.dark .task-card:hover {
   color: var(--text-muted);
   opacity: 0.4;
 }
-
-/* ── Reduced motion ── */
 
 @media (prefers-reduced-motion: reduce) {
   .task-card,
