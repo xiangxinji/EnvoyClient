@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
-import { useRoute } from "vue-router";
 import TitleBar from "./components/TitleBar";
 import CloseConfirmDialog from "./components/CloseConfirmDialog";
 import SyncIndicator from "./components/SyncIndicator";
@@ -13,17 +12,11 @@ import { isTauri } from "./utils/platform";
 
 useTheme();
 
-const route = useRoute();
 const instance = useTeamClientInstance();
 const username = computed(() => instance.value?.myId ?? undefined);
+
 const { locked, notifyQuitAttempt } = useLockScreen();
 const { triggerScreenshot } = useScreenshot();
-const isScreenshotWindowByUrl = window.location.hash.startsWith("#/screenshot");
-if (isScreenshotWindowByUrl) {
-  document.documentElement.classList.add("screenshot-window");
-  document.body?.classList.add("screenshot-window");
-}
-const isScreenshotWindow = computed(() => isScreenshotWindowByUrl || route.path === "/screenshot");
 
 const showDialog = ref(false);
 
@@ -115,12 +108,9 @@ onMounted(async () => {
     try {
       const { getCurrentWindow } = await import("@tauri-apps/api/window");
       const currentWindow = getCurrentWindow();
-      const isScreenshotRuntimeWindow = currentWindow.label === "screenshot" || isScreenshotWindow.value;
 
       // Show window after content is ready (avoids white flash)
-      if (!isScreenshotRuntimeWindow) await currentWindow.show();
-
-      if (isScreenshotRuntimeWindow) return;
+      await currentWindow.show();
 
       const unlistenFn = await currentWindow.listen(
         "close-requested",
@@ -167,20 +157,19 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="app-container" :class="{ 'screenshot-shell': isScreenshotWindow }">
-    <TitleBar v-if="!isScreenshotWindow" :username="username" @close-requested="handleCloseRequested" />
+  <div class="app-container">
+    <TitleBar :username="username" @close-requested="handleCloseRequested" />
     <router-view v-slot="{ Component }">
-      <transition :name="isScreenshotWindow ? '' : 'page'" mode="out-in">
+      <transition name="page" mode="out-in">
         <component :is="Component" />
       </transition>
     </router-view>
     <CloseConfirmDialog
-      v-if="!isScreenshotWindow"
       v-model="showDialog"
       @hide="onDialogHide"
       @exit="onDialogExit"
     />
-    <SyncIndicator v-if="!isScreenshotWindow" />
+    <SyncIndicator />
   </div>
 </template>
 

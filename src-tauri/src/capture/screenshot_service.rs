@@ -58,16 +58,6 @@ pub struct ScreenshotResult {
     pub bytes: Vec<u8>,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ScreenshotPreview {
-    pub id: String,
-    pub width: u32,
-    pub height: u32,
-    pub mime_type: String,
-    pub bytes: Vec<u8>,
-}
-
 pub struct ScreenshotState {
     service: Arc<Mutex<ScreenshotService>>,
     background_started: AtomicBool,
@@ -129,13 +119,6 @@ impl ScreenshotState {
             .lock()
             .map_err(|_| "Screenshot service lock poisoned".to_string())?
             .get_screenshot_result(id, x, y, width, height)
-    }
-
-    pub fn get_screenshot_preview(&self, id: String) -> Result<ScreenshotPreview, String> {
-        self.service
-            .lock()
-            .map_err(|_| "Screenshot service lock poisoned".to_string())?
-            .get_screenshot_preview(id)
     }
 
     pub fn capture_screenshot_native(&self) -> Result<ScreenshotResult, String> {
@@ -212,22 +195,6 @@ impl ScreenshotService {
         } else {
             self.active_frames.clear();
         }
-    }
-
-    fn get_screenshot_preview(&mut self, id: String) -> Result<ScreenshotPreview, String> {
-        let frame = self
-            .active_frames
-            .get(&id)
-            .ok_or_else(|| "Screenshot session expired".to_string())?;
-        let bgra = compose_virtual_bgra(&frame.bounds, &frame.frames)?;
-        let bytes = encode_bgra_png(&bgra, frame.width, frame.height)?;
-        Ok(ScreenshotPreview {
-            id,
-            width: frame.width,
-            height: frame.height,
-            mime_type: "image/png".to_string(),
-            bytes,
-        })
     }
 
     fn get_screenshot_result(
@@ -417,37 +384,6 @@ fn normalize_to_bgra(
         }
         _ => Err(format!("Unsupported DXGI frame format: {:?}", format)),
     }
-}
-
-fn compose_virtual_bgra(
-    bounds: &VirtualBounds,
-    frames: &[MonitorFrame],
-) -> Result<Vec<u8>, String> {
-    let width = bounds.width as usize;
-    let height = bounds.height as usize;
-    let mut canvas = vec![0u8; width.saturating_mul(height).saturating_mul(4)];
-
-    for frame in frames {
-        let dest_x = frame.monitor.x.saturating_sub(bounds.x).max(0) as usize;
-        let dest_y = frame.monitor.y.saturating_sub(bounds.y).max(0) as usize;
-        let copy_width = (frame.width as usize).min(width.saturating_sub(dest_x));
-        let copy_height = (frame.height as usize).min(height.saturating_sub(dest_y));
-        if copy_width == 0 || copy_height == 0 {
-            continue;
-        }
-
-        let source_stride = frame.width as usize * 4;
-        let dest_stride = width * 4;
-        for row in 0..copy_height {
-            let source_offset = row * source_stride;
-            let dest_offset = (dest_y + row) * dest_stride + dest_x * 4;
-            let bytes = copy_width * 4;
-            canvas[dest_offset..dest_offset + bytes]
-                .copy_from_slice(&frame.bgra[source_offset..source_offset + bytes]);
-        }
-    }
-
-    Ok(canvas)
 }
 
 fn crop_virtual_bgra(

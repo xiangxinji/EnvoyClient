@@ -647,45 +647,6 @@ fn app_exit(app: tauri::AppHandle) {
     app.exit(0);
 }
 
-#[cfg(target_os = "windows")]
-#[tauri::command]
-fn show_screenshot_overlay_instant(app: tauri::AppHandle) -> Result<(), String> {
-    let overlay = app
-        .get_webview_window("screenshot")
-        .ok_or_else(|| "Screenshot overlay window not found".to_string())?;
-    let hwnd = overlay
-        .hwnd()
-        .map_err(|e| format!("Failed to get screenshot overlay hwnd: {}", e))?;
-
-    use windows::Win32::UI::WindowsAndMessaging::{
-        SetWindowPos, HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_SHOWWINDOW,
-    };
-
-    unsafe {
-        SetWindowPos(
-            windows::Win32::Foundation::HWND(hwnd.0 as *mut _),
-            Some(HWND_TOPMOST),
-            0,
-            0,
-            0,
-            0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
-        )
-    }
-    .map_err(|e| format!("Failed to show screenshot overlay: {}", e))
-}
-
-#[cfg(not(target_os = "windows"))]
-#[tauri::command]
-fn show_screenshot_overlay_instant(app: tauri::AppHandle) -> Result<(), String> {
-    let overlay = app
-        .get_webview_window("screenshot")
-        .ok_or_else(|| "Screenshot overlay window not found".to_string())?;
-    overlay
-        .show()
-        .map_err(|e| format!("Failed to show screenshot overlay: {}", e))
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -766,64 +727,12 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Patch screenshot overlay: intercept WM_NCHITTEST to disable native drag.
-            // The overlay is borderless but Windows still allows dragging from edges.
-            // Subclass the window proc to force HTCLIENT on every hit-test.
-            if let Some(overlay) = app.get_webview_window("screenshot") {
-                let hwnd = overlay.hwnd().map(|h| h.0 as isize).unwrap_or(0);
-                if hwnd != 0 {
-                    use std::sync::OnceLock;
-                    use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
-                    use windows::Win32::UI::WindowsAndMessaging::{
-                        CallWindowProcW, DefWindowProcW, SetWindowLongPtrW, GWLP_WNDPROC, WNDPROC,
-                    };
-
-                    static ORIGINAL_WND_PROC: OnceLock<WNDPROC> = OnceLock::new();
-
-                    unsafe extern "system" fn screenshot_wnd_proc(
-                        hwnd: HWND,
-                        msg: u32,
-                        wparam: WPARAM,
-                        lparam: LPARAM,
-                    ) -> LRESULT {
-                        // WM_NCHITTEST = 0x0084. Return HTCLIENT (1) to prevent drag.
-                        if msg == 0x0084 {
-                            return LRESULT(1);
-                        }
-                        if let Some(original) = ORIGINAL_WND_PROC.get().copied().flatten() {
-                            CallWindowProcW(Some(original), hwnd, msg, wparam, lparam)
-                        } else {
-                            DefWindowProcW(hwnd, msg, wparam, lparam)
-                        }
-                    }
-
-                    let original = unsafe {
-                        SetWindowLongPtrW(
-                            windows::Win32::Foundation::HWND(hwnd as *mut _),
-                            GWLP_WNDPROC,
-                            screenshot_wnd_proc as *const () as isize,
-                        )
-                    };
-                    if original != 0 {
-                        let original_proc =
-                            unsafe { std::mem::transmute::<isize, WNDPROC>(original) };
-                        let _ = ORIGINAL_WND_PROC.set(original_proc);
-                    }
-                }
-            }
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
             save_settings,
-            capture::tauri_commands::start_screenshot,
-            capture::tauri_commands::cancel_screenshot,
-            capture::tauri_commands::get_screenshot_result,
-            capture::tauri_commands::get_screenshot_preview,
             capture::tauri_commands::capture_screenshot_native,
-            capture::tauri_commands::get_screenshot_overlay_bounds,
-            show_screenshot_overlay_instant,
             crop_and_copy_to_clipboard,
             shell_exec,
             file_read,

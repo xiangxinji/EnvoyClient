@@ -1,23 +1,27 @@
 use windows::core::w;
 use windows::Win32::Foundation::{COLORREF, HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
-    BeginPaint, CreateSolidBrush, DeleteObject, EndPaint, FillRect, FrameRect, InvalidateRect,
-    PAINTSTRUCT,
+    BeginPaint, BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, CreateSolidBrush, DeleteDC,
+    DeleteObject, EndPaint, FillRect, FrameRect, HDC, InvalidateRect, SelectObject, PAINTSTRUCT,
+    SRCCOPY,
 };
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-    ReleaseCapture, SetCapture, VK_ESCAPE,
-};
+use windows::Win32::UI::Input::KeyboardAndMouse::{ReleaseCapture, SetCapture, VK_ESCAPE};
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetClientRect, GetMessageW,
     GetWindowLongPtrW, LoadCursorW, PostQuitMessage, RegisterClassW, SetLayeredWindowAttributes,
-    SetWindowLongPtrW, ShowWindow, TranslateMessage, CS_HREDRAW, CS_VREDRAW, CREATESTRUCTW,
-    GWLP_USERDATA, IDC_CROSS, LWA_ALPHA, MSG, SW_SHOW, WM_CREATE, WM_DESTROY, WM_KEYDOWN,
-    WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_PAINT, WNDCLASSW, WS_EX_LAYERED,
-    WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    SetWindowLongPtrW, ShowWindow, TranslateMessage, CREATESTRUCTW, CS_HREDRAW, CS_VREDRAW,
+    GWLP_USERDATA, IDC_CROSS, LWA_ALPHA, LWA_COLORKEY, MSG, SW_SHOW, WM_CREATE, WM_DESTROY,
+    WM_ERASEBKGND, WM_KEYDOWN, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_PAINT, WNDCLASSW,
+    WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 
 use super::monitor_manager::VirtualBounds;
+
+const TRANSPARENT_KEY: COLORREF = COLORREF(0x00000000);
+const DIM_COLOR: COLORREF = COLORREF(0x00010101);
+const SELECTION_BORDER_COLOR: COLORREF = COLORREF(0x005ec522);
+const OVERLAY_ALPHA: u8 = 105;
 
 #[derive(Clone, Copy, Debug)]
 pub struct SelectionRect {
@@ -97,10 +101,15 @@ pub fn select_region(bounds: VirtualBounds) -> Result<Option<SelectionRect>, Str
     .map_err(|e| format!("Failed to create native screenshot overlay: {}", e))?;
 
     unsafe {
-        SetLayeredWindowAttributes(hwnd, COLORREF(0), 105, LWA_ALPHA)
-            .map_err(|e| format!("Failed to set overlay alpha: {}", e))?;
+        SetLayeredWindowAttributes(
+            hwnd,
+            TRANSPARENT_KEY,
+            OVERLAY_ALPHA,
+            LWA_ALPHA | LWA_COLORKEY,
+        )
+        .map_err(|e| format!("Failed to set overlay alpha: {}", e))?;
         let _ = ShowWindow(hwnd, SW_SHOW);
-        let _ = InvalidateRect(Some(hwnd), None, true);
+        let _ = InvalidateRect(Some(hwnd), None, false);
     }
 
     let mut msg = MSG::default();
@@ -166,7 +175,7 @@ unsafe extern "system" fn overlay_wnd_proc(
                 state.selected = None;
                 unsafe {
                     SetCapture(hwnd);
-                    let _ = InvalidateRect(Some(hwnd), None, true);
+                    let _ = InvalidateRect(Some(hwnd), None, false);
                 }
             }
             LRESULT(0)
@@ -176,7 +185,7 @@ unsafe extern "system" fn overlay_wnd_proc(
                 if state.selecting {
                     state.current = point_from_lparam(lparam);
                     unsafe {
-                        let _ = InvalidateRect(Some(hwnd), None, true);
+                        let _ = InvalidateRect(Some(hwnd), None, false);
                     }
                 }
             }
@@ -199,7 +208,7 @@ unsafe extern "system" fn overlay_wnd_proc(
                     } else {
                         state.selected = None;
                         unsafe {
-                            let _ = InvalidateRect(Some(hwnd), None, true);
+                            let _ = InvalidateRect(Some(hwnd), None, false);
                         }
                     }
                 }
@@ -210,6 +219,7 @@ unsafe extern "system" fn overlay_wnd_proc(
             paint_overlay(hwnd);
             LRESULT(0)
         }
+        WM_ERASEBKGND => LRESULT(1),
         WM_DESTROY => {
             unsafe {
                 PostQuitMessage(0);
@@ -250,6 +260,79 @@ fn normalized_rect(a: Point, b: Point) -> SelectionRect {
     }
 }
 
+fn fill_rect_with_color(hdc: HDC, rect: &RECT, color: COLORREF) {
+    let brush = unsafe { CreateSolidBrush(color) };
+    if brush.is_invalid() {
+        return;
+    }
+
+    unsafe {
+        FillRect(hdc, rect, brush);
+        let _ = DeleteObject(brush.into()).ok();
+    }
+}
+
+fn draw_overlay(hwnd: HWND, hdc: HDC, client: &RECT) {
+    fill_rect_with_color(hdc, client, TRANSPARENT_KEY);
+
+    let selection = state_from_hwnd(hwnd).and_then(|state| {
+        if !state.selecting {
+            return None;
+        }
+        let selection = normalized_rect(state.start, state.current);
+        (selection.width > 0 && selection.height > 0).then_some(selection)
+    });
+
+    if let Some(selection) = selection {
+        let selected = RECT {
+            left: selection.x as i32,
+            top: selection.y as i32,
+            right: selection.x as i32 + selection.width as i32,
+            bottom: selection.y as i32 + selection.height as i32,
+        };
+
+        let top = RECT {
+            left: client.left,
+            top: client.top,
+            right: client.right,
+            bottom: selected.top.max(client.top),
+        };
+        let bottom = RECT {
+            left: client.left,
+            top: selected.bottom.min(client.bottom),
+            right: client.right,
+            bottom: client.bottom,
+        };
+        let left = RECT {
+            left: client.left,
+            top: selected.top.max(client.top),
+            right: selected.left.max(client.left),
+            bottom: selected.bottom.min(client.bottom),
+        };
+        let right = RECT {
+            left: selected.right.min(client.right),
+            top: selected.top.max(client.top),
+            right: client.right,
+            bottom: selected.bottom.min(client.bottom),
+        };
+
+        fill_rect_with_color(hdc, &top, DIM_COLOR);
+        fill_rect_with_color(hdc, &bottom, DIM_COLOR);
+        fill_rect_with_color(hdc, &left, DIM_COLOR);
+        fill_rect_with_color(hdc, &right, DIM_COLOR);
+
+        let brush = unsafe { CreateSolidBrush(SELECTION_BORDER_COLOR) };
+        if !brush.is_invalid() {
+            unsafe {
+                FrameRect(hdc, &selected, brush);
+                let _ = DeleteObject(brush.into()).ok();
+            }
+        }
+    } else {
+        fill_rect_with_color(hdc, client, DIM_COLOR);
+    }
+}
+
 fn paint_overlay(hwnd: HWND) {
     let mut ps = PAINTSTRUCT::default();
     let hdc = unsafe { BeginPaint(hwnd, &mut ps) };
@@ -262,36 +345,55 @@ fn paint_overlay(hwnd: HWND) {
         let _ = GetClientRect(hwnd, &mut client);
     }
 
-    let dim_brush = unsafe { CreateSolidBrush(COLORREF(0x00000000)) };
-    if !dim_brush.is_invalid() {
+    let width = client.right.saturating_sub(client.left);
+    let height = client.bottom.saturating_sub(client.top);
+    if width <= 0 || height <= 0 {
         unsafe {
-            FillRect(hdc, &client, dim_brush);
-            let _ = DeleteObject(dim_brush.into()).ok();
+            let _ = EndPaint(hwnd, &ps).ok();
         }
+        return;
     }
 
-    if let Some(state) = state_from_hwnd(hwnd) {
-        if state.selecting {
-            let selection = normalized_rect(state.start, state.current);
-            if selection.width > 0 && selection.height > 0 {
-                let rect = RECT {
-                    left: selection.x as i32,
-                    top: selection.y as i32,
-                    right: selection.x as i32 + selection.width as i32,
-                    bottom: selection.y as i32 + selection.height as i32,
-                };
-                let brush = unsafe { CreateSolidBrush(COLORREF(0x005ec522)) };
-                if !brush.is_invalid() {
-                    unsafe {
-                        FrameRect(hdc, &rect, brush);
-                        let _ = DeleteObject(brush.into()).ok();
-                    }
-                }
-            }
+    let mem_dc = unsafe { CreateCompatibleDC(Some(hdc)) };
+    if mem_dc.is_invalid() {
+        draw_overlay(hwnd, hdc, &client);
+        unsafe {
+            let _ = EndPaint(hwnd, &ps).ok();
         }
+        return;
     }
+
+    let bitmap = unsafe { CreateCompatibleBitmap(hdc, width, height) };
+    if bitmap.is_invalid() {
+        unsafe {
+            let _ = DeleteDC(mem_dc);
+        }
+        draw_overlay(hwnd, hdc, &client);
+        unsafe {
+            let _ = EndPaint(hwnd, &ps).ok();
+        }
+        return;
+    }
+
+    let previous_object = unsafe { SelectObject(mem_dc, bitmap.into()) };
+    draw_overlay(hwnd, mem_dc, &client);
 
     unsafe {
+        let _ = BitBlt(
+            hdc,
+            client.left,
+            client.top,
+            width,
+            height,
+            Some(mem_dc),
+            0,
+            0,
+            SRCCOPY,
+        )
+        .ok();
+        SelectObject(mem_dc, previous_object);
+        let _ = DeleteObject(bitmap.into()).ok();
+        let _ = DeleteDC(mem_dc);
         let _ = EndPaint(hwnd, &ps).ok();
     }
 }
