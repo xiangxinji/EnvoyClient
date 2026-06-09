@@ -104,16 +104,18 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
             void handleShortcutFired(combo);
           });
           registeredShortcuts.add(combo);
-          console.log("[shortcut] registered:", combo, "→", comboToTauriShortcut(combo));
         } catch (e: unknown) {
           console.warn("Failed to register global shortcut:", combo, getErrorMessage(e));
+          sendDesktopNotification(
+            i18n.global.t('notification.shortcutTitle'),
+            `${combo}: ${getErrorMessage(e)}`,
+          );
         }
       }
     }
   }
 
   async function handleShortcutFired(combo: string) {
-    console.log("[shortcut] fired:", combo, "recording:", isRecordingShortcut.value);
     if (isRecordingShortcut.value) return;
 
     const s = settings.value;
@@ -165,7 +167,6 @@ export function useGlobalShortcuts(ctx: TeamClientContext) {
     }
 
     if (s.shortcut_screenshot && combo === s.shortcut_screenshot) {
-      console.log("[shortcut] screenshot matched, triggering...");
       try {
         const { useScreenshot } = await import("./useScreenshot");
         await useScreenshot().triggerScreenshot();

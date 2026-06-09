@@ -61,13 +61,14 @@
 }
 
 .group-header {
-  font-size: 0.8em;
-  font-weight: 600;
+  font-size: 0.78em;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding-bottom: var(--space-xs);
-  border-bottom: 1px solid var(--border-light);
+  letter-spacing: 0.6px;
+  padding: var(--space-xs) var(--space-md);
+  padding-left: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 50%, transparent);
 }
 
 .group-tasks {
@@ -108,10 +109,13 @@
   color: var(--accent);
   text-transform: none;
   letter-spacing: normal;
-  padding: 2px 8px;
-  background: var(--glass-bg-light);
+  padding: 2px 10px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   border-radius: var(--radius-sm);
 }
+
+/* ── Action buttons ── */
 
 .manual-execute {
   display: flex;
@@ -119,20 +123,22 @@
 }
 
 .execute-btn {
-  padding: 6px 16px;
+  padding: 7px 20px;
   border: 1px solid var(--accent);
   background: transparent;
   color: var(--accent);
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 0.85em;
+  font-size: 0.84em;
   font-weight: 500;
-  transition: background 0.15s, color 0.15s;
+  letter-spacing: 0.02em;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s;
 }
 
 .execute-btn:hover {
   background: var(--accent);
   color: var(--text-on-accent);
+  box-shadow: 0 2px 12px -2px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .execute-btn:active {
@@ -140,20 +146,22 @@
 }
 
 .abort-btn {
-  padding: 6px 16px;
+  padding: 7px 20px;
   border: 1px solid var(--danger);
   background: transparent;
   color: var(--danger);
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 0.85em;
+  font-size: 0.84em;
   font-weight: 500;
-  transition: background 0.15s, color 0.15s;
+  letter-spacing: 0.02em;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s;
 }
 
 .abort-btn:hover {
   background: var(--danger);
   color: var(--text-on-accent);
+  box-shadow: 0 2px 12px -2px color-mix(in srgb, var(--danger) 40%, transparent);
 }
 
 .abort-btn:active {
@@ -167,20 +175,22 @@
 }
 
 .approve-btn {
-  padding: 6px 16px;
+  padding: 7px 20px;
   border: 1px solid var(--accent);
   background: transparent;
   color: var(--accent);
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 0.85em;
+  font-size: 0.84em;
   font-weight: 500;
-  transition: background 0.15s, color 0.15s;
+  letter-spacing: 0.02em;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s;
 }
 
 .approve-btn:hover {
   background: var(--accent);
   color: var(--text-on-accent);
+  box-shadow: 0 2px 12px -2px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .approve-btn:active {
@@ -188,20 +198,22 @@
 }
 
 .reject-btn {
-  padding: 6px 16px;
+  padding: 7px 20px;
   border: 1px solid var(--danger);
   background: transparent;
   color: var(--danger);
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 0.85em;
+  font-size: 0.84em;
   font-weight: 500;
-  transition: background 0.15s, color 0.15s;
+  letter-spacing: 0.02em;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s;
 }
 
 .reject-btn:hover {
   background: var(--danger);
   color: var(--text-on-accent);
+  box-shadow: 0 2px 12px -2px color-mix(in srgb, var(--danger) 40%, transparent);
 }
 
 .reject-btn:active {
